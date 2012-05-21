@@ -384,8 +384,6 @@ main()
 	done
 	shift $((OPTIND - 1))
 
-	init_env
-
 	TARGET_APPS="$1"
 	case "$TARGET_APPS" in
 		help | '')
@@ -405,4 +403,5 @@ main()
 	${ACTION:-make_tgt_apps}
 }
 
+init_env
 main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"
