@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Some packages expect the C preprocessor to be installed in the /lib directory.
+ln -sv ../usr/bin/cpp $FS_ROOT/lib
+
+# Many packages use the name cc to call the C compiler.
+ln -sv gcc $FS_ROOT/usr/bin/cc

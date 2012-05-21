@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Install the static libraries and headers
+cd $MAKEDIR
+make install-libs
+cd -
+
+# Make the installed static libraries writable so debugging symbols can be removed later
+chmod -v u+w usr/lib/{libcom_err,libe2p,libext2fs,libss}.a
+
+# This package installs a gzipped .info file but doesn't update the system-wide dir file. Unzip this file and then update the system dir file using the following commands.
+#gunzip -v /usr/share/info/libext2fs.info.gz
+#install-info --dir-file=/usr/share/info/dir /usr/share/info/libext2fs.info

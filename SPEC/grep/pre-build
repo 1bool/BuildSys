@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Fix a small problem with a test script
+#sed -i 's/cp/#&/' tests/unibyte-bracket-expr

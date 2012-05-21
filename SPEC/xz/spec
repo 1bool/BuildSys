@@ -1,0 +1,4 @@
+VERSION=5.0.3
+PKG_URL='http://tukaani.org/xz/xz-5.0.3.tar.bz2'
+CONFIGFLAGS='--prefix=/usr --libdir=/lib --docdir=/usr/share/doc/xz-5.0.3'
+MAKEFLAGS+=' pkgconfigdir=/usr/lib/pkgconfig '

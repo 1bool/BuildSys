@@ -1,0 +1,5 @@
+VERSION=4.1.5
+PKG_URL='http://pkg-shadow.alioth.debian.org/releases/shadow-4.1.5.tar.bz2'
+# Fix an issue when running various programs from this package when they are used when the nscd daemon is not running:
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/shadow-4.1.5-nscd-1.patch'
+CONFIGFLAGS='--sysconfdir=/etc'

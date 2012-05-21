@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Apply a sed substitution that will suppress the installation of libiberty.a. The version of libiberty.a provided by Binutils will be used instead.
+sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+
+# For x86 machines, a bootstrap build of GCC uses the -fomit-frame-pointer compiler flag. Non-bootstrap builds omit this flag by default, and the goal should be to produce a compiler that is exactly the same as if it were bootstrapped. Apply the following sed command to force the build to use the flag.
+sed -i 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in
+
+# The fixincludes script is known to occasionally erroneously attempt to "fix" the system headers installed so far. As the headers up to this point are known to not require fixing, issue the following command to prevent the fixincludes script from running.
+sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in

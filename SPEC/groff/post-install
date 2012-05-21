@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Some documentation programs, such as xman, will not work properly without the following symlinks:
+ln -sfv eqn usr/bin/geqn
+ln -sfv tbl usr/bin/gtbl

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Move some programs that do not need to be on the root filesystem:
+mv -v bin/{gzexe,uncompress,zcmp,zdiff,zegrep} usr/bin
+mv -v bin/{zfgrep,zforce,zgrep,zless,zmore,znew} usr/bin

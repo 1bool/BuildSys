@@ -1,0 +1,4 @@
+VERSION=5.0.4
+PKG_URL='http://ftp.gnu.org/gnu/gmp/gmp-5.0.4.tar.xz'
+CONFIGFLAGS='--prefix=/usr --enable-cxx --enable-mpbsd'
+TARGET_INSTALL=n

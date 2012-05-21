@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# There are some packages that expect to find the lex library in /usr/lib.
+ln -sv libfl.a usr/lib/libl.a
+
+# A few programs do not know about flex yet and try to run its predecessor, lex. To support those programs, create a wrapper script named lex that calls flex in lex emulation mode.
+
+cat > usr/bin/lex << "EOF"
+#!/bin/sh
+# Begin /usr/bin/lex
+
+exec /usr/bin/flex -l "$@"
+
+# End /usr/bin/lex
+EOF
+chmod -v 755 usr/bin/lex

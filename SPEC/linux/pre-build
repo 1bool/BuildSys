@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Prepare for compilation:
+make mrproper
+# Use our own config file for kernel
+cp -v "$SPECS/$PKG/config-3.2.0-24-generic" .config

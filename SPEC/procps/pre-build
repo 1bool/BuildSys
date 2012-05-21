@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Fix a bug in the Makefile, which prevents procps from building with make-3.82
+sed -i -e 's@\*/module.mk@proc/module.mk ps/module.mk@' Makefile

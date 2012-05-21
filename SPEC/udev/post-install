@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Create some devices and directories that Udev cannot handle due to them being required very early in the boot process, or by Udev itself
+install -dv lib/{firmware,udev/devices/pts}
+if [ ! -c lib/udev/devices/null ]; then
+	mknod -m0666 lib/udev/devices/null c 1 3
+fi
+
+# Remove an empty documentation directory:
+rmdir -v usr/share/doc/udev
+
+UDEVCONF_DIR=$(basename ${PATCHES[0]})
+UDEVCONF_DIR=${UDEVCONF_DIR%%.*}
+pushd "${PKG_DIR}/${UDEVCONF_DIR}"
+make DESTDIR=$(dirs +1) install
+popd

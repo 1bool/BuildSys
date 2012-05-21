@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Move the shared libraries to the /lib directory, where they are expected to reside.
+mv -v usr/lib/libncursesw.so.5* lib
+# Because the libraries have been moved, one symlink points to a non-existent file. Recreate it.
+ln -sfv ../../lib/libncursesw.so.5 usr/lib/libncursesw.so
+
+# Many applications still expect the linker to be able to find non-wide-character Ncurses libraries. Trick such applications into linking with wide-character libraries by means of symlinks and linker scripts
+for lib in ncurses form panel menu ; do \
+	    rm -vf usr/lib/lib${lib}.so ; \
+		    echo "INPUT(-l${lib}w)" > usr/lib/lib${lib}.so ; \
+			    ln -sfv lib${lib}w.a usr/lib/lib${lib}.a ; \
+			done
+ln -sfv libncurses++w.a usr/lib/libncurses++.a
+
+# make sure that old applications that look for -lcurses at build time are still buildable
+rm -vf usr/lib/libcursesw.so
+echo "INPUT(-lncursesw)" > usr/lib/libcursesw.so
+ln -sfv libncurses.so usr/lib/libcurses.so
+ln -sfv libncursesw.a usr/lib/libcursesw.a
+ln -sfv libncurses.a usr/lib/libcurses.a
+
+# Make will return error when make DESTDIR=<...> install later, prevent it with following:
+find $PKG_DIR -name Makefile | xargs sed -i '/test -z "$(DESTDIR)" && \/sbin\/ldconfig/d'

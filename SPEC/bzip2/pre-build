@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# The following command ensures installation of symbolic links are relative.
+sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
+
+# Prepare Bzip2 for compilation
+make -f Makefile-libbz2_so
+make clean

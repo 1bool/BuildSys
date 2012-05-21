@@ -1,0 +1,2 @@
+VERSION=2.21.1
+PKG_URL='http://www.kernel.org/pub/linux/utils/util-linux/v2.21/util-linux-2.21.1.tar.xz'

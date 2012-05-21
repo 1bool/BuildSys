@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Move a misplaced program to its proper location:
+mv -v usr/bin/passwd bin
+# To enable shadowed passwords, run the following command:
+chroot . pwconv
+# To enable shadowed group passwords, run:
+chroot . grpconv
+
+# /etc/default/useradd Parameter Explanations
+# GROUP=1000
+#     This parameter sets the beginning of the group numbers used in the /etc/group file. You can modify it to anything you desire. Note that useradd will never reuse a UID or GID. If the number identified in this parameter is used, it will use the next available number after this. Note also that if you don't have a group 1000 on your system the first time you use useradd without the -g parameter, you'll get a message displayed on the terminal that says: useradd: unknown GID 1000. You may disregard this message and group number 1000 will be used.
+# 	CREATE_MAIL_SPOOL=yes
+# 	    This parameter causes useradd to create a mailbox file for the newly created user. useradd will make the group ownership of this file to the mail group with 0660 permissions. If you would prefer that these mailbox files are not created by useradd, issue the following command:
+sed -i 's/yes/no/' etc/default/useradd
+
+# Input root 3 times because "root" is too short for passwd to set.
+#chroot . passwd root <<-EOF
+#root
+#root
+#root
+#EOF

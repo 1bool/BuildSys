@@ -1,0 +1,2 @@
+VERSION=2.11
+PKG_URL='http://ftp.gnu.org/gnu/grep/grep-2.11.tar.xz'

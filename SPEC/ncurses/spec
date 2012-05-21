@@ -1,0 +1,6 @@
+VERSION=5.9
+CONFIGFLAGS='--prefix=/usr --with-shared --without-debug --enable-widec'
+PKG_URL='ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz'
+
+#--enable-widec
+#    This switch causes wide-character libraries (e.g., libncursesw.so.5.9) to be built instead of normal ones (e.g., libncurses.so.5.9). These wide-character libraries are usable in both multibyte and traditional 8-bit locales, while normal libraries work properly only in 8-bit locales. Wide-character and normal libraries are source-compatible, but not binary-compatible.

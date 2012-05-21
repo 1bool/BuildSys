@@ -1,0 +1,427 @@
+#!/bin/bash
+# Build script for mecloud, version 0.7.2
+# 
+# Wenbo Wang (1ball.w@gmail.com)
+# 2012.03.28
+
+TIME=$(date +%F-%X)
+
+set -e
+set -E
+set -T
+
+quit()
+{
+	echo "Build failed. Exiting..."
+	exit 1
+}
+
+trap -p quit ERR
+
+unpack()
+{
+	case $2 in
+		tar.gz | tar.bz2 | tar.xz)
+			tar -xvf "$1" -C "$3"
+			;;
+		zip)
+			unzip "$1" -d "$3"
+			;;
+		*)
+			echo "Unkown package format for \"$1\""
+			return 1
+			;;
+	esac
+	return 0
+}
+
+walk_build_dir()
+{
+	local LOOP_ACTION='return'
+	OPTIND=1
+	while getopts "c" FLAG
+	do
+		case "$FLAG" in
+			c)
+				LOOP_ACTION='continue'
+				;;
+		esac
+	done
+	shift $((OPTIND - 1))
+	for PKG in ${BUILD_LIST[@]}; do
+		(
+		set -e; set -E; set -T
+		source ${SPECS}/${PKG}/spec
+		if [ -z "$PKG_FILE_NAME" ]; then
+			if [ -n "$PKG_URL" ]; then
+				PKG_FILE_NAME=${PKG_URL##*/}
+			else
+				echo "Package $PKG undefined. Exiting..."
+				exit 1
+			fi
+		fi
+		if [ -z "$SUFFIX" ]; then
+			SUFFIX=${PKG_FILE_NAME##*.}
+			case $SUFFIX in
+				gz | bz2 | xz)
+					SUFFIX=tar.$SUFFIX
+					;;
+			esac
+		fi
+		if [ -z "$VERSION" ]; then
+			VERSION=${PKG_FILE_NAME%.$SUFFIX}
+			VERSION=${VERSION##*-}
+		fi
+		if [ -z "$PKG_DIR" ]; then
+			PKG_DIR="${BUILD_DIR}/${PKG}-${VERSION}"
+		else
+			PKG_DIR="${BUILD_DIR}/${PKG_DIR}"
+		fi
+		if [ -d $PKG_DIR/.build ]; then
+			MAKEDIR="$PKG_DIR/.build"
+		elif [ -d $PKG_DIR ]; then
+			MAKEDIR="$PKG_DIR"
+		else
+			echo "Directory \"$PKG_DIR\" not found."
+			exit 1
+		fi
+		export PKG PKG_DIR PATCHES VERSION MAKEDIR
+		pushd $MAKEDIR
+		$@ || $LOOPACTION
+		popd
+		)
+	done
+}
+
+build_apps()
+{
+	for PKG in ${BUILD_LIST[@]}; do
+		if [ ! -r ${SPECS}/${PKG}/spec ]; then
+			echo "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}"
+			exit 1
+		fi
+		(
+		source ${SPECS}/${PKG}/spec
+		if [ -z "$PKG_FILE_NAME" ]; then
+			if [ -n "$PKG_URL" ]; then
+				PKG_FILE_NAME=${PKG_URL##*/}
+			else
+				echo "Package $PKG undefined. Exiting..."
+				exit 1
+			fi
+		fi
+		if [ -z "$SUFFIX" ]; then
+			SUFFIX=${PKG_FILE_NAME##*.}
+			case $SUFFIX in
+				gz | bz2 | xz)
+					SUFFIX=tar.$SUFFIX
+					;;
+			esac
+		fi
+		if [ -z "$VERSION" ]; then
+			VERSION=${PKG_FILE_NAME%.$SUFFIX}
+			VERSION=${VERSION##*-}
+		fi
+		if [ -z "$PKG_DIR" ]; then
+			PKG_DIR="${BUILD_DIR}/${PKG}-${VERSION}"
+		else
+			PKG_DIR="${BUILD_DIR}/${PKG_DIR}"
+		fi
+		if [ ! -d "${PKG_DIR}" ]; then
+			if [ ! -r "${SRC_DIR}/${PKG_FILE_NAME}" ] ; then
+				if [ -n "$PKG_URL" ]; then
+					wget -P $SRC_DIR $PKG_URL
+				else
+					echo "Package ${PKG}-${VERSION} not found."
+					exit 1
+				fi
+			fi
+			unpack "${SRC_DIR}/${PKG_FILE_NAME}" $SUFFIX ${BUILD_DIR}
+		fi
+		export PKG PKG_DIR PATCHES VERSION
+		cd ${PKG_DIR}
+		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
+		# pre-build can be used to do patching job
+		if [ ! -f .patched ]; then
+			for PATCH_URL in ${PATCHES[@]}; do
+				PATCH_FILE=${PATCH_URL##*/}
+				if [ ! -r $SPECS/$PKG/$PATCH_FILE ]; then
+					wget -P $SPECS/$PKG/ $PATCH_URL
+				fi
+			done
+			if ls $SPECS/$PKG/*.patch &> /dev/null; then
+				for PATCH_FILE in $SPECS/$PKG/*.patch; do
+					patch -Np1 < $PATCH_FILE
+				done
+			fi
+			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
+			touch .patched
+		fi
+		if [ ! -f .built ]; then
+			if [ -x ${SPECS}/${PKG}/build ]; then
+				${SPECS}/${PKG}/build
+			else
+				if [ -r Makefile ] && [ ! -x configure ]; then
+					make
+					make install
+				elif [ -x configure ]; then
+					if [ ! -f .configured ]; then
+						mkdir -p ${PKG_DIR}/.build
+						cd ${PKG_DIR}/.build
+						../configure ${CONFIGFLAGS}
+						touch ${PKG_DIR}/.configured
+					fi
+					cd ${PKG_DIR}/.build
+					make 
+					make install
+				elif [ -r ${PKG}.pro ]; then
+					qmake
+					make
+				else
+					echo "Don't know how to build package $PKG."
+					exit 1
+				fi
+			fi
+			touch "${PKG_DIR}/.built"
+		fi
+		if [ ! -f $PKG_DIR/.done ]; then
+			# post-install can be used to fix installation problems
+			if [ -x ${SPECS}/${PKG}/post-install ]; then
+				export MAKEDIR=$PWD
+				pushd /
+				${SPECS}/${PKG}/post-install
+				popd
+				unset MAKEDIR
+			fi
+			touch $PKG_DIR/.done
+		else
+			echo "${PKG} has already been built. Skip."
+			exit
+		fi
+		)
+	done
+	echo -e "\nBuild complete."
+}
+
+make_clean_app()
+{
+	make clean
+	cd $PKG_DIR
+	rm -f .done .built
+}
+
+make_distclean_app()
+{
+	make DESTDIR=$FS_ROOT uninstall
+	make distclean || make clean
+	cd $PKG_DIR
+	rm -f .done .built .configured
+}
+
+make_uninstall_app()
+{
+	make uninstall
+	rm -f $PKG_DIR/.done
+}
+
+make_install_tgt_app()
+{
+	if [ "$TARGET_INSTALL" = n ]; then
+		echo "Package $PKG is not required to be installed on target."
+		return
+	fi
+	[ -x $SPECS/$PKG/pre-install ] && $SPECS/$PKG/pre-install
+	if [ $(basename ${PWD}) = '.build' ]; then
+		make DESTDIR=${FS_ROOT} install
+	elif [ "$PKG" != "linux" ]; then
+		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}${PREFIX} prefix=${FS_ROOT}${PREFIX} install
+	fi
+	# post-install can be used to fix target installation problems
+	if [ -x ${SPECS}/${PKG}/post-install ]; then
+		export DESTDIR=${FS_ROOT}
+		pushd "$FS_ROOT"
+		${SPECS}/${PKG}/post-install
+		popd
+		unset DESTDIR
+	fi
+}
+
+clean_apps()
+{
+	walk_build_dir make_clean_app
+	echo -e "\nPackage ${BUILD_LIST[@]} clean complete."
+}
+
+distclean_apps()
+{
+	walk_build_dir -c make_distclean_app
+	echo -e "\nPackage ${BUILD_LIST[@]} dist clean complete."
+}
+
+uninstall_apps()
+{
+	echo -e "\n${BUILD_LIST[@]} are going to be uninstalled.\n"
+	while true; do
+		echo -n "Proceed uninstall? (y/n) "
+		read ANSWER
+		case "$ANSWER" in
+			n | N | no | NO)
+				echo "Uninstall canceled."
+				return
+				;;
+			y | Y | yes | YES)
+				break
+				;;
+			*)
+				;;
+		esac
+	done
+	walk_build_dir make_uninstall_app
+	echo -e "\nPackage ${BUILD_LIST[@]} uninstall complete."
+}
+
+create_dirs()
+{
+	echo -e "\nCreating directories in ${PWD}\n"
+	mkdir -pv {bin,boot,etc/{opt,sysconfig},home,lib,mnt,opt,run}
+	mkdir -pv {media/{floppy,cdrom},sbin,srv,var}
+	install -dv -m 0750 root
+	install -dv -m 1777 tmp var/tmp
+	mkdir -pv usr/{,local/}{bin,include,lib,sbin,src}
+	mkdir -pv usr/{,local/}share/{doc,info,locale,man}
+	mkdir -v  usr/{,local/}share/{misc,terminfo,zoneinfo}
+	mkdir -pv usr/{,local/}share/man/man{1..8}
+	for dir in usr usr/local; do
+		ln -sv share/{man,doc,info} $dir
+	done
+	case $(uname -m) in
+		x86_64) ln -sv lib lib64 && ln -sv lib usr/lib64 ;;
+	esac
+	mkdir -v var/{log,mail,spool}
+	ln -sv run var/run
+	ln -sv run/lock var/lock
+	mkdir -pv var/{opt,cache,lib/{misc,locate},local}
+	# Though it is a harmless message, the install stage of Glibc will complain about the absence of /etc/ld.so.conf. Prevent this warning with:
+	touch etc/ld.so.conf
+}
+
+strip_rootfs()
+{
+	OPATH=$PATH
+	PATH=/tools/bin
+	echo -e "\nStripping file system in $PWD ...\n"
+	set +e
+	find . -name "*.a" | xargs rm -rf
+	find . -name "*.la" | xargs rm -rf
+	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
+	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
+	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man}
+	set -e
+	PATH=$OPATH
+}
+
+make_tgt_apps()
+{
+	build_apps ${BUILD_LIST[@]}
+	pushd $FS_ROOT
+	echo -e "\nCleaning ${FS_ROOT}\n"
+	rm -rfv * .[!.]*
+	[ "$TARGET_APPS" = all ] && create_dirs
+	echo -e "\nInstalling apps into ${FS_ROOT}\n"
+	walk_build_dir make_install_tgt_app
+	strip_rootfs
+	if [ "$TARGET_APPS" = all ] && declare -F configure_system &> /dev/null; then
+		echo -e "\nConfiguring system in $PWD ...\n"
+		configure_system
+	fi
+	popd
+#	cd ${FS_ROOT}${BUILD_DEST}
+#	sudo rm -rf include doc examples demos lib/dbus-1.0/include lib/glib-2.0/include share/doc share/gtk-doc
+#	cd $FS_ROOT
+#	sudo tar -pczvf $MECLOUD_BIN --numeric-owner --owner=root --group=root .
+#	sudo chown $(id -ru):$(id -rg) $MECLOUD_BIN
+	echo -e "\nRootFS generated in $FS_ROOT."
+}
+
+init_env()
+{
+	source ${BUILD_CONF:-build.conf}
+	cd $DEV_ROOT
+	if [ ! -d SPEC ]; then
+		echo "No SPEC directory found"
+		exit 1
+	fi
+	mkdir -vp "$SRC_DIR" "$BUILD_DIR" "$FS_ROOT" logs
+}
+
+print_help_and_exit()
+{
+	echo "Usage: $(basename $0) [Options] [Package Name]"
+	echo "Options can be:"
+	echo "	-f		Specify your build config file (default: build.conf)"
+	echo "	-b		Build only, don't make rootfs"
+	echo "	-c		Clean packages"
+	echo "	-d		Dist clean package build directories and rootfs"
+	echo "	-i <directory>	Install package to <directory>"
+	echo "	-u		Uninstall package from build system (Caution: this may break build system)"
+	echo "	-h		Print this help"
+	echo "Target can be:"
+	echo "	\"all\" - Build all packages specified in SPECS/build_config"
+	echo "	\"package name\" - Single or multiple package names overriding build_config"
+	exit
+}
+
+main()
+{
+	echo -e "Executing $0 $@ at ${TIME}\n"
+	while getopts "bcdf:hi:u" OPT
+	do
+		case "$OPT" in
+			b)
+				ACTION=build_apps
+				;;
+			c)
+				ACTION=clean_apps
+				;;
+			d)
+				ACTION=distclean_apps
+				;;
+			f)
+				BUILD_CONF="$OPTARG"
+				;;
+			i)
+				ACTION=make_tgt_apps
+				export FS_ROOT="$OPTARG"
+				;;
+			u)
+				ACTION=uninstall_apps
+				;;
+			h | *)
+				print_help_and_exit
+				;;
+		esac
+	done
+	shift $((OPTIND - 1))
+
+	init_env
+
+	TARGET_APPS="$1"
+	case "$TARGET_APPS" in
+		help | '')
+			print_help_and_exit
+			;;
+		all)
+			if [ "${#BUILD_LIST[@]}" = 0 ]; then
+				echo "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
+				exit 1
+			fi
+			;;
+		*)
+			BUILD_LIST=($@)
+			;;
+	esac
+
+	${ACTION:-make_tgt_apps}
+}
+
+main $@ 2>&1 | tee logs/build-$TIME.log

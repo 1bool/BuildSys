@@ -1,0 +1,7 @@
+VERSION=8.16
+PKG_URL='http://ftp.gnu.org/gnu/coreutils/coreutils-8.16.tar.xz'
+CONFIGFLAGS='--prefix=/usr --libexecdir=/usr/lib --enable-no-install-program=kill,uptime'
+# POSIX requires that programs from Coreutils recognize character boundaries correctly even in multibyte locales. The following patch fixes this non-compliance and other internationalization-related bugs
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/coreutils-8.16-i18n-1.patch'
+FORCE_UNSAFE_CONFIGURE=1
+export FORCE_UNSAFE_CONFIGURE

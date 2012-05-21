@@ -1,0 +1,10 @@
+VERSION=1.15.2
+PKG_URL='http://anduin.linuxfromscratch.org/sources/LFS/lfs-packages/conglomeration/kbd/kbd-1.15.2.tar.gz'
+
+# The behaviour of the Backspace and Delete keys is not consistent across the keymaps in the Kbd package.
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/kbd-1.15.2-backspace-1.patch'
+
+CONFIGFLAGS='--prefix=/usr --datadir=/lib/kbd'
+#--datadir=/lib/kbd
+#    This option puts keyboard layout data in a directory that will always be on the root partition instead of the default /usr/share/kbd.
+

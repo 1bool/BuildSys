@@ -1,0 +1,4 @@
+VERSION=2.14.1
+PKG_URL='http://ftp.gnu.org/gnu/glibc/glibc-2.14.1.tar.bz2'
+CONFIGFLAGS='--prefix=/usr --disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc'
+PATCHES=('http://www.linuxfromscratch.org/patches/lfs/7.1/glibc-2.14.1-fixes-1.patch' 'http://www.linuxfromscratch.org/patches/lfs/7.1/glibc-2.14.1-sort-1.patch' 'http://www.linuxfromscratch.org/patches/lfs/7.1/glibc-2.14.1-gcc_fix-1.patch' 'http://www.linuxfromscratch.org/patches/lfs/7.1/glibc-2.14.1-cpuid-1.patch')

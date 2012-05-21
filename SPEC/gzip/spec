@@ -1,0 +1,3 @@
+VERSION=1.4
+PKG_URL='http://ftp.gnu.org/gnu/gzip/gzip-1.4.tar.gz'
+CONFIGFLAGS='--prefix=/usr --bindir=/bin'

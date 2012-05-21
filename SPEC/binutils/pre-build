@@ -1,0 +1,7 @@
+#!/bin/sh
+# Suppress the installation of an outdated standards.info file as a newer one is installed later on in the Autoconf instructions
+rm -fv etc/standards.info
+sed -i.bak '/^INFO/s/standards.info //' etc/Makefile.in
+# Fix a couple of the tests, which fail when using GCC-4.7.0 
+sed -i "/exception_defines.h/d" ld/testsuite/ld-elf/new.cc
+sed -i "s/-fvtable-gc //" ld/testsuite/ld-selective/selective.exp

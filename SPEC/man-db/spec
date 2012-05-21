@@ -1,0 +1,24 @@
+VERSION=2.6.1
+PKG_URL='http://download.savannah.gnu.org/releases/man-db/man-db-2.6.1.tar.gz'
+PKG_CONFIG=/tools/bin/true
+libpipeline_CFLAGS=''
+libpipeline_LIBS='-lpipeline'
+CONFIGFLAGS="--prefix=/usr                       \
+			--libexecdir=/usr/lib                \
+			--docdir=/usr/share/doc/man-db-2.6.1 \
+			--sysconfdir=/etc                    \
+			--disable-setuid                     \
+			--with-browser=/usr/bin/lynx         \
+			--with-vgrind=/usr/bin/vgrind        \
+			--with-grap=/usr/bin/grap"
+
+#PKG_CONFIG=, libpipeline_ ...
+#    These environment variables allow the configuration process to complete without the external pkg-config program.
+#--disable-setuid
+#    This disables making the man program setuid to user man.
+#--with-...
+#    These three parameters are used to set some default programs. lynx is a text-based web browser (see BLFS for installation instructions), vgrind converts program sources to Groff input, and grap is useful for typesetting graphs in Groff documents. The vgrind and grap programs are not normally needed for viewing manual pages. They are not part of LFS or BLFS, but you should be able to install them yourself after finishing LFS if you wish to do so.
+
+TARGET_INSTALL=n
+DEPENDENCE=libpipeline
+export PKG_CONFIG libpipeline_CFLAGS libpipeline_LIBS

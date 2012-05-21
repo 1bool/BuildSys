@@ -1,0 +1,10 @@
+VERSION=6.2
+PKG_URL='http://ftp.gnu.org/gnu/readline/readline-6.2.tar.gz'
+CONFIGFLAGS='--prefix=/usr --libdir=/lib'
+
+# Patch to fix a known bug that has been fixed upstream
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/readline-6.2-fixes-1.patch'
+
+# This option forces Readline to link against the libncurses (really, libncursesw) library.
+SHLIB_LIBS=-lncurses
+export SHLIB_LIBS

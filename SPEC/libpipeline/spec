@@ -1,0 +1,3 @@
+VERSION=1.2.1
+PKG_URL='http://download.savannah.gnu.org/releases/libpipeline/libpipeline-1.2.1.tar.gz'
+TARGET_INSTALL=n

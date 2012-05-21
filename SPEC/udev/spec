@@ -1,0 +1,32 @@
+PKG_URL='http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev-182.tar.xz'
+VERSION=182
+# Not really a patch, but config files:
+PATCHES='http://www.linuxfromscratch.org/lfs/downloads/development/udev-config-20100128.tar.bz2'
+CONFIGFLAGS="--prefix=/usr           \
+			 --with-rootprefix=''    \
+			 --bindir=/sbin          \
+			 --sysconfdir=/etc       \
+			 --libexecdir=/lib       \
+			 --disable-gtk-doc       \
+			 --disable-gtk-doc-html  \
+			 --disable-gtk-doc-pdf   \
+			 --enable-rule_generator \
+			 --disable-introspection \
+			 --disable-keymap        \
+			 --disable-gudev         \
+			 --without-usb-ids-path  \
+			 --without-pci-ids-path  \
+			 --without-systemdsystemunitdir"
+#--libexecdir=/lib
+#    This controls where Udev-internal rules and helper programs are installed.
+#--enable-rule_generator
+#    This allows persistent rules to be generated for network and optical media devices
+#--disable-* and --with-*
+#    These options prevent Udev from installing helper programs and other extras which require more external libraries. These libraries are not part of the base LFS system. See the Udev README file for more information.
+
+# Since pkg-config has not been installed yet, we'll have to specify library locations.
+BLKID_CFLAGS="-I/usr/include/blkid"
+BLKID_LIBS="-L/lib -lblkid"
+KMOD_CFLAGS="-I/usr/include"
+KMOD_LIBS="-L/lib -lkmod"
+export BLKID_CFLAGS BLKID_LIBS KMOD_CFLAGS KMOD_LIBS

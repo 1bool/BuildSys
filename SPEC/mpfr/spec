@@ -1,0 +1,4 @@
+VERSION=3.1.0
+PKG_URL='http://www.mpfr.org/mpfr-3.1.0/mpfr-3.1.0.tar.bz2'
+CONFIGFLAGS='--prefix=/usr --enable-thread-safe --docdir=/usr/share/doc/mpfr-3.1.0'
+TARGET_INSTALL=n
