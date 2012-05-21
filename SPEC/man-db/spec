@@ -20,5 +20,5 @@ CONFIGFLAGS="--prefix=/usr                       \
 #    These three parameters are used to set some default programs. lynx is a text-based web browser (see BLFS for installation instructions), vgrind converts program sources to Groff input, and grap is useful for typesetting graphs in Groff documents. The vgrind and grap programs are not normally needed for viewing manual pages. They are not part of LFS or BLFS, but you should be able to install them yourself after finishing LFS if you wish to do so.
 
 TARGET_INSTALL=n
-DEPENDENCE=libpipeline
+DEPS=libpipeline
 export PKG_CONFIG libpipeline_CFLAGS libpipeline_LIBS

@@ -187,6 +187,7 @@ build_apps()
 		if [ ! -f $PKG_DIR/.done ]; then
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
+				[ -d .build ] && cd .build
 				export MAKEDIR=$PWD
 				pushd /
 				${SPECS}/${PKG}/post-install
@@ -238,7 +239,7 @@ make_install_tgt_app()
 	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
-		export DESTDIR=${FS_ROOT}
+		export DESTDIR="${FS_ROOT}" MAKEDIR="$PWD"
 		pushd "$FS_ROOT"
 		${SPECS}/${PKG}/post-install
 		popd
@@ -280,31 +281,6 @@ uninstall_apps()
 	echo -e "\nPackage ${BUILD_LIST[@]} uninstall complete."
 }
 
-create_dirs()
-{
-	echo -e "\nCreating directories in ${PWD}\n"
-	mkdir -pv {bin,boot,etc/{opt,sysconfig},home,lib,mnt,opt,run}
-	mkdir -pv {media/{floppy,cdrom},sbin,srv,var}
-	install -dv -m 0750 root
-	install -dv -m 1777 tmp var/tmp
-	mkdir -pv usr/{,local/}{bin,include,lib,sbin,src}
-	mkdir -pv usr/{,local/}share/{doc,info,locale,man}
-	mkdir -v  usr/{,local/}share/{misc,terminfo,zoneinfo}
-	mkdir -pv usr/{,local/}share/man/man{1..8}
-	for dir in usr usr/local; do
-		ln -sv share/{man,doc,info} $dir
-	done
-	case $(uname -m) in
-		x86_64) ln -sv lib lib64 && ln -sv lib usr/lib64 ;;
-	esac
-	mkdir -v var/{log,mail,spool}
-	ln -sv run var/run
-	ln -sv run/lock var/lock
-	mkdir -pv var/{opt,cache,lib/{misc,locate},local}
-	# Though it is a harmless message, the install stage of Glibc will complain about the absence of /etc/ld.so.conf. Prevent this warning with:
-	touch etc/ld.so.conf
-}
-
 strip_rootfs()
 {
 	OPATH=$PATH
@@ -326,14 +302,13 @@ make_tgt_apps()
 	pushd $FS_ROOT
 	echo -e "\nCleaning ${FS_ROOT}\n"
 	rm -rfv * .[!.]*
-	[ "$TARGET_APPS" = all ] && create_dirs
-	echo -e "\nInstalling apps into ${FS_ROOT}\n"
-	walk_build_dir make_install_tgt_app
-	strip_rootfs
 	if [ "$TARGET_APPS" = all ] && declare -F configure_system &> /dev/null; then
 		echo -e "\nConfiguring system in $PWD ...\n"
 		configure_system
 	fi
+	echo -e "\nInstalling apps into ${FS_ROOT}\n"
+	walk_build_dir make_install_tgt_app
+	strip_rootfs
 	popd
 #	cd ${FS_ROOT}${BUILD_DEST}
 #	sudo rm -rf include doc examples demos lib/dbus-1.0/include lib/glib-2.0/include share/doc share/gtk-doc
@@ -346,12 +321,18 @@ make_tgt_apps()
 init_env()
 {
 	source ${BUILD_CONF:-build.conf}
-	cd $DEV_ROOT
+	cd "$DEV_ROOT"
 	if [ ! -d SPEC ]; then
 		echo "No SPEC directory found"
 		exit 1
 	fi
 	mkdir -vp "$SRC_DIR" "$BUILD_DIR" "$FS_ROOT" logs
+	if [ ! -f /.first_config ]; then
+		pushd /
+		configure_system
+		touch /.first_config
+		popd
+	fi
 }
 
 print_help_and_exit()
@@ -424,4 +405,4 @@ main()
 	${ACTION:-make_tgt_apps}
 }
 
-main $@ 2>&1 | tee logs/build-$TIME.log
+main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"

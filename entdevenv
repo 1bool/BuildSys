@@ -1,20 +1,24 @@
 #!/bin/bash
 
-if [ -z "$1" ] || [ -z "$2" ] ; then
-	echo "Usage: $0 [env file] [mount point] [dev root dir]"
-	exit 1
-fi
-
 if [ "$EUID" != 0 ]; then
 	echo "You have to be root to run $0"
 	exit 1
 fi
 
+if [ -z "$1" ]; then
+	DEVROOT="$(pwd)"
+else
+	DEVROOT="$1"
+fi
+SDE="${DEVROOT}/SDE"
+[ -d "$SDE" ] || mkdir "$SDE"
+
 quit()
 {
-	DIRS=$(dirs -p | sed '1d')
+	set +e
+	DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
-		umount -v "$DIR"
+		umount -v $DIR
 	done
 }
 
@@ -22,24 +26,22 @@ trap quit EXIT
 
 set -e
 dirs -c
-mount -vo loop -t ext4 "$1" "$2"
-pushd -n $2 &> /dev/null
-mount -v --bind /dev "$2/dev"
-pushd -n "$2/dev" &> /dev/null
-mount -vt devpts devpts "$2/dev/pts"
-pushd -n "$2/dev/pts" &> /dev/null
-mount -vt tmpfs shm "$2/dev/shm"
-pushd -n "$2/dev/shm" &> /dev/null
-mount -vt proc proc "$2/proc"
-pushd -n "$2/proc" &> /dev/null
-mount -vt sysfs sysfs "$2/sys"
-pushd -n "$2/sys" &> /dev/null
-if [ -n "$3" ]; then
-	mount -v --bind $3 "$2/root"
-	pushd -n "$2/root" &> /dev/null
-fi
-#linux32 chroot "$2" su - lfs
-linux32 /usr/sbin/chroot "$2" /tools/bin/env -i \
+mount -vo loop -t ext4 "$DEVROOT/buildsys.ext4" "$SDE"
+pushd -n "$SDE" &> /dev/null
+mount -v --bind /dev "$SDE/dev"
+pushd -n "$SDE/dev" &> /dev/null
+mount -vt devpts devpts "$SDE/dev/pts"
+pushd -n "$SDE/dev/pts" &> /dev/null
+mount -vt tmpfs shm "$SDE/dev/shm"
+pushd -n "$SDE/dev/shm" &> /dev/null
+mount -vt proc proc "$SDE/proc"
+pushd -n "$SDE/proc" &> /dev/null
+mount -vt sysfs sysfs "$SDE/sys"
+pushd -n "$SDE/sys" &> /dev/null
+mount -v --bind "$DEVROOT" "$SDE/root"
+pushd -n "$SDE/root" &> /dev/null
+#linux32 chroot "$SDE" su - lfs
+linux32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
     /tools/bin/bash --login +h
