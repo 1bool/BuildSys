@@ -1,8 +1,5 @@
 #!/bin/bash
-# Build script for mecloud, version 0.7.2
-# 
 # Wenbo Wang (1ball.w@gmail.com)
-# 2012.03.28
 
 TIME=$(date +%F-%X)
 
