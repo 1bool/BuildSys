@@ -346,7 +346,7 @@ print_help_and_exit()
 
 main()
 {
-	echo -e "Executing $0 $@ at ${TIME}\n"
+	echo -e "Executing \"$0 $@\" at ${TIME}\n"
 	GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,config:,help -n "$0" -- "$@")
 	[ $? != 0 ] && print_help_and_exit
 	eval set -- "$GETOPTS"
