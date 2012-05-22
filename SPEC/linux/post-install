@@ -2,7 +2,7 @@
 
 # Install the modules, if the kernel configuration uses them:
 pushd "$MAKEDIR"
-make DESTDIR=$(dirs +1) modules_install
+make INSTALL_MOD_PATH=$(dirs +1) modules_install
 popd
 
 # Make /boot dir for kernel installation

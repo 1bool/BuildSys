@@ -9,7 +9,7 @@ set -T
 
 quit()
 {
-	echo "Build failed. Exiting..."
+	echo "Build failed. Exiting..." >&2
 	exit 1
 }
 
@@ -25,7 +25,7 @@ unpack()
 			unzip "$1" -d "$3"
 			;;
 		*)
-			echo "Unkown package format for \"$1\""
+			echo "Unkown package format for \"$1\"" >&2
 			return 1
 			;;
 	esac
@@ -53,7 +53,7 @@ walk_build_dir()
 			if [ -n "$PKG_URL" ]; then
 				PKG_FILE_NAME=${PKG_URL##*/}
 			else
-				echo "Package $PKG undefined. Exiting..."
+				echo "Package $PKG undefined. Exiting..." >&2
 				exit 1
 			fi
 		fi
@@ -79,7 +79,7 @@ walk_build_dir()
 		elif [ -d $PKG_DIR ]; then
 			MAKEDIR="$PKG_DIR"
 		else
-			echo "Directory \"$PKG_DIR\" not found."
+			echo "Directory \"$PKG_DIR\" not found." >&2
 			exit 1
 		fi
 		export PKG PKG_DIR PATCHES VERSION MAKEDIR
@@ -94,7 +94,7 @@ build_apps()
 {
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
-			echo "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}"
+			echo "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
 			exit 1
 		fi
 		(
@@ -103,7 +103,7 @@ build_apps()
 			if [ -n "$PKG_URL" ]; then
 				PKG_FILE_NAME=${PKG_URL##*/}
 			else
-				echo "Package $PKG undefined. Exiting..."
+				echo "Package $PKG undefined. Exiting..." >&2
 				exit 1
 			fi
 		fi
@@ -129,7 +129,7 @@ build_apps()
 				if [ -n "$PKG_URL" ]; then
 					wget -P $SRC_DIR $PKG_URL
 				else
-					echo "Package ${PKG}-${VERSION} not found."
+					echo "Package ${PKG}-${VERSION} not found." >&2
 					exit 1
 				fi
 			fi
@@ -175,7 +175,7 @@ build_apps()
 					qmake
 					make
 				else
-					echo "Don't know how to build package $PKG."
+					echo "Don't know how to build package $PKG." >&2
 					exit 1
 				fi
 			fi
@@ -320,7 +320,7 @@ init_env()
 	source ${BUILD_CONF:-build.conf}
 	cd "$DEV_ROOT"
 	if [ ! -d SPEC ]; then
-		echo "No SPEC directory found"
+		echo "No SPEC directory found" >&2
 		exit 1
 	fi
 	mkdir -vp "$SRC_DIR" "$BUILD_DIR" "$FS_ROOT" logs
@@ -334,14 +334,15 @@ init_env()
 
 print_help_and_exit()
 {
+	exec >&2
 	echo "Usage: $(basename $0) [Options] [Package Name]"
 	echo "Options can be:"
 	echo "	-f		Specify your build config file (default: build.conf)"
 	echo "	-b		Build only, don't make rootfs"
-	echo "	-c		Clean packages"
-	echo "	-d		Dist clean package build directories and rootfs"
+	echo "	--clean		Clean packages"
+	echo "	--distclean		Dist clean package build directories and rootfs"
 	echo "	-i <directory>	Install package to <directory>"
-	echo "	-u		Uninstall package from build system (Caution: this may break build system)"
+	echo "	--uninstall		Uninstall package from build system (Caution: this may break build system)"
 	echo "	-h		Print this help"
 	echo "Target can be:"
 	echo "	\"all\" - Build all packages specified in SPECS/build_config"
@@ -352,43 +353,45 @@ print_help_and_exit()
 main()
 {
 	echo -e "Executing $0 $@ at ${TIME}\n"
-	while getopts "bcdf:hi:u" OPT
-	do
-		case "$OPT" in
-			b)
-				ACTION=build_apps
+	GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,config:,help -n "$0" -- "$@")
+	[ $? != 0 ] && print_help_and_exit
+	eval set -- "$GETOPTS"
+	while true; do
+		case "$1" in
+			-b)
+				ACTION=build_apps; shift
 				;;
-			c)
-				ACTION=clean_apps
+			--clean)
+				ACTION=clean_apps; shift
 				;;
-			d)
-				ACTION=distclean_apps
+			--distclean)
+				ACTION=distclean_apps; shift
 				;;
-			f)
-				BUILD_CONF="$OPTARG"
+			-f|--config)
+				BUILD_CONF="$2"; shift 2
 				;;
-			i)
-				ACTION=make_tgt_apps
-				export FS_ROOT="$OPTARG"
+			--uninstall)
+				ACTION=uninstall_apps; shift
 				;;
-			u)
-				ACTION=uninstall_apps
+			-h|--help)
+				print_help_and_exit
 				;;
-			h | *)
+			--)
+				shift ; break
+				;;
+			*)
 				print_help_and_exit
 				;;
 		esac
 	done
-	shift $((OPTIND - 1))
-
-	TARGET_APPS="$1"
+	TARGET_APPS="$@"
 	case "$TARGET_APPS" in
 		help | '')
 			print_help_and_exit
 			;;
 		all)
 			if [ "${#BUILD_LIST[@]}" = 0 ]; then
-				echo "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
+				echo "No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
 				exit 1
 			fi
 			;;
