@@ -1,9 +1,10 @@
 #!/bin/sh
 
 # Install the modules, if the kernel configuration uses them:
-pushd "$MAKEDIR"
-make INSTALL_MOD_PATH=$(dirs +1) modules_install
-popd
+export INSTALL_MOD_PATH=$PWD
+cd "$MAKEDIR"
+make modules_install
+cd -
 
 # Make /boot dir for kernel installation
 install -v -m755 -d boot

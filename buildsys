@@ -17,12 +17,17 @@ trap -p quit ERR
 
 unpack()
 {
+	if [ -n "$3" ]; then
+		TGT_DIR="$3"
+	else
+		TGT_DIR=.
+	fi
 	case $2 in
 		tar.gz | tar.bz2 | tar.xz)
-			tar -xvf "$1" -C "$3"
+			tar -xvf "$1" -C "$TGT_DIR"
 			;;
 		zip)
-			unzip "$1" -d "$3"
+			unzip "$1" -d "$TGT_DIR"
 			;;
 		*)
 			echo "Unkown package format for \"$1\"" >&2
@@ -30,6 +35,38 @@ unpack()
 			;;
 	esac
 	return 0
+}
+
+guess_pkg_from_url()
+{
+	[ -z "$1" ] && return 1
+
+	if [ -z "$PKG_FILE_NAME" ]; then
+		PKG_FILE_NAME="${1##*/}"
+	fi
+	if [ -z "$SUFFIX" ]; then
+		SUFFIX="${PKG_FILE_NAME##*.}"
+		case "$SUFFIX" in
+			gz | bz2 | xz)
+				SUFFIX="tar.$SUFFIX"
+				;;
+		esac
+	fi
+	if [ -z "$VERSION" ]; then
+		VERSION="${PKG_FILE_NAME%.$SUFFIX}"
+		VERSION="${VERSION##*-}"
+	fi
+	if [ -z "$PKG_NAME" ]; then
+		PKG_NAME="${PKG_FILE_NAME%.$SUFFIX}"
+		PKG_NAME="${PKG_NAME%-*}"
+		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
+	fi
+	if [ -z "$PKG_DIR" ]; then
+		PKG_DIR="${SRC_DIR}/${PKG}/${PKG_NAME}-${VERSION}"
+	else
+		PKG_DIR="${SRC_DIR}/${PKG}/${PKG_DIR}"
+	fi
+	export PKG_FILE_NAME SUFFIX VERSION PKG_NAME PKG_DIR
 }
 
 walk_build_dir()
@@ -49,40 +86,16 @@ walk_build_dir()
 		(
 		set -e; set -E; set -T
 		source ${SPECS}/${PKG}/spec
-		if [ -z "$PKG_FILE_NAME" ]; then
-			if [ -n "$PKG_URL" ]; then
-				PKG_FILE_NAME=${PKG_URL##*/}
-			else
-				echo "Package $PKG undefined. Exiting..." >&2
-				exit 1
-			fi
-		fi
-		if [ -z "$SUFFIX" ]; then
-			SUFFIX=${PKG_FILE_NAME##*.}
-			case $SUFFIX in
-				gz | bz2 | xz)
-					SUFFIX=tar.$SUFFIX
-					;;
-			esac
-		fi
-		if [ -z "$VERSION" ]; then
-			VERSION=${PKG_FILE_NAME%.$SUFFIX}
-			VERSION=${VERSION##*-}
-		fi
-		if [ -z "$PKG_DIR" ]; then
-			PKG_DIR="${BUILD_DIR}/${PKG}-${VERSION}"
-		else
-			PKG_DIR="${BUILD_DIR}/${PKG_DIR}"
-		fi
-		if [ -d $PKG_DIR/.build ]; then
-			MAKEDIR="$PKG_DIR/.build"
+		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
+		if [ -d "$SRC_DIR/$PKG/build" ]; then
+			MAKEDIR="$SRC_DIR/$PKG/build"
 		elif [ -d $PKG_DIR ]; then
 			MAKEDIR="$PKG_DIR"
 		else
-			echo "Directory \"$PKG_DIR\" not found." >&2
+			echo "Make directory for \"$PKG\" not found." >&2
 			exit 1
 		fi
-		export PKG PKG_DIR PATCHES VERSION MAKEDIR
+		export PATCHES MAKEDIR
 		pushd $MAKEDIR
 		$@ || $LOOPACTION
 		popd
@@ -99,62 +112,41 @@ build_apps()
 		fi
 		(
 		source ${SPECS}/${PKG}/spec
-		if [ -z "$PKG_FILE_NAME" ]; then
-			if [ -n "$PKG_URL" ]; then
-				PKG_FILE_NAME=${PKG_URL##*/}
-			else
-				echo "Package $PKG undefined. Exiting..." >&2
-				exit 1
-			fi
-		fi
-		if [ -z "$SUFFIX" ]; then
-			SUFFIX=${PKG_FILE_NAME##*.}
-			case $SUFFIX in
-				gz | bz2 | xz)
-					SUFFIX=tar.$SUFFIX
-					;;
-			esac
-		fi
-		if [ -z "$VERSION" ]; then
-			VERSION=${PKG_FILE_NAME%.$SUFFIX}
-			VERSION=${VERSION##*-}
-		fi
-		if [ -z "$PKG_DIR" ]; then
-			PKG_DIR="${BUILD_DIR}/${PKG}-${VERSION}"
-		else
-			PKG_DIR="${BUILD_DIR}/${PKG_DIR}"
-		fi
+		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
+		mkdir -p ${SRC_DIR}/${PKG}
+		cd ${SRC_DIR}/${PKG}
 		if [ ! -d "${PKG_DIR}" ]; then
-			if [ ! -r "${SRC_DIR}/${PKG_FILE_NAME}" ] ; then
+			if [ ! -r "${PKG_FILE_NAME}" ] ; then
 				if [ -n "$PKG_URL" ]; then
-					wget -P $SRC_DIR $PKG_URL
+					wget $PKG_URL
 				else
-					echo "Package ${PKG}-${VERSION} not found." >&2
+					echo "Package ${PKG_NAME}-${VERSION} not found." >&2
 					exit 1
 				fi
 			fi
-			unpack "${SRC_DIR}/${PKG_FILE_NAME}" $SUFFIX ${BUILD_DIR}
+			unpack "${PKG_FILE_NAME}" $SUFFIX
 		fi
-		export PKG PKG_DIR PATCHES VERSION
-		cd ${PKG_DIR}
+		export PATCHES
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
 		# pre-build can be used to do patching job
 		if [ ! -f .patched ]; then
+			[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch .
 			for PATCH_URL in ${PATCHES[@]}; do
 				PATCH_FILE=${PATCH_URL##*/}
-				if [ ! -r $SPECS/$PKG/$PATCH_FILE ]; then
-					wget -P $SPECS/$PKG/ $PATCH_URL
-				fi
+				[ ! -r $PATCH_FILE ] && wget $PATCH_URL
 			done
-			if ls $SPECS/$PKG/*.patch &> /dev/null; then
-				for PATCH_FILE in $SPECS/$PKG/*.patch; do
+			if ls *.patch &> /dev/null; then
+				pushd "$PKG_DIR"
+				for PATCH_FILE in ../*.patch; do
 					patch -Np1 < $PATCH_FILE
 				done
+				popd
 			fi
 			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
 			touch .patched
 		fi
 		if [ ! -f .built ]; then
+			pushd "$PKG_DIR"
 			if [ -x ${SPECS}/${PKG}/build ]; then
 				${SPECS}/${PKG}/build
 			else
@@ -162,16 +154,17 @@ build_apps()
 					make
 					make install
 				elif [ -x configure ]; then
-					if [ ! -f .configured ]; then
-						mkdir -p ${PKG_DIR}/.build
-						cd ${PKG_DIR}/.build
-						../configure ${CONFIGFLAGS}
-						touch ${PKG_DIR}/.configured
+					if [ ! -f ../.configured ]; then
+						mkdir -p ../build
+						pushd ../build
+						$PKG_DIR/configure ${CONFIGFLAGS}
+						popd
+						touch ../.configured
 					fi
-					cd ${PKG_DIR}/.build
+					cd ../build
 					make 
 					make install
-				elif [ -r ${PKG}.pro ]; then
+				elif [ -r ${PKG_NAME}.pro ]; then
 					qmake
 					make
 				else
@@ -179,19 +172,20 @@ build_apps()
 					exit 1
 				fi
 			fi
-			touch "${PKG_DIR}/.built"
+			popd
+			touch .built
 		fi
-		if [ ! -f $PKG_DIR/.done ]; then
+		if [ ! -f .done ]; then
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
-				[ -d .build ] && cd .build
+				[ -d build ] && cd build
 				export MAKEDIR=$PWD
 				pushd /
 				${SPECS}/${PKG}/post-install
 				popd
 				unset MAKEDIR
 			fi
-			touch $PKG_DIR/.done
+			touch .done
 		else
 			echo "${PKG} has already been built. Skip."
 			exit
@@ -229,9 +223,9 @@ make_install_tgt_app()
 		return
 	fi
 	[ -x $SPECS/$PKG/pre-install ] && $SPECS/$PKG/pre-install
-	if [ $(basename ${PWD}) = '.build' ]; then
+	if [ $(basename ${PWD}) = 'build' ]; then
 		make DESTDIR=${FS_ROOT} install
-	elif [ "$PKG" != "linux" ]; then
+	elif [ "${PKG_NAME}" != "linux" ]; then
 		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}${PREFIX} prefix=${FS_ROOT}${PREFIX} install
 	fi
 	# post-install can be used to fix target installation problems
@@ -323,7 +317,7 @@ init_env()
 		echo "No SPEC directory found" >&2
 		exit 1
 	fi
-	mkdir -vp "$SRC_DIR" "$BUILD_DIR" "$FS_ROOT" logs
+	mkdir -vp "$SRC_DIR" "$FS_ROOT" logs
 	if [ ! -f /.first_config ]; then
 		pushd /
 		configure_system

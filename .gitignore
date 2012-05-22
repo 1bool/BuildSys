@@ -1,0 +1,12 @@
+*.o
+*.so
+*.ko
+*.log
+*.swp
+*.swo
+*.ext4
+
+ROOT
+SDE
+.bash_history
+.viminfo
