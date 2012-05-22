@@ -135,14 +135,14 @@ build_apps()
 				PATCH_FILE=${PATCH_URL##*/}
 				[ ! -r $PATCH_FILE ] && wget $PATCH_URL
 			done
-			if ls *.patch &> /dev/null; then
-				pushd "$PKG_DIR"
+			pushd "$PKG_DIR"
+			if ls ../*.patch &> /dev/null; then
 				for PATCH_FILE in ../*.patch; do
 					patch -Np1 < $PATCH_FILE
 				done
-				popd
 			fi
 			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
+			popd
 			touch .patched
 		fi
 		if [ ! -f .built ]; then
@@ -178,8 +178,12 @@ build_apps()
 		if [ ! -f .done ]; then
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
-				[ -d build ] && cd build
-				export MAKEDIR=$PWD
+				if [ -d build ]; then
+					MAKEDIR="$PWD/build"
+				else
+					MAKEDIR="$PKG_DIR"
+				fi
+				export MAKEDIR
 				pushd /
 				${SPECS}/${PKG}/post-install
 				popd

@@ -1,5 +1,5 @@
 #!/bin/sh
 
 # Stupid configure script does not work outside of current directory
-mkdir -p $PKG_DIR/.build
-cp -a * .build
+#mkdir -p $PKG_DIR/.build
+cp -a $PKG_DIR build

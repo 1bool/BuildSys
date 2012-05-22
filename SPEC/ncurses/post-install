@@ -21,4 +21,4 @@ ln -sfv libncursesw.a usr/lib/libcursesw.a
 ln -sfv libncurses.a usr/lib/libcurses.a
 
 # Make will return error when make DESTDIR=<...> install later, prevent it with following:
-find $PKG_DIR -name Makefile | xargs sed -i '/test -z "$(DESTDIR)" && \/sbin\/ldconfig/d'
+find $MAKEDIR -name Makefile | xargs sed -i '/test -z "$(DESTDIR)" && \/sbin\/ldconfig/d'
