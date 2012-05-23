@@ -3,7 +3,11 @@
 # Change the default location of the vimrc configuration file to /etc
 echo '#define SYS_VIMRC_FILE "/etc/vimrc"' >> src/feature.h
 
-# Make configure work in .build sub directory
-sed -i 's/src/..\/src/' configure
-ln -sfv src .build
+# Make configure work in build directory
+cd ..
+rmdir -fv build
+ln -sfv "$PKG_DIR" build
+#sed -i "s|src|$PKG_DIR/src|" configure
+# Force link to prevent make error
+cd build
 sed -i 's/ln -s/ln -sf/g' src/Makefile
