@@ -8,7 +8,7 @@ fi
 SDK_FS="buildsys.ext4"
 # Set fs size to 2G
 SDK_FS_SIZE=$((2*1024*1024*1024))
-SDK_URL="ftp://w1ball.3322.org:2102/${SDK_FS}.xz"
+SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
 
 quit()
 {
