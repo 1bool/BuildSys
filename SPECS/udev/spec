@@ -1,5 +1,4 @@
 PKG_URL='http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev-182.tar.xz'
-VERSION=182
 # Not really a patch, but config files:
 PATCHES='http://www.linuxfromscratch.org/lfs/downloads/development/udev-config-20100128.tar.bz2'
 CONFIGFLAGS="--prefix=/usr           \

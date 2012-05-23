@@ -1,7 +1,7 @@
 PKG_URL='ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2'
 VERSION=7.3
 CONFIGFLAGS='--prefix=/usr --enable-multibyte --srcdir=../src'
-PKG_DIR=vim73
+SRC_DIR=vim73
 
 #--enable-multibyte
 #    This switch enables support for editing files in multibyte character encodings. This is needed if using a locale with a multibyte character set. This switch is also helpful to be able to edit text files initially created in Linux distributions like Fedora that use UTF-8 as a default character set.

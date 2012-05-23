@@ -10,7 +10,7 @@ set -T
 quit()
 {
 	echo -e "\nError: Build interrupt..." >&2
-	exit 1
+	return 1
 }
 
 unpack()
@@ -151,9 +151,9 @@ build_pkgs()
 			for PATCH_URL in ${PATCHES[@]}; do
 				PATCH_FILE=${PATCH_URL##*/}
 				[ ! -r $PKG_POOL/$PATCH_FILE ] && wget -P "$PKG_POOL" "$PATCH_URL"
-				patch -Np1 < $PKG_POOL/$PATCH_FILE
+				[ "${PATCH_FILE##*.}" = patch ] && patch -Np1 < $PKG_POOL/$PATCH_FILE
 			done
-			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
+			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build || false
 			popd
 			touch .patched
 		fi
@@ -194,7 +194,7 @@ build_pkgs()
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
 				pushd /
-				${SPECS}/${PKG}/post-install
+				${SPECS}/${PKG}/post-install || false
 				popd
 			fi
 			touch .done
@@ -244,7 +244,7 @@ make_install_tgt_pkg()
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
 		export DESTDIR="${FS_ROOT}" MAKEDIR="$PWD"
 		pushd "$FS_ROOT"
-		${SPECS}/${PKG}/post-install
+		${SPECS}/${PKG}/post-install || false
 		popd
 		unset DESTDIR
 	fi
@@ -296,18 +296,10 @@ uninstall_pkgs()
 
 rebuild_pkgs()
 {
-	if [ ${#BUILD_LIST[@]} = 1 ]; then
-		echo -e "\nPackage \"${BUILD_LIST[@]}\" is going to be rebuild...\n"
-	else
-		echo -e "\nPackages \"${BUILD_LIST[@]}\" are going to be rebuild...\n"
-	fi
+	echo -e "\nRebuilding package(s) \"${BUILD_LIST[@]}\" ...\n"
 	walk_pkg_dir -c remove_pkg
 	build_pkgs
-	if [ ${#BUILD_LIST[@]} = 1 ]; then
-		echo -e "\nPackage \"${BUILD_LIST[@]}\" uninstall complete."
-	else
-		echo -e "\nPackages \"${BUILD_LIST[@]}\" uninstall complete."
-	fi
+	echo -e "\nPackage(s) \"${BUILD_LIST[@]}\" rebuild complete."
 }
 
 strip_rootfs()
