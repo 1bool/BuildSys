@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Fix a bug in the Spanish message translations which prevents kbd from building with gettext-0.18.1.1:
+sed -i '/guardado\ el/s/\(^.*en\ %\)\(.*\)/\14\$\2/' po/es.po
+# Remove the redundant resizecons program (32-bit x86 only, needs the defunct svgalib, which predates linux-2.6 and is incompatible with modern KMS, to provide the video mode files - for normal use setfont sizes the console appropriately) and its manpage:
+sed -i 's/\(RESIZECONS_PROGS=\)yes/\1no/' configure &&
+sed -i 's/resizecons.8 //' man/man8/Makefile.in
