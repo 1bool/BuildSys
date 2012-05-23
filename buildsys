@@ -210,6 +210,10 @@ build_pkgs()
 
 make_clean_pkg()
 {
+	if ! grep -q '^clean' Makefile; then
+		echo >&2 "Error: \"${PKG_NAME}\" does not support make clean"
+		return 1
+	fi
 	make clean
 	cd $PKG_DIR
 	rm -f .done .built
@@ -217,14 +221,24 @@ make_clean_pkg()
 
 make_distclean_pkg()
 {
-	make DESTDIR=$FS_ROOT uninstall
-	make distclean || make clean
+	if grep -q '^distclean' Makefile; then
+		make distclean
+	elif grep -q '^clean' Makefile; then
+		make clean
+	else
+		echo >&2 "Error: \"${PKG_NAME}\" does not support make clean or distclean"
+		return 1
+	fi
 	cd $PKG_DIR
 	rm -f .done .built .configured
 }
 
 make_uninstall_pkg()
 {
+	if ! grep -q '^uninstall' Makefile; then
+		echo >&2 "Error: \"${PKG_NAME}\" does not support make uninstall"
+		return 1
+	fi
 	make uninstall
 	rm -f $PKG_DIR/.done
 }
