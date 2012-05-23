@@ -1,8 +1,0 @@
-VERSION=2.15
-PKG_URL='http://ftp.gnu.org/gnu/glibc/glibc-2.15.tar.xz'
-CONFIGFLAGS='--prefix=/usr --disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc'
-# Fix a bug that prevents Glibc from building with GCC-4.7.0
-PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/glibc-2.15-gcc_fix-1.patch'
-# Making glibc with multi-thread can fail
-MAKEFLAGS+=' -j1 '
-#PATH=/tools/bin:/tools/sbin

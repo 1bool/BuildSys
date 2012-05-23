@@ -1,13 +1,13 @@
 #!/bin/sh
 
 # Some packages expect the C preprocessor to be installed in the /lib directory.
-ln -sfv ../usr/bin/cpp /lib
+ln -sv ../usr/bin/cpp lib
 
 # Many packages use the name cc to call the C compiler.
-ln -sfv gcc /usr/bin/cc
+ln -sv gcc usr/bin/cc
 
 # Move a misplced file
-GDBDIR=/usr/share/gdb/auto-load/usr/lib/gcc/i686-pc-linux-gnu/4.6.3
+GDBDIR=usr/share/gdb/auto-load/usr/lib/gcc/i686-pc-linux-gnu/4.6.3
 mkdir -pv $GDBDIR
-mv -v /usr/lib/*gdb.py $GDBDIR
+mv -v usr/lib/*gdb.py $GDBDIR
 unset GDBDIR

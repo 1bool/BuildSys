@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Stupid configure script does not work outside of source directory
+cp -a $SRC_DIR $PKG_DIR/build

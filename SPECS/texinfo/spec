@@ -1,4 +1,3 @@
 PKG_URL='http://ftp.gnu.org/gnu/texinfo/texinfo-4.13a.tar.gz'
-VERSION=4.13a
-PKG_DIR=texinfo-4.13
+SRC_DIR=texinfo-4.13
 TARGET_INSTALL=n

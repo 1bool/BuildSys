@@ -31,7 +31,9 @@ if [ ! -r buildsys.ext4 ]; then
 	if [ ! -r buildsys.ext4.xz ]; then
 		wget ftp://w1ball.3322.org/buildsys.ext4.xz
 	fi
-	xz -d buildsys.ext4.xz
+	xz -dv buildsys.ext4.xz
+	e2fsck -f buildsys.ext4
+	resize2fs buidsys.ext4 2G
 fi
 mount -vo loop -t ext4 "$DEVROOT/buildsys.ext4" "$SDE"
 pushd -n "$SDE" &> /dev/null

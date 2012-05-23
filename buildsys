@@ -61,21 +61,23 @@ guess_pkg_from_url()
 		PKG_NAME="${PKG_NAME%-*}"
 		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
 	fi
-	if [ -z "$PKG_DIR" ]; then
-		PKG_DIR="${SRC_DIR}/${PKG}/${PKG_NAME}-${VERSION}"
+	if [ -z "$SRC_DIR" ]; then
+		SRC_DIR="${PACKAGES}/${PKG}/${PKG_NAME}-${VERSION}"
 	else
-		PKG_DIR="${SRC_DIR}/${PKG}/${PKG_DIR}"
+		SRC_DIR="${PACKAGES}/${PKG}/${SRC_DIR}"
 	fi
-	export PKG_FILE_NAME SUFFIX VERSION PKG_NAME PKG_DIR
 }
 
-walk_build_dir()
+walk_pkg_dir()
 {
 	local LOOP_ACTION='return'
 	OPTIND=1
-	while getopts "c" FLAG
+	while getopts "bc" FLAG
 	do
 		case "$FLAG" in
+			b)
+				M='y'
+				;;
 			c)
 				LOOP_ACTION='continue'
 				;;
@@ -85,25 +87,40 @@ walk_build_dir()
 	for PKG in ${BUILD_LIST[@]}; do
 		(
 		set -e; set -E; set -T
+		PKG_DIR="${PACKAGES}/${PKG}"
+		if [ ! -d "$PKG_DIR" ]; then
+			echo "Error: Package directory \"$PKG_DIR\" not found"
+			return 1
+		fi
+		TGT_DIR="$PKG_DIR"
 		source ${SPECS}/${PKG}/spec
 		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
-		if [ -d "$SRC_DIR/$PKG/build" ]; then
-			MAKEDIR="$SRC_DIR/$PKG/build"
-		elif [ -d $PKG_DIR ]; then
-			MAKEDIR="$PKG_DIR"
-		else
-			echo "Error: Make directory for \"$PKG\" not found." >&2
-			exit 1
+		if [ "$M" = y ]; then
+			if [ -d "$PKG_DIR/build" ]; then
+				MAKEDIR="$PKG_DIR/build"
+			elif [ -d "$SRC_DIR" ]; then
+				MAKEDIR="$SRC_DIR"
+			else
+				echo "Error: Cannot find make directory for \"$PKG\"." >&2
+				exit 1
+			fi
+			TGT_DIR="$MAKEDIR"
+			export MAKEDIR
 		fi
-		export PATCHES MAKEDIR
-		pushd $MAKEDIR
-		$@ || $LOOPACTION
+		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
+		pushd "$TGT_DIR"
+		$@
 		popd
-		)
+		) || $LOOPACTION
 	done
 }
 
-build_apps()
+walk_build_dir()
+{
+	walk_pkg_dir -b $@
+}
+
+build_pkgs()
 {
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
@@ -113,9 +130,10 @@ build_apps()
 		(
 		source ${SPECS}/${PKG}/spec
 		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
-		mkdir -p ${SRC_DIR}/${PKG}
-		cd ${SRC_DIR}/${PKG}
-		if [ ! -d "${PKG_DIR}" ]; then
+		PKG_DIR="${PACKAGES}/${PKG}"
+		mkdir -p ${PKG_DIR}
+		cd ${PKG_DIR}
+		if [ ! -d "${SRC_DIR}" ]; then
 			if [ ! -r "${PKG_FILE_NAME}" ] ; then
 				if [ -n "$PKG_URL" ]; then
 					wget $PKG_URL
@@ -126,7 +144,7 @@ build_apps()
 			fi
 			unpack "${PKG_FILE_NAME}" $SUFFIX
 		fi
-		export PATCHES PKG
+		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
 		# pre-build can be used to do patching job
 		if [ ! -f .patched ]; then
@@ -135,7 +153,7 @@ build_apps()
 				PATCH_FILE=${PATCH_URL##*/}
 				[ ! -r $PATCH_FILE ] && wget $PATCH_URL
 			done
-			pushd "$PKG_DIR"
+			pushd "$SRC_DIR"
 			if ls ../*.patch &> /dev/null; then
 				for PATCH_FILE in ../*.patch; do
 					patch -Np1 < $PATCH_FILE
@@ -146,27 +164,30 @@ build_apps()
 			touch .patched
 		fi
 		if [ ! -f .built ]; then
-			pushd "$PKG_DIR"
+			pushd "$SRC_DIR"
 			if [ -x ${SPECS}/${PKG}/build ]; then
 				${SPECS}/${PKG}/build
 			else
 				if [ -r Makefile ] && [ ! -x configure ]; then
 					make
 					make install
+					export MAKEDIR=$PWD
 				elif [ -x configure ]; then
-					if [ ! -f ../.configured ]; then
-						mkdir -p ../build
-						pushd ../build
-						$PKG_DIR/configure ${CONFIGFLAGS}
+					if [ ! -f ${PKG_DIR}/.configured ]; then
+						export MAKEDIR=${PKG_DIR}/build
+						mkdir -p $MAKEDIR
+						pushd $MAKEDIR
+						$SRC_DIR/configure ${CONFIGFLAGS}
 						popd
-						touch ../.configured
+						touch ${PKG_DIR}/.configured
 					fi
-					cd ../build
+					cd $MAKEDIR
 					make 
 					make install
 				elif [ -r ${PKG_NAME}.pro ]; then
 					qmake
 					make
+					export MAKEDIR=$PWD
 				else
 					echo "Error: Don't know how to build package $PKG." >&2
 					exit 1
@@ -178,16 +199,9 @@ build_apps()
 		if [ ! -f .done ]; then
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
-				if [ -d build ]; then
-					MAKEDIR="$PWD/build"
-				else
-					MAKEDIR="$PKG_DIR"
-				fi
-				export MAKEDIR
 				pushd /
 				${SPECS}/${PKG}/post-install
 				popd
-				unset MAKEDIR
 			fi
 			touch .done
 		else
@@ -199,14 +213,14 @@ build_apps()
 	echo -e "\nBuild complete."
 }
 
-make_clean_app()
+make_clean_pkg()
 {
 	make clean
 	cd $PKG_DIR
 	rm -f .done .built
 }
 
-make_distclean_app()
+make_distclean_pkg()
 {
 	make DESTDIR=$FS_ROOT uninstall
 	make distclean || make clean
@@ -214,13 +228,13 @@ make_distclean_app()
 	rm -f .done .built .configured
 }
 
-make_uninstall_app()
+make_uninstall_pkg()
 {
 	make uninstall
 	rm -f $PKG_DIR/.done
 }
 
-make_install_tgt_app()
+make_install_tgt_pkg()
 {
 	if [ "$TARGET_INSTALL" = n ]; then
 		echo "Package $PKG is not required to be installed on target."
@@ -242,19 +256,31 @@ make_install_tgt_app()
 	fi
 }
 
-clean_apps()
+remove_pkg()
 {
-	walk_build_dir make_clean_app
+	if [ -r "$PKG_DIR/$PKG_FILE_NAME" ] || [ -n "$PKG_URL" ]; then
+		cd "$PKG_DIR"
+		rm -rvf "$SRC_DIR" build
+		rm -f .done .built .configured .patched
+	elif [ -d "$MAKEDIR" ]; then
+		cd "$MAKEDIR"
+		make_distclean_pkg
+	fi
+}
+
+clean_pkgs()
+{
+	walk_build_dir make_clean_pkg
 	echo -e "\nPackage ${BUILD_LIST[@]} clean complete."
 }
 
-distclean_apps()
+distclean_pkgs()
 {
-	walk_build_dir -c make_distclean_app
+	walk_build_dir -c make_distclean_pkg
 	echo -e "\nPackage ${BUILD_LIST[@]} dist clean complete."
 }
 
-uninstall_apps()
+uninstall_pkgs()
 {
 	echo -e "\n${BUILD_LIST[@]} are going to be uninstalled.\n"
 	while true; do
@@ -272,8 +298,24 @@ uninstall_apps()
 				;;
 		esac
 	done
-	walk_build_dir make_uninstall_app
+	walk_build_dir make_uninstall_pkg
 	echo -e "\nPackage ${BUILD_LIST[@]} uninstall complete."
+}
+
+rebuild_pkgs()
+{
+	if [ ${#BUILD_LIST[@]} = 1 ]; then
+		echo -e "\nPackage \"${BUILD_LIST[@]}\" is going to be rebuild...\n"
+	else
+		echo -e "\nPackages \"${BUILD_LIST[@]}\" are going to be rebuild...\n"
+	fi
+	walk_pkg_dir -c remove_pkg
+	build_pkgs
+	if [ ${#BUILD_LIST[@]} = 1 ]; then
+		echo -e "\nPackage \"${BUILD_LIST[@]}\" uninstall complete."
+	else
+		echo -e "\nPackages \"${BUILD_LIST[@]}\" uninstall complete."
+	fi
 }
 
 strip_rootfs()
@@ -291,18 +333,18 @@ strip_rootfs()
 	PATH=$OPATH
 }
 
-make_tgt_apps()
+make_tgt_pkgs()
 {
-	build_apps ${BUILD_LIST[@]}
+	build_pkgs
 	pushd $FS_ROOT
 	echo -e "\nCleaning ${FS_ROOT}\n"
 	rm -rfv * .[!.]*
-	if [ "$TARGET_APPS" = all ] && declare -F configure_system &> /dev/null; then
+	if [ "$TARGET_pkgS" = all ] && declare -F configure_system &> /dev/null; then
 		echo -e "\nConfiguring system in $PWD ...\n"
 		configure_system
 	fi
-	echo -e "\nInstalling apps into ${FS_ROOT}\n"
-	walk_build_dir make_install_tgt_app
+	echo -e "\nInstalling pkgs into ${FS_ROOT}\n"
+	walk_build_dir make_install_tgt_pkg
 	strip_rootfs
 	popd
 #	cd ${FS_ROOT}${BUILD_DEST}
@@ -317,11 +359,11 @@ init_env()
 {
 	source ${BUILD_CONF:-build.conf}
 	cd "$DEV_ROOT"
-	if [ ! -d SPEC ]; then
-		echo "Error: No SPEC directory found" >&2
+	if [ ! -d "$SPECS" ]; then
+		echo "Error: No SPECS directory found" >&2
 		exit 1
 	fi
-	mkdir -vp "$SRC_DIR" "$FS_ROOT" logs
+	mkdir -vp "$PACKAGES" "$FS_ROOT" logs
 	if [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
@@ -351,39 +393,47 @@ print_help_and_exit()
 main()
 {
 	echo -e "Executing \"$0 $@\" at ${TIME}\n"
-	GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,config:,help -n "$0" -- "$@")
-	[ $? != 0 ] && print_help_and_exit
-	eval set -- "$GETOPTS"
-	while true; do
-		case "$1" in
-			-b)
-				ACTION=build_apps; shift
-				;;
-			--clean)
-				ACTION=clean_apps; shift
-				;;
-			--distclean)
-				ACTION=distclean_apps; shift
-				;;
-			-f|--config)
-				BUILD_CONF="$2"; shift 2
-				;;
-			--uninstall)
-				ACTION=uninstall_apps; shift
-				;;
-			-h|--help)
-				print_help_and_exit
-				;;
-			--)
-				shift ; break
-				;;
-			*)
-				print_help_and_exit
-				;;
-		esac
-	done
-	TARGET_APPS="$@"
-	case "$TARGET_APPS" in
+	if [ -x /tools/bin/getopt ] || [ -x /usr/bin/getopt ]; then
+		GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
+		[ $? != 0 ] && print_help_and_exit
+		eval set -- "$GETOPTS"
+		while true; do
+			case "$1" in
+				--clean)
+					ACTION=clean_pkgs; shift
+					;;
+				--distclean)
+					ACTION=distclean_pkgs; shift
+					;;
+				--uninstall)
+					ACTION=uninstall_pkgs; shift
+					;;
+				--rebuild)
+					ACTION=rebuild_pkgs; shift
+					;;
+				-b)
+					ACTION=build_pkgs; shift
+					;;
+				-f|--config)
+					BUILD_CONF="$2"; shift 2
+					;;
+				-h|--help)
+					print_help_and_exit
+					;;
+				--)
+					shift ; break
+					;;
+				*)
+					print_help_and_exit
+					;;
+			esac
+		done
+		TARGET_PKGS="$@"
+	else
+		ACTION=build_pkgs
+		TARGET_PKGS=all
+	fi
+	case "$TARGET_PKGS" in
 		help | '')
 			print_help_and_exit
 			;;
@@ -398,7 +448,7 @@ main()
 			;;
 	esac
 
-	${ACTION:-make_tgt_apps}
+	${ACTION:-make_tgt_pkgs}
 }
 
 init_env

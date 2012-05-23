@@ -8,9 +8,9 @@ gcc -dumpspecs | sed -e 's@/tools@@g' \
 	`dirname $(gcc --print-libgcc-file-name)`/specs
 
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
-cp -v $PKG_DIR/sunrpc/rpc/*.h usr/include/rpc
-cp -v $PKG_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
-cp -v $PKG_DIR/nis/rpcsvc/*.h usr/include/rpcsvc
+cp -v $SRC_DIR/sunrpc/rpc/*.h usr/include/rpc
+cp -v $SRC_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
+cp -v $SRC_DIR/nis/rpcsvc/*.h usr/include/rpcsvc
 
 # Individual locales can be installed using the localedef program. E.g., the first localedef command below combines the /usr/share/i18n/locales/cs_CZ charset-independent locale definition with the /usr/share/i18n/charmaps/UTF-8.gz charmap definition and appends the result to the /usr/lib/locale/locale-archive file.
 mkdir -pv usr/lib/locale
@@ -34,7 +34,7 @@ localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$PWD
 
 # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
 #pushd $MAKEDIR
-#make DESTDIR=$(dirs +1) localedata/install-locales
+#make DESTDIR=$(dirs -l +1) localedata/install-locales
 #popd
 
 # The /etc/nsswitch.conf file needs to be created because, although Glibc provides defaults when this file is missing or corrupt, the Glibc defaults do not work well in a networked environment. The time zone also needs to be configured. 
