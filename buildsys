@@ -9,7 +9,7 @@ set -T
 
 quit()
 {
-	echo "Build failed. Exiting..." >&2
+	echo "Error: Build failed. Exiting..." >&2
 	exit 1
 }
 
@@ -30,7 +30,7 @@ unpack()
 			unzip "$1" -d "$TGT_DIR"
 			;;
 		*)
-			echo "Unkown package format for \"$1\"" >&2
+			echo "Error: Unkown package format for \"$1\"" >&2
 			return 1
 			;;
 	esac
@@ -92,7 +92,7 @@ walk_build_dir()
 		elif [ -d $PKG_DIR ]; then
 			MAKEDIR="$PKG_DIR"
 		else
-			echo "Make directory for \"$PKG\" not found." >&2
+			echo "Error: Make directory for \"$PKG\" not found." >&2
 			exit 1
 		fi
 		export PATCHES MAKEDIR
@@ -107,7 +107,7 @@ build_apps()
 {
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
-			echo "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
+			echo "Error: Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
 			exit 1
 		fi
 		(
@@ -120,13 +120,13 @@ build_apps()
 				if [ -n "$PKG_URL" ]; then
 					wget $PKG_URL
 				else
-					echo "Package ${PKG_NAME}-${VERSION} not found." >&2
+					echo "Error: Package ${PKG_NAME}-${VERSION} not found." >&2
 					exit 1
 				fi
 			fi
 			unpack "${PKG_FILE_NAME}" $SUFFIX
 		fi
-		export PATCHES
+		export PATCHES PKG
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
 		# pre-build can be used to do patching job
 		if [ ! -f .patched ]; then
@@ -168,7 +168,7 @@ build_apps()
 					qmake
 					make
 				else
-					echo "Don't know how to build package $PKG." >&2
+					echo "Error: Don't know how to build package $PKG." >&2
 					exit 1
 				fi
 			fi
@@ -318,7 +318,7 @@ init_env()
 	source ${BUILD_CONF:-build.conf}
 	cd "$DEV_ROOT"
 	if [ ! -d SPEC ]; then
-		echo "No SPEC directory found" >&2
+		echo "Error: No SPEC directory found" >&2
 		exit 1
 	fi
 	mkdir -vp "$SRC_DIR" "$FS_ROOT" logs
@@ -389,7 +389,7 @@ main()
 			;;
 		all)
 			if [ "${#BUILD_LIST[@]}" = 0 ]; then
-				echo "No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
+				echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
 				exit 1
 			fi
 			;;
