@@ -340,7 +340,7 @@ make_tgt_pkgs()
 	echo -e "\nRootFS generated in $FS_ROOT."
 }
 
-adj_toolchain()
+toolchain_link()
 {
 	pushd /tools/bin
 	case "$1" in
@@ -446,7 +446,7 @@ fi
 
 [ -n "$JOBS" ] && export MAKEFLAGS+=$JOBS
 [ -n "$ACT" ] && ACTION=$ACT
-export -f adj_toolchain
+export -f toolchain_link
 
 case "$@" in
 	help | '')

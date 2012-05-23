@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Set tool chain not to link /tools as we have glibc in root directory now.
-toolchain_link root
-
 # Fix bug #3 "glibc build loop in NPTL"
 mv -fv usr/tmp-include/* usr/include
 rmdir -v usr/tmp-include
@@ -36,6 +33,9 @@ localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$(pwd)
 #pushd $MAKEDIR
 #make DESTDIR=$(dirs -l +1) localedata/install-locales
 #popd
+
+# Set tool chain not to link /tools as we have glibc in root directory now.
+toolchain_link root
 
 # The /etc/nsswitch.conf file needs to be created because, although Glibc provides defaults when this file is missing or corrupt, the Glibc defaults do not work well in a networked environment. The time zone also needs to be configured. 
 cat > etc/nsswitch.conf << "EOF"
