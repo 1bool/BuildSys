@@ -2,8 +2,8 @@
 
 # The configure system causes Bison to be built without support for internationalization of error messages if a bison program is not already in $PATH. Need to build again...
 if [ ! -x /usr/bin/bison ]; then
-	touch $PKG_DIR/.rebuild
+	touch $PKG_DIR/../.rebuild
 else
-	cd $PKG_DIR
+	cd $PKG_DIR/../
 	rm -f .configured .built .done
 fi
