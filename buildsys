@@ -387,54 +387,19 @@ print_help_and_exit()
 	echo "PackageName:"
 	echo " \"all\"	Build all packages specified in SPECS/build_config"
 	echo " \"package name\"	Single or multiple package names overriding build_config"
+	echo
 	exit
 }
 
 main()
 {
-	echo -e "Executing \"$0 $@\" at ${TIME}\n"
-	GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
-	[ $? != 0 ] && print_help_and_exit
-	eval set -- "$GETOPTS"
-	while true; do
-		case "$1" in
-			--clean)
-				ACTION=clean_pkgs; shift
-				;;
-			--distclean)
-				ACTION=distclean_pkgs; shift
-				;;
-			--uninstall)
-				ACTION=uninstall_pkgs; shift
-				;;
-			--rebuild)
-				ACTION=rebuild_pkgs; shift
-				;;
-			-b)
-				ACTION=build_pkgs; shift
-				;;
-			-f|--config)
-				BUILD_CONF="$2"; shift 2
-				;;
-			-h|--help)
-				print_help_and_exit
-				;;
-			--)
-				shift ; break
-				;;
-			*)
-				print_help_and_exit
-				;;
-		esac
-	done
-	TARGET_PKGS="$@"
-	case "$TARGET_PKGS" in
+	case "$@" in
 		help | '')
 			print_help_and_exit
 			;;
 		all)
 			if [ "${#BUILD_LIST[@]}" = 0 ]; then
-				echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
+				echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-build.conf}" >&2
 				exit 1
 			fi
 			;;
@@ -442,9 +407,45 @@ main()
 			BUILD_LIST=($@)
 			;;
 	esac
-
-	init_env
+	echo -e "Executing \"$0 $@\" at ${TIME}\n"
 	${ACTION:-make_tgt_pkgs}
 }
 
+GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
+[ $? != 0 ] && print_help_and_exit
+eval set -- "$GETOPTS"
+while true; do
+	case "$1" in
+		--clean)
+			ACTION=clean_pkgs; shift
+			;;
+		--distclean)
+			ACTION=distclean_pkgs; shift
+			;;
+		--uninstall)
+			ACTION=uninstall_pkgs; shift
+			;;
+		--rebuild)
+			ACTION=rebuild_pkgs; shift
+			;;
+		-b)
+			ACTION=build_pkgs; shift
+			;;
+		-f|--config)
+			BUILD_CONF="$2"; shift 2
+			;;
+		-h|--help)
+			print_help_and_exit
+			;;
+		--)
+			shift ; break
+			;;
+		*)
+			print_help_and_exit
+			;;
+	esac
+done
+
+init_env
 main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"
+
