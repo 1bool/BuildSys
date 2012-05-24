@@ -29,7 +29,7 @@ dirs -c
 cd "$DEVROOT"
 if [ ! -r buildsys.ext4 ]; then
 	if [ ! -r buildsys.ext4.xz ]; then
-		wget ftp://w1ball.3322.org/buildsys.ext4.xz
+		wget ftp://w1ball.3322.org:2102/buildsys.ext4.xz
 	fi
 	xz -dv buildsys.ext4.xz
 	e2fsck -f buildsys.ext4
