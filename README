@@ -1,1 +1,7 @@
 BuildSys to build a linux system automatically
+
+Execute following to enter sdk environment:
+	sudo BuildSys/entdevenv
+Then execute following to build the world:
+	/tools/bin/bash buildsys all
+Use your favorit editor to edit content in BuildSys directory outside sdk environment.
