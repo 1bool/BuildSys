@@ -1,5 +1,10 @@
 #!/bin/bash
 
+SDK_FS="buildsys.ext4"
+# Set fs size to 2G
+SDK_FS_SIZE=$((2*1024*1024*1024))
+SDK_URL="ftp://w1ball.3322.org:2102/${SDK_FS}.xz"
+
 if [ "$EUID" != 0 ]; then
 	echo "You have to be root to run $0"
 	exit 1
@@ -27,21 +32,23 @@ set -e
 dirs -c
 
 cd "$DEVROOT"
-if [ ! -r buildsys.ext4 ]; then
-	if [ ! -r buildsys.ext4.xz ]; then
-		wget ftp://w1ball.3322.org:2102/buildsys.ext4.xz
+if [ ! -r ${SDK_FS} ]; then
+	if [ ! -r ${SDK_FS}.xz ]; then
+		wget "${SDK_URL}"
 	fi
-	xz -dv buildsys.ext4.xz
-	e2fsck -f buildsys.ext4
-	resize2fs buidsys.ext4 2G
+	xz -dv ${SDK_FS}.xz
 fi
-mount -vo loop -t ext4 "$DEVROOT/buildsys.ext4" "$SDE"
+if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
+	e2fsck -f ${SDK_FS}
+	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
+fi
+mount -vo loop -t ext4 "$DEVROOT/${SDK_FS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
 mount -v --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
 mount -vt devpts devpts "$SDE/dev/pts"
 pushd -n "$SDE/dev/pts" &> /dev/null
-mount -vt tmpfs shm "$SDE/dev/shm"
+mount -vlt tmpfs shm "$SDE/dev/shm"
 pushd -n "$SDE/dev/shm" &> /dev/null
 mount -vt proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
