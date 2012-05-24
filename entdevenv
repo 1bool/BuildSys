@@ -56,7 +56,6 @@ mount -vt sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount -v --bind "$DEVROOT" "$SDE/root"
 pushd -n "$SDE/root" &> /dev/null
-#linux32 chroot "$SDE" su - lfs
 linux32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
