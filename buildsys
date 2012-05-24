@@ -9,11 +9,9 @@ set -T
 
 quit()
 {
-	echo "Error: Build failed. Exiting..." >&2
+	echo -e "\nError: Build failed. Exiting..." >&2
 	exit 1
 }
-
-trap -p quit ERR
 
 unpack()
 {
@@ -125,7 +123,7 @@ build_pkgs()
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
 			echo "Error: Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
-			exit 1
+			return 1
 		fi
 		(
 		source ${SPECS}/${PKG}/spec
@@ -139,7 +137,7 @@ build_pkgs()
 					wget $PKG_URL
 				else
 					echo "Error: Package ${PKG_NAME}-${VERSION} not found." >&2
-					exit 1
+					return 1
 				fi
 			fi
 			unpack "${PKG_FILE_NAME}" $SUFFIX
@@ -190,7 +188,7 @@ build_pkgs()
 					export MAKEDIR=$PWD
 				else
 					echo "Error: Don't know how to build package $PKG." >&2
-					exit 1
+					return 1
 				fi
 			fi
 			popd
@@ -206,7 +204,7 @@ build_pkgs()
 			touch .done
 		else
 			echo "${PKG} has already been built. Skip."
-			exit
+			return
 		fi
 		)
 	done
@@ -361,7 +359,7 @@ init_env()
 	cd "$DEV_ROOT"
 	if [ ! -d "$SPECS" ]; then
 		echo "Error: No SPECS directory found" >&2
-		exit 1
+		return 1
 	fi
 	mkdir -vp "$PACKAGES" "$FS_ROOT" logs
 	if [ ! -f /.first_config ]; then
@@ -400,7 +398,7 @@ main()
 		all)
 			if [ "${#BUILD_LIST[@]}" = 0 ]; then
 				echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-build.conf}" >&2
-				exit 1
+				return 1
 			fi
 			;;
 		*)
@@ -446,5 +444,6 @@ while true; do
 	esac
 done
 
+trap quit ERR
 init_env
 main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"
