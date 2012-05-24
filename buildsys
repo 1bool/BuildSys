@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/tools/bin/bash
 # Wenbo Wang (1ball.w@gmail.com)
 
 TIME=$(date +%F-%X)
