@@ -7,7 +7,7 @@ SDK_URL="ftp://w1ball.3322.org:2102/${SDK_FS}.xz"
 
 if [ "$EUID" != 0 ]; then
 	echo "You have to be root to run \"$0\"" >&2
-	exit 1
+	exec su -c $0 $@
 fi
 
 if [ -z "$1" ]; then
