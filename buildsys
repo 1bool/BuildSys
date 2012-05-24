@@ -375,64 +375,59 @@ init_env()
 print_help_and_exit()
 {
 	exec >&2
-	echo "Usage: $(basename $0) [Options] [Package Name]"
-	echo "Options can be:"
-	echo "	-f		Specify your build config file (default: build.conf)"
-	echo "	-b		Build only, don't make rootfs"
-	echo "	--clean		Clean packages"
-	echo "	--distclean		Dist clean package build directories and rootfs"
-	echo "	-i <directory>	Install package to <directory>"
-	echo "	--uninstall		Uninstall package from build system (Caution: this may break build system)"
-	echo "	-h		Print this help"
-	echo "Target can be:"
-	echo "	\"all\" - Build all packages specified in SPECS/build_config"
-	echo "	\"package name\" - Single or multiple package names overriding build_config"
+	echo -e "Usage:\n $(basename $0) [Options] PackageName ..."
+	echo "Options:"
+	echo " -b		Build only, don't make rootfs"
+	echo " -f, --config	Specify your build config file (default: build.conf)"
+	echo " --rebuild	Rebuild packages"
+	echo " --clean	Clean packages"
+	echo " --distclean	Dist clean package build directories and rootfs"
+	echo " --uninstall	Uninstall package from build system"
+	echo " -h		Print this help"
+	echo "PackageName:"
+	echo " \"all\"	Build all packages specified in SPECS/build_config"
+	echo " \"package name\"	Single or multiple package names overriding build_config"
 	exit
 }
 
 main()
 {
 	echo -e "Executing \"$0 $@\" at ${TIME}\n"
-	if [ -x /tools/bin/getopt ] || [ -x /usr/bin/getopt ]; then
-		GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
-		[ $? != 0 ] && print_help_and_exit
-		eval set -- "$GETOPTS"
-		while true; do
-			case "$1" in
-				--clean)
-					ACTION=clean_pkgs; shift
-					;;
-				--distclean)
-					ACTION=distclean_pkgs; shift
-					;;
-				--uninstall)
-					ACTION=uninstall_pkgs; shift
-					;;
-				--rebuild)
-					ACTION=rebuild_pkgs; shift
-					;;
-				-b)
-					ACTION=build_pkgs; shift
-					;;
-				-f|--config)
-					BUILD_CONF="$2"; shift 2
-					;;
-				-h|--help)
-					print_help_and_exit
-					;;
-				--)
-					shift ; break
-					;;
-				*)
-					print_help_and_exit
-					;;
-			esac
-		done
-		TARGET_PKGS="$@"
-	else
-		ACTION=build_pkgs
-		TARGET_PKGS=all
-	fi
+	GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
+	[ $? != 0 ] && print_help_and_exit
+	eval set -- "$GETOPTS"
+	while true; do
+		case "$1" in
+			--clean)
+				ACTION=clean_pkgs; shift
+				;;
+			--distclean)
+				ACTION=distclean_pkgs; shift
+				;;
+			--uninstall)
+				ACTION=uninstall_pkgs; shift
+				;;
+			--rebuild)
+				ACTION=rebuild_pkgs; shift
+				;;
+			-b)
+				ACTION=build_pkgs; shift
+				;;
+			-f|--config)
+				BUILD_CONF="$2"; shift 2
+				;;
+			-h|--help)
+				print_help_and_exit
+				;;
+			--)
+				shift ; break
+				;;
+			*)
+				print_help_and_exit
+				;;
+		esac
+	done
+	TARGET_PKGS="$@"
 	case "$TARGET_PKGS" in
 		help | '')
 			print_help_and_exit
@@ -448,8 +443,8 @@ main()
 			;;
 	esac
 
+	init_env
 	${ACTION:-make_tgt_pkgs}
 }
 
-init_env
 main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"
