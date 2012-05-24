@@ -132,31 +132,27 @@ build_pkgs()
 		mkdir -p ${PKG_DIR}
 		cd ${PKG_DIR}
 		if [ ! -d "${SRC_DIR}" ]; then
-			if [ ! -r "${PKG_FILE_NAME}" ] ; then
+			if [ ! -r "$PKG_POOL/${PKG_FILE_NAME}" ] ; then
 				if [ -n "$PKG_URL" ]; then
-					wget $PKG_URL
+					wget -P "$PKG_POOL" "$PKG_URL"
 				else
 					echo "Error: Package ${PKG_NAME}-${VERSION} not found." >&2
 					return 1
 				fi
 			fi
-			unpack "${PKG_FILE_NAME}" $SUFFIX
+			unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
 		fi
 		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
 		# pre-build can be used to do patching job
 		if [ ! -f .patched ]; then
-			[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch .
+			pushd "$SRC_DIR"
+			[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch "$PKG_POOL"
 			for PATCH_URL in ${PATCHES[@]}; do
 				PATCH_FILE=${PATCH_URL##*/}
-				[ ! -r $PATCH_FILE ] && wget $PATCH_URL
+				[ ! -r $PKG_POOL/$PATCH_FILE ] && wget -P "$PKG_POOL" "$PATCH_URL"
+				patch -Np1 < $PKG_POOL/$PATCH_FILE
 			done
-			pushd "$SRC_DIR"
-			if ls ../*.patch &> /dev/null; then
-				for PATCH_FILE in ../*.patch; do
-					patch -Np1 < $PATCH_FILE
-				done
-			fi
 			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
 			popd
 			touch .patched
@@ -256,10 +252,8 @@ make_install_tgt_pkg()
 
 remove_pkg()
 {
-	if [ -r "$PKG_DIR/$PKG_FILE_NAME" ] || [ -n "$PKG_URL" ]; then
-		cd "$PKG_DIR"
-		rm -rvf "$SRC_DIR" build
-		rm -f .done .built .configured .patched
+	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_URL" ]; then
+		rm -rvf "$PKG_DIR"
 	elif [ -d "$MAKEDIR" ]; then
 		cd "$MAKEDIR"
 		make_distclean_pkg
@@ -356,12 +350,22 @@ make_tgt_pkgs()
 init_env()
 {
 	source ${BUILD_CONF:-build.conf}
-	cd "$DEV_ROOT"
-	if [ ! -d "$SPECS" ]; then
-		echo "Error: No SPECS directory found" >&2
+	for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
+		if [ -z "$(eval echo \$$VAR)" ]; then
+			VAR_NOT_DEF+="$VAR "
+			RET=1
+		fi
+	done
+	if [ "$RET" = 1 ]; then
+		echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-build.conf}" >&2
 		return 1
 	fi
-	mkdir -vp "$PACKAGES" "$FS_ROOT" logs
+	cd "$DEV_ROOT"
+	if [ ! -d "$SPECS" ]; then
+		echo "Error: Directory \"$SPECS\" for SPECS found" >&2
+		return 1
+	fi
+	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
 	if [ ! -f /.first_config ]; then
 		pushd /
 		configure_system

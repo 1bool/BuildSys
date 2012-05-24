@@ -7,6 +7,10 @@ gcc -dumpspecs | sed -e 's@/tools@@g' \
 	-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
 	`dirname $(gcc --print-libgcc-file-name)`/specs
 
+# Fix bug #3 "glibc build loop in NPTL"
+mv -v usr/tmp-include/* usr/include
+rmdir usr/tmp-include
+
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
 cp -v $SRC_DIR/sunrpc/rpc/*.h usr/include/rpc
 cp -v $SRC_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
