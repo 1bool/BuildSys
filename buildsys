@@ -9,7 +9,7 @@ set -T
 
 quit()
 {
-	echo -e "\nError: Build failed. Exiting..." >&2
+	echo -e "\nError: Build interrupt..." >&2
 	exit 1
 }
 
@@ -167,8 +167,8 @@ build_pkgs()
 					make install
 					export MAKEDIR=$PWD
 				elif [ -x configure ]; then
+					export MAKEDIR=${PKG_DIR}/build
 					if [ ! -f ${PKG_DIR}/.configured ]; then
-						export MAKEDIR=${PKG_DIR}/build
 						mkdir -p $MAKEDIR
 						pushd $MAKEDIR
 						$SRC_DIR/configure ${CONFIGFLAGS}
@@ -347,74 +347,42 @@ make_tgt_pkgs()
 	echo -e "\nRootFS generated in $FS_ROOT."
 }
 
-init_env()
-{
-	source ${BUILD_CONF:-build.conf}
-	for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
-		if [ -z "$(eval echo \$$VAR)" ]; then
-			VAR_NOT_DEF+="$VAR "
-			RET=1
-		fi
-	done
-	if [ "$RET" = 1 ]; then
-		echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-build.conf}" >&2
-		return 1
-	fi
-	cd "$DEV_ROOT"
-	if [ ! -d "$SPECS" ]; then
-		echo "Error: Directory \"$SPECS\" for SPECS found" >&2
-		return 1
-	fi
-	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
-	if [ ! -f /.first_config ]; then
-		pushd /
-		configure_system
-		touch /.first_config
-		popd
-	fi
-}
-
 print_help_and_exit()
 {
 	exec >&2
 	echo -e "Usage:\n $(basename $0) [Options] PackageName ..."
 	echo "Options:"
-	echo " -b		Build only, don't make rootfs"
-	echo " -f, --config	Specify your build config file (default: build.conf)"
-	echo " --rebuild	Rebuild packages"
-	echo " --clean	Clean packages"
-	echo " --distclean	Dist clean package build directories and rootfs"
-	echo " --uninstall	Uninstall package from build system"
-	echo " -h		Print this help"
+	echo " -b, --local		Build locally, don't make target rootfs"
+	echo " -f FILE, --config FILE	Specify your build config file (default: build.conf)"
+	echo " -j N, --jobs N		Build with N jobs run concurrently"
+	echo " --rebuild		Rebuild packages"
+	echo " --clean		Clean packages"
+	echo " --distclean		Dist clean package build directories and rootfs"
+	echo " --uninstall		Uninstall package from build system"
+	echo " -h			Print this help"
 	echo "PackageName:"
-	echo " \"all\"	Build all packages specified in SPECS/build_config"
-	echo " \"package name\"	Single or multiple package names overriding build_config"
-	echo
+	echo " \"all\"			Build all packages specified in SPECS/build_config"
+	echo " \"package name\"		Single or multiple package names overriding build_config"
 	exit
 }
 
 main()
 {
-	case "$@" in
-		help | '')
-			print_help_and_exit
-			;;
-		all)
-			if [ "${#BUILD_LIST[@]}" = 0 ]; then
-				echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-build.conf}" >&2
-				return 1
-			fi
-			;;
-		*)
-			BUILD_LIST=($@)
-			;;
-	esac
 	echo -e "Executing \"$0 $@\" at ${TIME}\n"
+	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
+	if declare -F configure_system && [ ! -f /.first_config ]; then
+		pushd /
+		configure_system
+		touch /.first_config
+		popd
+	fi
 	${ACTION:-make_tgt_pkgs}
 }
 
-GETOPTS=$(getopt -o bf:h --long clean,distclean,uninstall,rebuild,config:,help -n "$0" -- "$@")
-[ $? != 0 ] && print_help_and_exit
+GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
+if [ $? != 0 ]; then
+	print_help_and_exit
+fi
 eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
@@ -430,11 +398,15 @@ while true; do
 		--rebuild)
 			ACTION=rebuild_pkgs; shift
 			;;
-		-b)
+		-b|--local)
 			ACTION=build_pkgs; shift
 			;;
 		-f|--config)
 			BUILD_CONF="$2"; shift 2
+			;;
+		-j|--jobs)
+			JOBS="$2"
+			shift 2
 			;;
 		-h|--help)
 			print_help_and_exit
@@ -448,6 +420,40 @@ while true; do
 	esac
 done
 
+source ${BUILD_CONF:-build.conf}
+for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
+	if [ -z "$(eval echo \$$VAR)" ]; then
+		VAR_NOT_DEF+="$VAR "
+		RET=1
+	fi
+done
+if [ "$RET" = 1 ]; then
+	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-build.conf}" >&2
+	return 1
+fi
+[ -n "$JOBS" ] && export MAKEFLAGS+=$JOBS
+
+case "$@" in
+	help | '')
+		print_help_and_exit
+		;;
+	all)
+		if [ "${#BUILD_LIST[@]}" = 0 ]; then
+			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-build.conf}" >&2
+			return 1
+		fi
+		;;
+	*)
+		BUILD_LIST=($@)
+		;;
+esac
+
+cd "$DEV_ROOT"
+if [ ! -d "$SPECS" ]; then
+	echo "Error: Directory \"$SPECS\" for SPECS found" >&2
+	return 1
+fi
+
 trap quit ERR
-init_env
+
 main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"

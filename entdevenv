@@ -48,8 +48,8 @@ mount -v --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
 mount -vt devpts devpts "$SDE/dev/pts"
 pushd -n "$SDE/dev/pts" &> /dev/null
-mount vlt tmpfs shm "$SDE/dev/shm"
-pushd -n "$SDE/dev/shm" &> /dev/null
+mount -vt tmpfs shm "$SDE/dev/shm"
+pushd -n "/run/shm" &> /dev/null
 mount -vt proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount -vt sysfs sysfs "$SDE/sys"
