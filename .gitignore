@@ -8,5 +8,7 @@
 
 ROOT
 SDE
+POOL
+logs
 .bash_history
 .viminfo
