@@ -23,7 +23,7 @@ quit()
 	set +e
 	DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
-		umount -v $DIR
+		umount -lv $DIR
 	done
 }
 
@@ -48,7 +48,7 @@ mount -v --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
 mount -vt devpts devpts "$SDE/dev/pts"
 pushd -n "$SDE/dev/pts" &> /dev/null
-mount -vlt tmpfs shm "$SDE/dev/shm"
+mount vlt tmpfs shm "$SDE/dev/shm"
 pushd -n "$SDE/dev/shm" &> /dev/null
 mount -vt proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
