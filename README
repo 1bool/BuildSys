@@ -4,5 +4,5 @@ Execute following to enter sdk environment:
 	cd BuildSys
 	./entdevenv
 Then execute following to build the world for the first time:
-	./buildsys all
+	./buildsys -f first-stage.conf all
 Use your favorit editor to edit content in BuildSys directory outside sdk environment.
