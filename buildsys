@@ -1,11 +1,7 @@
-#!/tools/bin/bash
+#!/tools/bin/bash -eET
 # Wenbo Wang (1ball.w@gmail.com)
 
 TIME=$(date +%F-%X)
-
-set -e
-set -E
-set -T
 
 quit()
 {
@@ -68,7 +64,7 @@ guess_pkg_from_url()
 
 walk_pkg_dir()
 {
-	local LOOP_ACTION='return'
+	local CONTINUE='false'
 	OPTIND=1
 	while getopts "bc" FLAG
 	do
@@ -77,7 +73,7 @@ walk_pkg_dir()
 				M='y'
 				;;
 			c)
-				LOOP_ACTION='continue'
+				CONTINUE='true'
 				;;
 		esac
 	done
@@ -109,7 +105,7 @@ walk_pkg_dir()
 		pushd "$TGT_DIR"
 		$@
 		popd
-		) || $LOOPACTION
+		) || $CONTINUE
 	done
 }
 
@@ -131,16 +127,18 @@ build_pkgs()
 		PKG_DIR="${PACKAGES}/${PKG}"
 		mkdir -p ${PKG_DIR}
 		cd ${PKG_DIR}
-		if [ ! -d "${SRC_DIR}" ]; then
+		if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
 			if [ ! -r "$PKG_POOL/${PKG_FILE_NAME}" ] ; then
 				if [ -n "$PKG_URL" ]; then
-					wget -P "$PKG_POOL" "$PKG_URL"
+					wget -c -P "$PKG_POOL"/partial "$PKG_URL"
+					mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
 				else
 					echo "Error: Package ${PKG_NAME}-${VERSION} not found." >&2
 					return 1
 				fi
 			fi
 			unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
+			touch .unpacked
 		fi
 		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
@@ -150,10 +148,13 @@ build_pkgs()
 			[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch "$PKG_POOL"
 			for PATCH_URL in ${PATCHES[@]}; do
 				PATCH_FILE=${PATCH_URL##*/}
-				[ ! -r $PKG_POOL/$PATCH_FILE ] && wget -P "$PKG_POOL" "$PATCH_URL"
+				if [ ! -r $PKG_POOL/$PATCH_FILE ]; then
+				   wget -c -P "$PKG_POOL"/partial "$PATCH_URL"
+				   mv "$PKG_POOL"/partial/"$PATCH_FILE" "$PKG_POOL"
+			   fi
 				[ "${PATCH_FILE##*.}" = patch ] && patch -Np1 < $PKG_POOL/$PATCH_FILE
 			done
-			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build || false
+			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
 			popd
 			touch .patched
 		fi
@@ -194,7 +195,7 @@ build_pkgs()
 			# post-install can be used to fix installation problems
 			if [ -x ${SPECS}/${PKG}/post-install ]; then
 				pushd /
-				${SPECS}/${PKG}/post-install || false
+				${SPECS}/${PKG}/post-install
 				popd
 			fi
 			touch .done
@@ -244,7 +245,7 @@ make_install_tgt_pkg()
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
 		export DESTDIR="${FS_ROOT}" MAKEDIR="$PWD"
 		pushd "$FS_ROOT"
-		${SPECS}/${PKG}/post-install || false
+		${SPECS}/${PKG}/post-install
 		popd
 		unset DESTDIR
 	fi
@@ -339,6 +340,25 @@ make_tgt_pkgs()
 	echo -e "\nRootFS generated in $FS_ROOT."
 }
 
+adj_toolchain()
+{
+	pushd /tools/bin
+	case "$1" in
+		tools)
+			ln -vf ld-old ld
+			rm -vf `dirname $(gcc --print-libgcc-file-name)`/specs
+			;;
+		root)
+			ln -vf ld-new ld
+			gcc -dumpspecs | sed -e 's@/tools@@g' \
+				-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
+				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
+				`dirname $(gcc --print-libgcc-file-name)`/specs
+			;;
+	esac
+	popd
+}
+
 print_help_and_exit()
 {
 	exec >&2
@@ -361,7 +381,7 @@ print_help_and_exit()
 main()
 {
 	echo -e "Executing \"$0 $@\" at ${TIME}\n"
-	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
+	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
 	if declare -F configure_system && [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
@@ -379,19 +399,19 @@ eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
 		--clean)
-			ACTION=clean_pkgs; shift
+			ACT=clean_pkgs; shift
 			;;
 		--distclean)
-			ACTION=distclean_pkgs; shift
+			ACT=distclean_pkgs; shift
 			;;
 		--uninstall)
-			ACTION=uninstall_pkgs; shift
+			ACT=uninstall_pkgs; shift
 			;;
 		--rebuild)
-			ACTION=rebuild_pkgs; shift
+			ACT=rebuild_pkgs; shift
 			;;
 		-b|--local)
-			ACTION=build_pkgs; shift
+			ACT=build_pkgs; shift
 			;;
 		-f|--config)
 			BUILD_CONF="$2"; shift 2
@@ -423,7 +443,10 @@ if [ "$RET" = 1 ]; then
 	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-build.conf}" >&2
 	return 1
 fi
+
 [ -n "$JOBS" ] && export MAKEFLAGS+=$JOBS
+[ -n "$ACT" ] && ACTION=$ACT
+export -f adj_toolchain
 
 case "$@" in
 	help | '')

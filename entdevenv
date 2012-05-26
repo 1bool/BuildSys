@@ -10,14 +10,6 @@ SDK_FS="buildsys.ext4"
 SDK_FS_SIZE=$((2*1024*1024*1024))
 SDK_URL="ftp://w1ball.3322.org:2102/${SDK_FS}.xz"
 
-if [ -z "$1" ]; then
-	DEVROOT="$(pwd)"
-else
-	DEVROOT="$1"
-fi
-SDE="${DEVROOT}/SDE"
-[ -d "$SDE" ] || mkdir "$SDE"
-
 quit()
 {
 	set +e
@@ -29,12 +21,21 @@ quit()
 
 trap quit EXIT
 set -e
-dirs -c
+
+if [ -z "$1" ]; then
+	DEVROOT="$(pwd)"
+else
+	DEVROOT="$1"
+fi
+SDE="${DEVROOT}/SDE"
+[ -d "$SDE" ] || mkdir "$SDE"
 
 cd "$DEVROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
-		wget "${SDK_URL}"
+		mkdir -pv partial
+		wget -P parital -c "${SDK_URL}"
+		mv partial/${SDK_FS} .
 	fi
 	xz -dv ${SDK_FS}.xz
 fi
@@ -42,6 +43,7 @@ if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
 	e2fsck -f ${SDK_FS}
 	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
 fi
+dirs -c
 mount -vo loop -t ext4 "$DEVROOT/${SDK_FS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
 mount -v --bind /dev "$SDE/dev"

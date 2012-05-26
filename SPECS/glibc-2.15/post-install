@@ -1,11 +1,7 @@
 #!/bin/sh
 
 # Set tool chain not to link /tools as we have glibc in root directory now.
-ln -vf /tools/bin/{ld-new,ld}
-gcc -dumpspecs | sed -e 's@/tools@@g' \
-	-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
-	-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
-	`dirname $(gcc --print-libgcc-file-name)`/specs
+toolchain_link root
 
 # Fix bug #3 "glibc build loop in NPTL"
 mv -fv usr/tmp-include/* usr/include

@@ -7,8 +7,7 @@ if [ ! -f "/lib/$(readlink /lib/libc.so.6)" ]; then
 		scripts/test-installation.pl
 	unset DL
 	# Reset toolchain to link with /tools for building glibc pass1
-	ln -fv /tools/bin/{ld-old,ld}
-	rm `dirname $(gcc --print-libgcc-file-name)`/specs
+	toolchain_link tools
 fi
 
 # In addition, there is a bug in the test-installation.pl script in that it tries to link a test program to a library that isn't installed by make install.
@@ -23,3 +22,5 @@ sed -i 's|@BASH@|/bin/bash|' elf/ldd.bash.in
 
 # Though it is a harmless message, the install stage of Glibc will complain about the absence of /etc/ld.so.conf.
 touch /etc/ld.so.conf
+
+adj_toolchain tools
