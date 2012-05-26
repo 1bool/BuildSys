@@ -355,6 +355,9 @@ toolchain_link()
 				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
 				`dirname $(gcc --print-libgcc-file-name)`/specs
 			;;
+		*)
+			return 1
+			;;
 	esac
 	popd
 }
