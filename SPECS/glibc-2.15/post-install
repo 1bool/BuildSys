@@ -27,7 +27,7 @@ mkdir -pv usr/lib/locale
 #localedef -i it_IT -f ISO-8859-1 it_IT
 #localedef -i ja_JP -f EUC-JP ja_JP
 #localedef -i tr_TR -f UTF-8 tr_TR.UTF-8
-localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$(pwd)
+/usr/bin/localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$PWD
 
 # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
 #pushd $MAKEDIR

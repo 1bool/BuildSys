@@ -34,8 +34,8 @@ cd "$DEVROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
 		mkdir -pv partial
-		wget -P parital -c "${SDK_URL}"
-		mv partial/${SDK_FS} .
+		wget -P partial -c "${SDK_URL}"
+		mv partial/${SDK_FS}.xz .
 	fi
 	xz -dv ${SDK_FS}.xz
 fi

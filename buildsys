@@ -1,4 +1,4 @@
-#!/tools/bin/bash -eET
+#!/tools/bin/bash -eETh
 # Wenbo Wang (1ball.w@gmail.com)
 
 TIME=$(date +%F-%X)
@@ -385,7 +385,7 @@ main()
 {
 	echo -e "Executing \"$0 $@\" at ${TIME}\n"
 	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
-	if declare -F configure_system && [ ! -f /.first_config ]; then
+	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
 		touch /.first_config
@@ -435,7 +435,7 @@ while true; do
 	esac
 done
 
-source ${BUILD_CONF:-build.conf}
+source ${BUILD_CONF:-~/build.conf}
 for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
