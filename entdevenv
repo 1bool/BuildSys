@@ -1,14 +1,6 @@
 #!/bin/bash
 
 PATH=$PATH:/sbin:/usr/sbin
-[ "$(uname -m)" = x86_64 ] && SET32=linux32
-
-# Set defaults
-: ${SDK_FS:="buildsys-i686.ext4"}
-: ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
-: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
-: ${DEVROOT:="$PWD"}
-: ${DEVROOT_IN_SDK:="/root"}
 
 print_help_and_exit()
 {
@@ -70,10 +62,17 @@ fi
 trap quit EXIT
 set -e
 
+[ "$(uname -m)" = x86_64 ] && SET32=linux32
 [ -n "$1" ] && DEVROOT="$1"
+# Set defaults
+: ${SDK_FS:="buildsys-i686.ext4"}
+: ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
+: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
+: ${DEVROOT_IN_SDK:="/root"}
+: ${DEVROOT:="$PWD"}
+
 SDE="${DEVROOT}/SDE"
 [ -d "$SDE" ] || mkdir "$SDE"
-
 cd "$DEVROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
