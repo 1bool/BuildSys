@@ -1,15 +1,24 @@
 #!/bin/bash
 
-if [ "$EUID" != 0 ]; then
-	echo "You have to be root to run \"$0\"" >&2
-	exec su -c $0 $@
-fi
-
 PATH=$PATH:/sbin:/usr/sbin
-SDK_FS="buildsys.ext4"
+[ -z "$SDK_FS" ] && SDK_FS="buildsys-i686.ext4"
 # Set default fs size to 1G
 SDK_FS_SIZE=$((1*1024*1024*1024))
 SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
+[ "$(uname -m)" = x86_64 ] && SET32=linux32
+
+print_help_and_exit()
+{
+	exec >&2
+	echo -e "Usage:\n $(basename $0) [Options] [DevRootDir]"
+	echo "Options:"
+	echo " --i686		Enter SDK environment for i686 architecture (default)"
+	echo " --arm		Enter SDK environment for ARM architecture"
+	echo " -h, --help	Print this help"
+	echo "DevRootDir:"
+	echo " \"package name\"	The root directory for development, default is current directory"
+	exit
+}
 
 quit()
 {
@@ -22,6 +31,35 @@ quit()
 	done
 }
 
+GETOPTS=$(getopt -o h --long arm,i686,help -n "$0" -- "$@")
+[ $? != 0 ] && print_help_and_exit
+
+eval set -- "$GETOPTS"
+while true; do
+	case "$1" in
+		--arm)
+			export SDK_FS=buildsys-arm.ext4; shift
+			;;
+		--i686)
+			export SDK_FS=buildsys-i686.ext4; shift
+			;;
+		-h | --help)
+			print_help_and_exit; shift
+			;;
+		--)
+			shift ; break
+			;;
+		*)
+			print_help_and_exit
+			;;
+	esac
+done
+
+if [ "$EUID" != 0 ]; then
+	echo "You have to be root to run \"$0\"" >&2
+	exec su -c $0 $@
+fi
+
 trap quit EXIT
 set -e
 
@@ -30,6 +68,7 @@ if [ -z "$1" ]; then
 else
 	DEVROOT="$1"
 fi
+
 SDE="${DEVROOT}/SDE"
 [ -d "$SDE" ] || mkdir "$SDE"
 
@@ -61,7 +100,7 @@ mount -vt sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount -v --bind "$DEVROOT" "$SDE/root"
 pushd -n "$SDE/root" &> /dev/null
-linux32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
+$SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
     /tools/bin/bash --login +h

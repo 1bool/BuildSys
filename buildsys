@@ -390,7 +390,7 @@ print_help_and_exit()
 	echo " --clean		Clean packages"
 	echo " --distclean		Dist clean package build directories and rootfs"
 	echo " --uninstall		Uninstall package from build system"
-	echo " -h			Print this help"
+	echo " -h, --help		Print this help"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in SPECS/build_config"
 	echo " \"package name\"		Single or multiple package names overriding build_config"
@@ -411,9 +411,8 @@ main()
 }
 
 GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
-if [ $? != 0 ]; then
-	print_help_and_exit
-fi
+[ $? != 0 ] && print_help_and_exit
+
 eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
