@@ -1,7 +1,7 @@
 #!/tools/bin/bash -eETh
 # Wenbo Wang (1ball.w@gmail.com)
 
-set -eETH
+set -eETh
 TIME=$(date +%F-%X)
 
 quit()
@@ -392,7 +392,7 @@ print_help_and_exit()
 	echo " --uninstall		Uninstall package from build system"
 	echo " -h, --help		Print this help"
 	echo "PackageName:"
-	echo " \"all\"			Build all packages specified in SPECS/build_config"
+	echo " \"all\"			Build all packages specified in config file (default for empty PackageName)"
 	echo " \"package name\"		Single or multiple package names overriding build_config"
 	exit
 }
@@ -411,6 +411,7 @@ main()
 }
 
 [ -n "$ARCH" ] && export ARCH
+[ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
 GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
@@ -436,8 +437,8 @@ while true; do
 		-f|--config)
 			if [ -r "$2" ]; then
 				BUILD_CONF="$2"
-			elif [ -r "~/INC/$2" ]; then
-				BUILD_CONF="~/INC/$2"
+			elif [ -r "$INCDIR/$2" ]; then
+				BUILD_CONF="$INCDIR/$2"
 			fi
 			shift 2
 			;;
@@ -457,19 +458,19 @@ while true; do
 	esac
 done
 
-if [ ! -d ~/INC ]; then
-	echo "Error: Directory \"~/INC\" for global configuration not found" >&2
+if [ ! -d "$INCDIR" ]; then
+	echo "Error: Directory \"$INCDIR\" for global configuration not found" >&2
 	return 1
 fi
-source ${BUILD_CONF:-~/INC/build-${ARCH}.conf}
-for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
+source ${BUILD_CONF:="$INCDIR/build-${ARCH}.conf"}
+for VAR in PACKAGES FS_ROOT PKG_POOL; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
 		RET=1
 	fi
 done
 if [ "$RET" = 1 ]; then
-	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-${INCDIR}/build-${ARCH}.conf}" >&2
+	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}" >&2
 	return 1
 fi
 
@@ -478,12 +479,12 @@ fi
 export -f toolchain_link
 
 case "$@" in
-	help | '')
+	help)
 		print_help_and_exit
 		;;
-	all)
+	all|'')
 		if [ "${#BUILD_LIST[@]}" = 0 ]; then
-			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-${INCDIR}/build-${ARCH}.conf}" >&2
+			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
 			return 1
 		fi
 		;;
@@ -493,7 +494,7 @@ case "$@" in
 esac
 
 cd "$DEV_ROOT"
-if [ ! -d "$SPECS" ]; then
+if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then
 	echo "Error: Directory \"$SPECS\" for SPECS not found" >&2
 	return 1
 fi

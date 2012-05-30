@@ -1,26 +1,23 @@
 #!/bin/bash
 
 PATH=$PATH:/sbin:/usr/sbin
-
-if [ "$1" = arm ]; then
-	SDK_FS="buildsys-arm.ext4"
-else
-	SDK_FS="buildsys.ext4"
-fi
-
-[ -z "$SDK_FS" ] && SDK_FS="buildsys-i686.ext4" ARCH="i686"
-# Set default fs size to 1G
-SDK_FS_SIZE=$((1*1024*1024*1024))
-SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
 [ "$(uname -m)" = x86_64 ] && SET32=linux32
+
+# Set defaults
+: ${SDK_FS:="buildsys-i686.ext4"}
+: ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
+: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
+: ${DEVROOT:="$PWD"}
+: ${DEVROOT_IN_SDK:="/root"}
 
 print_help_and_exit()
 {
 	exec >&2
 	echo -e "Usage:\n $(basename $0) [Options] [DevRootDir]"
 	echo "Options:"
-	echo " --i686		Enter SDK environment for i686 architecture (default)"
+	echo " --i686		Enter SDK environment for i686 architecture (default if not specified)"
 	echo " --arm		Enter SDK environment for ARM architecture"
+	echo " -s, --size N	Set lowest size limit of SDK filesystem to N MB (default 1024)"
 	echo " -h, --help	Print this help"
 	echo "DevRootDir:"
 	echo " \"package name\"	The root directory for development, default is current directory"
@@ -38,7 +35,7 @@ quit()
 	done
 }
 
-GETOPTS=$(getopt -o h --long arm,i686,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o sh --long arm,i686,size,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 
 eval set -- "$GETOPTS"
@@ -49,6 +46,9 @@ while true; do
 			;;
 		--i686)
 			export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
+			;;
+		-s | --size)
+			SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 			;;
 		-h | --help)
 			print_help_and_exit; shift
@@ -70,12 +70,7 @@ fi
 trap quit EXIT
 set -e
 
-if [ -z "$1" ]; then
-	DEVROOT="$(pwd)"
-else
-	DEVROOT="$1"
-fi
-
+[ -n "$1" ] && DEVROOT="$1"
 SDE="${DEVROOT}/SDE"
 [ -d "$SDE" ] || mkdir "$SDE"
 
@@ -105,10 +100,10 @@ mount -vt proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount -vt sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
-mount -v --bind "$DEVROOT" "$SDE/root"
-pushd -n "$SDE/root" &> /dev/null
+mount -v --bind "$DEVROOT" "$SDE/$DEVROOT_IN_SDK"
+pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
-	ARCH=$ARCH \
+	ARCH=${ARCH:-i686} DEV_ROOT=$DEVROOT_IN_SDK \
     /tools/bin/bash --login +h
