@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 PATH=$PATH:/sbin:/usr/sbin
 
@@ -60,7 +60,6 @@ if [ "$EUID" != 0 ]; then
 fi
 
 trap quit EXIT
-set -e
 
 [ "$(uname -m)" = 'i686' ] || SET32=linux32
 [ -n "$1" ] && BSROOT="$1"
@@ -101,6 +100,7 @@ mount -vt sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount -v --bind "$DEVROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
+ln -sf "$DEVROOT_IN_SDK/buildsys" "$SDE/tools/bin"
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \

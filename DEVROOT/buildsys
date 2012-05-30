@@ -1,12 +1,19 @@
-#!/tools/bin/bash -eETh
+#!/tools/bin/bash
 # Wenbo Wang (1ball.w@gmail.com)
 
-set -eETh
-TIME=$(date +%F-%X)
+set -eE
+if [ "$ARCH" = i686 ]; then
+	set +h
+else
+	set -h
+fi
+export ARCH
+
+START_TIME=$(date +%F-%X)
 
 quit()
 {
-	echo -e "\nError: Build interrupt..." >&2
+	echo -e "\nError occured during build process..." >&2
 	return 1
 }
 
@@ -81,7 +88,7 @@ walk_pkg_dir()
 	shift $((OPTIND - 1))
 	for PKG in ${BUILD_LIST[@]}; do
 		(
-		set -e; set -E; set -T
+		set -aeE
 		PKG_DIR="${PACKAGES}/${PKG}"
 		if [ ! -d "$PKG_DIR" ]; then
 			echo "Error: Package directory \"$PKG_DIR\" not found"
@@ -100,9 +107,7 @@ walk_pkg_dir()
 				exit 1
 			fi
 			TGT_DIR="$MAKEDIR"
-			export MAKEDIR
 		fi
-		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
 		pushd "$TGT_DIR"
 		$@
 		popd
@@ -123,6 +128,7 @@ build_pkgs()
 			return 1
 		fi
 		(
+		set -aeE
 		source ${SPECS}/${PKG}/spec
 		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
 		PKG_DIR="${PACKAGES}/${PKG}"
@@ -141,7 +147,6 @@ build_pkgs()
 			unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
 			touch .unpacked
 		fi
-		export PATCHES PKG PKG_DIR PKG_FILE_NAME SUFFIX VERSION PKG_NAME SRC_DIR
 		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
 		# pre-build can be used to do patching job
 		if [ ! -f .patched ]; then
@@ -167,9 +172,9 @@ build_pkgs()
 				if [ -r Makefile ] && [ ! -x configure ]; then
 					make
 					make install
-					export MAKEDIR=$PWD
+					MAKEDIR=$PWD
 				elif [ -x configure ]; then
-					export MAKEDIR=${PKG_DIR}/build
+					MAKEDIR=${PKG_DIR}/build
 					if [ ! -f ${PKG_DIR}/.configured ]; then
 						mkdir -p $MAKEDIR
 						pushd $MAKEDIR
@@ -183,7 +188,7 @@ build_pkgs()
 				elif [ -r ${PKG_NAME}.pro ]; then
 					qmake
 					make
-					export MAKEDIR=$PWD
+					MAKEDIR=$PWD
 				else
 					echo "Error: Don't know how to build package $PKG." >&2
 					return 1
@@ -254,15 +259,14 @@ make_install_tgt_pkg()
 	if [ $(basename ${PWD}) = 'build' ]; then
 		make DESTDIR=${FS_ROOT} install
 	elif [ "${PKG_NAME}" != "linux" ]; then
-		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}${PREFIX} prefix=${FS_ROOT}${PREFIX} install
+		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}/${PREFIX} prefix=${FS_ROOT}/${PREFIX} install
 	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
-		export DESTDIR="${FS_ROOT}" MAKEDIR="$PWD"
+		MAKEDIR="$PWD"
 		pushd "$FS_ROOT"
 		${SPECS}/${PKG}/post-install
 		popd
-		unset DESTDIR
 	fi
 }
 
@@ -399,7 +403,7 @@ print_help_and_exit()
 
 main()
 {
-	echo -e "Executing \"$0 $@\" at ${TIME}\n"
+	echo -e "Executing \"$0 $@\" with ${BUILD_CONF} at ${START_TIME}\n"
 	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -410,7 +414,6 @@ main()
 	${ACTION:-make_tgt_pkgs}
 }
 
-[ -n "$ARCH" ] && export ARCH
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
 GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
@@ -435,10 +438,13 @@ while true; do
 			ACT=build_pkgs; shift
 			;;
 		-f|--config)
-			if [ -r "$2" ]; then
+			if [ -f "$2" ]; then
 				BUILD_CONF="$2"
-			elif [ -r "$INCDIR/$2" ]; then
+			elif [ -f "$INCDIR/$2" ]; then
 				BUILD_CONF="$INCDIR/$2"
+			else
+				echo >&2 "Error: File \"$2\" not found"
+				exit 1
 			fi
 			shift 2
 			;;
@@ -462,13 +468,18 @@ if [ ! -d "$INCDIR" ]; then
 	echo "Error: Directory \"$INCDIR\" for global configuration not found" >&2
 	return 1
 fi
+
+set -a
 source ${BUILD_CONF:="$INCDIR/build-${ARCH}.conf"}
+set +a
+
 for VAR in PACKAGES FS_ROOT PKG_POOL; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
 		RET=1
 	fi
 done
+
 if [ "$RET" = 1 ]; then
 	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}" >&2
 	return 1
@@ -501,4 +512,4 @@ fi
 
 trap quit ERR
 
-main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$TIME.log"
+main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$START_TIME.log"

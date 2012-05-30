@@ -6,9 +6,9 @@
 *.swo
 *.ext4
 
-ROOT
 SDE
-POOL
-logs
+DEVROOT/ROOT
+DEVROOT/POOL
+DEVROOT/logs
 .bash_history
 .viminfo

@@ -3,7 +3,7 @@
 # Install the modules, if the kernel configuration uses them:
 export INSTALL_MOD_PATH=$PWD
 cd "$MAKEDIR"
-make ARCH=$ARCH modules_install
+make modules_install
 cd -
 
 # Make /boot dir for kernel installation
