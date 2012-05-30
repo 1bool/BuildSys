@@ -5,14 +5,14 @@ PATH=$PATH:/sbin:/usr/sbin
 print_help_and_exit()
 {
 	exec >&2
-	echo -e "Usage:\n $(basename $0) [Options] [DevRootDir]"
+	echo -e "Usage:\n $(basename $0) [Options] [BuildSysRootDir]"
 	echo "Options:"
 	echo " --i686		Enter SDK environment for i686 architecture (default if not specified)"
 	echo " --arm		Enter SDK environment for ARM architecture"
 	echo " -s, --size N	Set lowest size limit of SDK filesystem to N MB (default 1024)"
 	echo " -h, --help	Print this help"
-	echo "DevRootDir:"
-	echo " \"package name\"	The root directory for development, default is current directory"
+	echo "BuildSysRootDir:"
+	echo "		Buildsys root directory, default is current directory if not specified"
 	exit
 }
 
@@ -63,17 +63,18 @@ trap quit EXIT
 set -e
 
 [ "$(uname -m)" = x86_64 ] && SET32=linux32
-[ -n "$1" ] && DEVROOT="$1"
+[ -n "$1" ] && BSROOT="$1"
 # Set defaults
 : ${SDK_FS:="buildsys-i686.ext4"}
 : ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
 : ${DEVROOT_IN_SDK:="/root"}
-: ${DEVROOT:="$PWD"}
-
-SDE="${DEVROOT}/SDE"
+: ${BSROOT:="$PWD"}
+: ${DEVROOT:="$BSROOT/DEVROOT"}
+: ${SDE:="$BSROOT/SDE"}
 [ -d "$SDE" ] || mkdir "$SDE"
-cd "$DEVROOT"
+
+cd "$BSROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
 		mkdir -pv partial
@@ -87,7 +88,7 @@ if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
 	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
 fi
 dirs -c
-mount -vo loop -t ext4 "$DEVROOT/${SDK_FS}" "$SDE"
+mount -vo loop -t ext4 "$BSROOT/${SDK_FS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
 mount -v --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
