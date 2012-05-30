@@ -6,7 +6,13 @@ if [ "$EUID" != 0 ]; then
 fi
 
 PATH=$PATH:/sbin:/usr/sbin
-SDK_FS="buildsys.ext4"
+
+if [ "$1" = arm ]; then
+	SDK_FS="buildsys-arm.ext4"
+else
+	SDK_FS="buildsys.ext4"
+fi
+
 # Set default fs size to 1G
 SDK_FS_SIZE=$((1*1024*1024*1024))
 SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
@@ -25,11 +31,7 @@ quit()
 trap quit EXIT
 set -e
 
-if [ -z "$1" ]; then
-	DEVROOT="$(pwd)"
-else
-	DEVROOT="$1"
-fi
+DEVROOT="$(pwd)"
 SDE="${DEVROOT}/SDE"
 [ -d "$SDE" ] || mkdir "$SDE"
 
