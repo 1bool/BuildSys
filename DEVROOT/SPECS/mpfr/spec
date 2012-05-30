@@ -1,4 +1,4 @@
-#PKG_URL='http://www.mpfr.org/mpfr-3.1.0/mpfr-3.1.0.tar.bz2'
-PKG_URL='http://ftp.gnu.org/gnu/mpfr/mpfr-3.1.0.tar.xz'
+#PKG_LOCATION='http://www.mpfr.org/mpfr-3.1.0/mpfr-3.1.0.tar.bz2'
+PKG_LOCATION='http://ftp.gnu.org/gnu/mpfr/mpfr-3.1.0.tar.xz'
 CONFIGFLAGS+='--enable-thread-safe --docdir=/usr/share/doc/mpfr-3.1.0 --enable-shared'
 TARGET_INSTALL=n

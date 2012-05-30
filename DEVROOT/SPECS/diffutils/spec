@@ -1,2 +1,2 @@
 VERSION=3.2
-PKG_URL='http://ftp.gnu.org/gnu/diffutils/diffutils-3.2.tar.gz'
+PKG_LOCATION='http://ftp.gnu.org/gnu/diffutils/diffutils-3.2.tar.gz'

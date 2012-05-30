@@ -1,5 +1,5 @@
 VERSION=6.2
-PKG_URL='http://ftp.gnu.org/gnu/readline/readline-6.2.tar.gz'
+PKG_LOCATION='http://ftp.gnu.org/gnu/readline/readline-6.2.tar.gz'
 CONFIGFLAGS='--prefix=/usr --libdir=/lib'
 
 # Patch to fix a known bug that has been fixed upstream

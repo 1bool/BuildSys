@@ -1,4 +1,4 @@
-PKG_URL='http://ftp.altlinux.org/pub/people/legion/kbd/kbd-1.15.3.tar.gz'
+PKG_LOCATION='http://ftp.altlinux.org/pub/people/legion/kbd/kbd-1.15.3.tar.gz'
 CONFIGFLAGS='--prefix=/usr --datadir=/lib/kbd'
 # The behaviour of the Backspace and Delete keys is not consistent across the keymaps in the Kbd package. The following patch fixes this issue for i386 keymaps:
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/kbd-1.15.3-backspace-1.patch'

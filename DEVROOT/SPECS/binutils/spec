@@ -1,5 +1,5 @@
 VERSION=2.22
-PKG_URL='http://ftp.gnu.org/gnu/binutils/binutils-2.22.tar.bz2'
+PKG_LOCATION='http://ftp.gnu.org/gnu/binutils/binutils-2.22.tar.bz2'
 CONFIGFLAGS='--prefix=/usr --enable-shared'
 MAKEFLAGS="$MAKEFLAGS tooldir=/usr"
 TARGET_INSTALL=n

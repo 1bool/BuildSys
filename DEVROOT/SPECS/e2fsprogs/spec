@@ -1,4 +1,4 @@
-PKG_URL='http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-1.42.2.tar.gz'
+PKG_LOCATION='http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-1.42.2.tar.gz'
 CONFIGFLAGS='--prefix=/usr --with-root-prefix="" --enable-elf-shlibs --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck'
 PKG_CONFIG=/tools/bin/true
 LDFLAGS="-lblkid -luuid"

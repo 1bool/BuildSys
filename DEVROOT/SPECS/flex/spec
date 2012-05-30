@@ -1,4 +1,4 @@
 VERSION=2.5.35
-PKG_URL='http://prdownloads.sourceforge.net/flex/flex-2.5.35.tar.bz2'
+PKG_LOCATION='http://prdownloads.sourceforge.net/flex/flex-2.5.35.tar.bz2'
 TARGET_INSTALL=n
 PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/flex-2.5.35-gcc44-1.patch'

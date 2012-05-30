@@ -1,5 +1,5 @@
 VERSION=7
-PKG_URL='http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-7.tar.xz'
+PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-7.tar.xz'
 CONFIGFLAGS='--prefix=/usr --bindir=/bin --libdir=/lib --sysconfdir=/etc --with-xz --with-zlib'
 liblzma_CFLAGS="-I/usr/include"
 liblzma_LIBS="-L/lib -llzma"

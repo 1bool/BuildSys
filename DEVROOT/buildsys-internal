@@ -32,27 +32,26 @@ quit()
 
 unpack()
 {
-	if [ -n "$3" ]; then
-		TGT_DIR="$3"
-	else
-		TGT_DIR=.
+	local DEST='.'
+	if [ -n "$2" ]; then
+		DEST="$2"
 	fi
-	case $2 in
-		tar.gz | tar.bz2 | tar.xz)
-			tar -xf "$1" -C "$TGT_DIR"
+	case "$1" in
+		*.tar.gz | *.tar.bz2 | *.tar.xz | *.tgz | *.tbz | *.txz)
+			tar -xf "$1" -C "$DEST"
 			;;
-		zip)
-			unzip "$1" -d "$TGT_DIR"
+		*.zip)
+			unzip "$1" -d "$DEST"
 			;;
 		*)
-			bs_error "Unkown package format for \"$1\""
+			bs_error "Unknown package format for \"$1\""
 			return 1
 			;;
 	esac
 	return 0
 }
 
-guess_pkg_from_url()
+guess_pkg_info()
 {
 	[ -z "$1" ] && return 1
 
@@ -61,8 +60,8 @@ guess_pkg_from_url()
 	fi
 	if [ -z "$SUFFIX" ]; then
 		SUFFIX="${PKG_FILE_NAME##*.}"
-		case "$SUFFIX" in
-			gz | bz2 | xz)
+		case "$PKG_FILE_NAME" in
+			*.tar.gz | *.tar.bz2 | *.tar.xz)
 				SUFFIX="tar.$SUFFIX"
 				;;
 		esac
@@ -83,6 +82,33 @@ guess_pkg_from_url()
 	fi
 }
 
+get_file()
+{
+	local SOURCE="$1" DEST="$2"
+	local SOURCE_FILE="${SOURCE##*/}"
+	if [ -f "$DEST"/"$SOURCE_FILE" ]; then
+		bs_notice "File \"$SOURCE_FILE\" already exists in \"$DEST\", skip getting"
+		return
+	fi
+	case "$SOURCE" in
+		http://*)
+			;&
+		ftp://*)
+			bs_notice "Downloading ${SOURCE}"
+			wget -c -O "$DEST/${SOURCE_FILE}.partial" "$SOURCE"
+			mv "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
+			;;
+		*)
+			if [ -f "$SOURCE" ]; then
+				ln -v "$SOURCE" "$DEST"
+			else
+				bs_error "File \"$SOURCE\" not found"
+				return 1
+			fi
+			;;
+	esac
+}
+
 walk_pkg_dir()
 {
 	SETOPTS='-eET'
@@ -100,7 +126,7 @@ walk_pkg_dir()
 		(
 		set -a $SETOPTS
 		source ${SPECS}/${PKG}/spec
-		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
+		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		PKG_DIR="${PACKAGES}/${PKG}"
 		mkdir -p "$PKG_DIR"
 		if [ -d "$PKG_DIR/build" ]; then
@@ -120,33 +146,29 @@ walk_pkg_dir()
 pkg_unpack_patch()
 {
 	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
-		if [ ! -r "$PKG_POOL/${PKG_FILE_NAME}" ] ; then
-			if [ -n "$PKG_URL" ]; then
-				bs_notice "Downloading file ${PKG_FILE_NAME}"
-				wget -c -P "$PKG_POOL"/partial "$PKG_URL"
-				mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
-			else
-				bs_error "Package ${PKG_NAME}-${VERSION} not found."
-				return 1
-			fi
+		if [ -z "$PKG_LOCATION" ]; then
+			bs_error "No source file defined for \"$PKG\""
+			return 1
+		else
+			get_file "$PKG_LOCATION" "$PKG_POOL"
 		fi
 		bs_notice "Unpacking file ${PKG_FILE_NAME}"
-		unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
+		unpack "${PKG_POOL}/${PKG_FILE_NAME}"
+		for ADDITION in ${ADDITIONS[@]}; do
+			get_file "$ADDITION" "$PKG_POOL"
+			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
+		done
 		touch .unpacked
 	fi
-	# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
-	# pre-build can be used to do patching job
 	if [ ! -f .patched ]; then
 		pushd "$SRC_DIR"
-		[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch "$PKG_POOL"
-		for PATCH_URL in ${PATCHES[@]}; do
-			PATCH_FILE=${PATCH_URL##*/}
-			if [ ! -r $PKG_POOL/$PATCH_FILE ]; then
-				wget -c -P "$PKG_POOL"/partial "$PATCH_URL"
-				mv "$PKG_POOL"/partial/"$PATCH_FILE" "$PKG_POOL"
-			fi
-			[ "${PATCH_FILE##*.}" = patch ] && patch -Np1 < $PKG_POOL/$PATCH_FILE
+		for PATCH in ${PATCHES[@]}; do
+			get_file "$PATCH" "$PKG_POOL"
+			patch -Np1 < $PKG_POOL/${PATCH##*/}
 		done
+		# Execute any script or binary with env variables exported for it
+		# pre-build can be used to do patching job
+		# Only bash and perl supported for scripting as of now
 		[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
 		popd
 		touch .patched
@@ -170,7 +192,7 @@ pkg_make_install()
 				if [ ! -f ${PKG_DIR}/.configured ]; then
 					mkdir -p $MAKEDIR
 					pushd $MAKEDIR
-					$SRC_DIR/configure ${CONFIGFLAGS}
+					$SRC_DIR/configure --prefix="$PREFIX" $CROSSCONFOPTS ${CONFIGFLAGS}
 					popd
 					touch ${PKG_DIR}/.configured
 				fi
@@ -269,7 +291,7 @@ pkg_make_dest_install()
 
 pkg_remove()
 {
-	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_URL" ]; then
+	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_LOCATION" ]; then
 		cd ..
 		bs_notice "Removing $PKG_DIR"
 		rm -rf "$PKG_DIR"
@@ -419,7 +441,7 @@ print_help_and_exit()
 main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
-	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
+	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
@@ -483,6 +505,10 @@ done
 if [ "$RET" = 1 ]; then
 	bs_error "Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}"
 	return 1
+fi
+
+if [ "$ARCH" = arm ]; then
+	CROSSCONFOPTS="--build=i686-pc-linux-gnu --host=arm-buildsys-linux-gnueabi"
 fi
 
 [ -n "$JOBS" ] && export MAKEFLAGS+="-j$JOBS"

@@ -1,4 +1,4 @@
 VERSION=1.11.4
 CONFIGFLAGS='--prefix=/usr --docdir=/usr/share/doc/automake-1.11.4'
-PKG_URL='http://ftp.gnu.org/gnu/automake/automake-1.11.4.tar.xz'
+PKG_LOCATION='http://ftp.gnu.org/gnu/automake/automake-1.11.4.tar.xz'
 TARGET_INSTALL=n

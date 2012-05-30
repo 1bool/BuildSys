@@ -1,4 +1,4 @@
 VERSION=2.5
 CONFIGFLAGS='--prefix=/usr --enable-nls'
-PKG_URL='http://ftp.gnu.org/gnu/bison/bison-2.5.tar.bz2'
+PKG_LOCATION='http://ftp.gnu.org/gnu/bison/bison-2.5.tar.bz2'
 TARGET_INSTALL=n

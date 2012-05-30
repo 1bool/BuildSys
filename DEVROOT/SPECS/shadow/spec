@@ -1,3 +1,3 @@
-PKG_URL='http://pkg-shadow.alioth.debian.org/releases/shadow-4.1.5.1.tar.bz2'
+PKG_LOCATION='http://pkg-shadow.alioth.debian.org/releases/shadow-4.1.5.1.tar.bz2'
 # Fix an issue when running various programs from this package when they are used when the nscd daemon is not running:
 CONFIGFLAGS='--sysconfdir=/etc'

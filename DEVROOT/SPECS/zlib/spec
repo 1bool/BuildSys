@@ -1,3 +1,3 @@
 # Host blocked by GFW, using mirror instead...
-#PKG_URL='http://www.zlib.net/zlib-1.2.6.tar.bz2'
-PKG_URL='http://sourceforge.net/projects/libpng/files/zlib/1.2.6/zlib-1.2.6.tar.bz2'
+#PKG_LOCATION='http://www.zlib.net/zlib-1.2.6.tar.bz2'
+PKG_LOCATION='http://sourceforge.net/projects/libpng/files/zlib/1.2.6/zlib-1.2.6.tar.bz2'

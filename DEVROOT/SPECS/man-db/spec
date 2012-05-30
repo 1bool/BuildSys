@@ -1,5 +1,5 @@
 VERSION=2.6.1
-PKG_URL='http://download.savannah.gnu.org/releases/man-db/man-db-2.6.1.tar.gz'
+PKG_LOCATION='http://download.savannah.gnu.org/releases/man-db/man-db-2.6.1.tar.gz'
 PKG_CONFIG=/tools/bin/true
 libpipeline_CFLAGS=''
 libpipeline_LIBS='-lpipeline'

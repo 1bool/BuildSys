@@ -1,5 +1,5 @@
 VERSION=1.26
-PKG_URL='http://ftp.gnu.org/gnu/tar/tar-1.26.tar.bz2'
+PKG_LOCATION='http://ftp.gnu.org/gnu/tar/tar-1.26.tar.bz2'
 CONFIGFLAGS='prefix=/usr --bindir=/bin --libexecdir=/usr/sbin'
 FORCE_UNSAFE_CONFIGURE=1
 export FORCE_UNSAFE_CONFIGURE

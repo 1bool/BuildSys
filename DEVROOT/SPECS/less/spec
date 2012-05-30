@@ -1,5 +1,5 @@
 VERSION=444
-PKG_URL='http://www.greenwoodsoftware.com/less/less-444.tar.gz'
+PKG_LOCATION='http://www.greenwoodsoftware.com/less/less-444.tar.gz'
 CONFIGFLAGS='--prefix=/usr --sysconfdir=/etc'
 #--sysconfdir=/etc
 #    This option tells the programs created by the package to look in /etc for the configuration files.

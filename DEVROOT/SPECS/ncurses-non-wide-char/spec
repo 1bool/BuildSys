@@ -1,4 +1,4 @@
 VERSION=5.9
 CONFIGFLAGS='--prefix=/usr --with-shared --without-normal --without-debug --without-cxx-binding'
 MAKEFLAGS="$MAKEFLAGS sources libs'
-PKG_URL='ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz'
+PKG_LOCATION='ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz'
