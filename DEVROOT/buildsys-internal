@@ -125,7 +125,16 @@ walk_pkg_dir()
 	for PKG in ${BUILD_LIST[@]}; do
 		(
 		set -a $SETOPTS
-		source ${SPECS}/${PKG}/spec
+		if [ -n "$SPEC_NAME" ]; then
+			SPECFILE="${SPECS}/${PKG}/$SPEC_NAME"
+		else
+			SPECFILE="${SPECS}/${PKG}/spec-$SDKARCH"
+		fi
+		if [ ! -f "$SPECFILE" ]; then
+			bs_notice "File \"${SPECFILE}\" not found, falling back to default spec" 
+			SPECFILE="${SPECS}/${PKG}/spec"
+		fi
+		source "$SPECFILE"
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		PKG_DIR="${PACKAGES}/${PKG}"
 		mkdir -p "$PKG_DIR"
@@ -508,7 +517,8 @@ if [ "$RET" = 1 ]; then
 fi
 
 if [ "$ARCH" = arm ]; then
-	CROSSCONFOPTS="--build=i686-pc-linux-gnu --host=arm-buildsys-linux-gnueabi"
+	export BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu"
+	CROSSCONFOPTS="--build=$BUILDSYS_HOST --host=$BUILDSYS_BUILD"
 fi
 
 [ -n "$JOBS" ] && export MAKEFLAGS+="-j$JOBS"
