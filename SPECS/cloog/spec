@@ -1,0 +1,2 @@
+PKG_URL='http://www.bastoul.net/cloog/pages/download/cloog-0.16.3.tar.gz'
+CONFIGFLAGS+='--enable-shared'

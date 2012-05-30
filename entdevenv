@@ -5,9 +5,10 @@ if [ "$EUID" != 0 ]; then
 	exec su -c $0 $@
 fi
 
+PATH=$PATH:/sbin:/usr/sbin
 SDK_FS="buildsys.ext4"
-# Set fs size to 2G
-SDK_FS_SIZE=$((2*1024*1024*1024))
+# Set default fs size to 1G
+SDK_FS_SIZE=$((1*1024*1024*1024))
 SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
 
 quit()
@@ -15,7 +16,9 @@ quit()
 	set +e
 	DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
-		umount -lv $DIR
+		if ! umount -v $DIR; then
+			umount -v -l $DIR
+		fi
 	done
 }
 
