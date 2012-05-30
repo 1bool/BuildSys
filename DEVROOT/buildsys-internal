@@ -495,7 +495,7 @@ set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
 
-for VAR in PACKAGES FS_ROOT PKG_POOL; do
+for VAR in PACKAGES FS_ROOT PKG_POOL PREFIX; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
 		RET=1
