@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PATH=$PATH:/sbin:/usr/sbin
-[ -z "$SDK_FS" ] && SDK_FS="buildsys-i686.ext4"
+[ -z "$SDK_FS" ] && SDK_FS="buildsys-i686.ext4" ARCH="i686"
 # Set default fs size to 1G
 SDK_FS_SIZE=$((1*1024*1024*1024))
 SDK_URL="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"
@@ -38,10 +38,10 @@ eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
 		--arm)
-			export SDK_FS=buildsys-arm.ext4; shift
+			export SDK_FS=buildsys-arm.ext4 ARCH=arm; shift
 			;;
 		--i686)
-			export SDK_FS=buildsys-i686.ext4; shift
+			export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
 			;;
 		-h | --help)
 			print_help_and_exit; shift
@@ -103,4 +103,5 @@ pushd -n "$SDE/root" &> /dev/null
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
+	ARCH=$ARCH \
     /tools/bin/bash --login +h
