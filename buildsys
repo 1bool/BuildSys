@@ -390,7 +390,7 @@ print_help_and_exit()
 	echo " --clean		Clean packages"
 	echo " --distclean		Dist clean package build directories and rootfs"
 	echo " --uninstall		Uninstall package from build system"
-	echo " -h			Print this help"
+	echo " -h, --help		Print this help"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in SPECS/build_config"
 	echo " \"package name\"		Single or multiple package names overriding build_config"
@@ -410,10 +410,11 @@ main()
 	${ACTION:-make_tgt_pkgs}
 }
 
+[ -n "$ARCH" ] && export ARCH
+
 GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
-if [ $? != 0 ]; then
-	print_help_and_exit
-fi
+[ $? != 0 ] && print_help_and_exit
+
 eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
@@ -433,7 +434,12 @@ while true; do
 			ACT=build_pkgs; shift
 			;;
 		-f|--config)
-			BUILD_CONF="$2"; shift 2
+			if [ -r "$2" ]; then
+				BUILD_CONF="$2"
+			elif [ -r "~/INC/$2" ]; then
+				BUILD_CONF="~/INC/$2"
+			fi
+			shift 2
 			;;
 		-j|--jobs)
 			JOBS="$2"
@@ -451,7 +457,11 @@ while true; do
 	esac
 done
 
-source ${BUILD_CONF:-~/build.conf}
+if [ ! -d ~/INC ]; then
+	echo "Error: Directory \"~/INC\" for global configuration not found" >&2
+	return 1
+fi
+source ${BUILD_CONF:-~/INC/build-${ARCH}.conf}
 for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
@@ -459,7 +469,7 @@ for VAR in SPECS PACKAGES FS_ROOT PKG_POOL; do
 	fi
 done
 if [ "$RET" = 1 ]; then
-	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-build.conf}" >&2
+	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF:-${INCDIR}/build-${ARCH}.conf}" >&2
 	return 1
 fi
 
@@ -473,7 +483,7 @@ case "$@" in
 		;;
 	all)
 		if [ "${#BUILD_LIST[@]}" = 0 ]; then
-			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-build.conf}" >&2
+			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF:-${INCDIR}/build-${ARCH}.conf}" >&2
 			return 1
 		fi
 		;;
@@ -484,7 +494,7 @@ esac
 
 cd "$DEV_ROOT"
 if [ ! -d "$SPECS" ]; then
-	echo "Error: Directory \"$SPECS\" for SPECS found" >&2
+	echo "Error: Directory \"$SPECS\" for SPECS not found" >&2
 	return 1
 fi
 
