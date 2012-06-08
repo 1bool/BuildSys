@@ -5,6 +5,7 @@
 *.swp
 *.swo
 *.ext4
+*.ext4.xz
 
 SDE
 DEVROOT/ROOT

@@ -2,7 +2,7 @@
 
 PATH=$PATH:/sbin:/usr/sbin
 MYNAME="$(basename "$0")"
-[ "$(uname -m)" = 'i686' ] || SET32=linux32
+[ "$(uname -m)" = 'x86_64' ] && SET32=linux32
 
 entersde_print_help_and_exit()
 {
