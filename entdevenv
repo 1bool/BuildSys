@@ -77,9 +77,8 @@ set -e
 cd "$BSROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
-		mkdir -pv partial
-		wget -P partial -c "${SDK_URL}"
-		mv partial/${SDK_FS}.xz .
+		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
+		mv ${SDK_FS}.xz.partial ${SDK_FS}.xz
 	fi
 	xz -dv ${SDK_FS}.xz
 fi
