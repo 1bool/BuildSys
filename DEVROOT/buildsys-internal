@@ -7,9 +7,10 @@ if [ "$ARCH" = i686 ]; then
 else
 	set -h
 fi
-export ARCH
+export ARCH SDKARCH=$ARCH
 
 START_TIME=$(date +%F-%X)
+OPTS_ORIG="$@"
 
 quit()
 {
@@ -328,13 +329,13 @@ strip_rootfs()
 	OPATH=$PATH
 	PATH=/tools/bin
 	echo -e "\nStripping file system in $PWD ...\n"
-	set +e
+	set +eE
 	find . -name "*.a" | xargs rm -rf
 	find . -name "*.la" | xargs rm -rf
 	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
 	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
 	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man}
-	set -e
+	set -eE
 	PATH=$OPATH
 }
 
@@ -385,25 +386,30 @@ toolchain_link()
 print_help_and_exit()
 {
 	exec >&2
-	echo -e "Usage:\n $(basename $0) [Options] PackageName ..."
+	echo -e "Usage:\n $(basename $0) [Options] Command PackageName ..."
 	echo "Options:"
-	echo " -b, --local		Build locally, don't make target rootfs"
-	echo " -f FILE, --config FILE	Specify your build config file (default: build.conf)"
-	echo " -j N, --jobs N		Build with N jobs run concurrently"
-	echo " --rebuild		Rebuild packages"
-	echo " --clean		Clean packages"
-	echo " --distclean		Dist clean package build directories and rootfs"
-	echo " --uninstall		Uninstall package from build system"
+	echo " -f FILE, --config FILE	Use FILE as build config"
+	echo "			(default: build-${SDKARCH:-i686}.conf)"
+	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo " -h, --help		Print this help"
+	echo "Command:"
+	echo " build			Build locally, don't make target rootfs"
+	echo " rebuild		Rebuild packages"
+	echo " install		Build and install packages into dest root directory"
+	echo "			(This is default if no Command specified)"
+	echo " clean			Clean packages"
+	echo " distclean		Dist clean package build directories and rootfs"
+	echo " uninstall		Uninstall package from root"
 	echo "PackageName:"
-	echo " \"all\"			Build all packages specified in config file (default for empty PackageName)"
-	echo " \"package name\"		Single or multiple package names overriding build_config"
+	echo " \"all\"			Build all packages specified in config file"
+	echo "			(default all for empty PackageName)"
+	echo " \"package name\"		Single or multiple package names overriding config file"
 	exit
 }
 
 main()
 {
-	echo -e "Executing \"$0 $@\" with ${BUILD_CONF} at ${START_TIME}\n"
+	echo -e "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}\n"
 	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -416,27 +422,12 @@ main()
 
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
-GETOPTS=$(getopt -o bf:hj: --long clean,distclean,uninstall,rebuild,config:,jobs:,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o f:j:h --long config:,jobs:,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 
 eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
-		--clean)
-			ACT=clean_pkgs; shift
-			;;
-		--distclean)
-			ACT=distclean_pkgs; shift
-			;;
-		--uninstall)
-			ACT=uninstall_pkgs; shift
-			;;
-		--rebuild)
-			ACT=rebuild_pkgs; shift
-			;;
-		-b|--local)
-			ACT=build_pkgs; shift
-			;;
 		-f|--config)
 			if [ -f "$2" ]; then
 				BUILD_CONF="$2"
@@ -486,13 +477,30 @@ if [ "$RET" = 1 ]; then
 fi
 
 [ -n "$JOBS" ] && export MAKEFLAGS+="-j$JOBS"
-[ -n "$ACT" ] && ACTION=$ACT
 export -f toolchain_link
 
-case "$@" in
+case "$1" in
+	clean)
+		ACTION=clean_pkgs; shift
+		;;
+	distclean)
+		ACTION=distclean_pkgs; shift
+		;;
+	uninstall)
+		ACTION=uninstall_pkgs; shift
+		;;
+	rebuild)
+		ACTION=rebuild_pkgs; shift
+		;;
+	build)
+		ACTION=build_pkgs; shift
+		;;
 	help)
 		print_help_and_exit
 		;;
+esac
+
+case "$@" in
 	all|'')
 		if [ "${#BUILD_LIST[@]}" = 0 ]; then
 			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2

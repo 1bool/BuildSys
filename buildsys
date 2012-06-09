@@ -1,0 +1,182 @@
+#!/bin/bash -e
+
+PATH=$PATH:/sbin:/usr/sbin
+MYNAME="$(basename "$0")"
+[ "$(uname -m)" = 'i686' ] || SET32=linux32
+
+entersde_print_help_and_exit()
+{
+	exec >&2
+	echo -e "Usage:\n $MYNAME [Options] [BuildSysRootDir]"
+	echo "Options:"
+	echo " --i686		Enter SDK environment for i686 architecture (default if not specified)"
+	echo " --arm		Enter SDK environment for ARM architecture"
+	echo " -s, --size N	Set lowest size limit of SDK filesystem to N MB (default: 1024)"
+	echo " -h, --help	Print this help"
+	echo "BuildSysRootDir:"
+	echo "		Buildsys root directory, default is current directory if not specified"
+	exit
+}
+
+buildsys_print_help_and_exit()
+{
+	exec >&2
+	echo -e "Usage:\n $MYNAME [Options] Command PackageName ..."
+	echo "Options:"
+	echo " --i686			Enter SDK environment for i686 architecture"
+	echo "			(default i686 if not specified)"
+	echo " --arm			Enter SDK environment for ARM architecture"
+	echo " -s, --size N		Set lowest size limit of SDK filesystem to N MB"
+	echo "			(default: 1024)"
+	echo " -f FILE, --config FILE	Use FILE as build config"
+	echo "			(default: build-${ARCH:-i686}.conf)"
+	echo " -j N, --jobs N		Build with N jobs running concurrently"
+	echo " -h, --help		Print this help"
+	echo "Command:"
+	echo " build			Build locally, don't make target rootfs"
+	echo " rebuild		Rebuild packages"
+	echo " install		Build and install packages into dest root directory"
+	echo "			(This is default if no Command specified)"
+	echo " clean			Clean packages"
+	echo " distclean		Dist clean package build directories and rootfs"
+	echo " uninstall		Uninstall package from root"
+	echo "PackageName:"
+	echo " \"all\"			Build all packages specified in config file"
+	echo "			(default all for empty PackageName)"
+	echo " \"package name\"		Single or multiple package names overriding config file"
+	exit
+}
+
+quit()
+{
+	set +e
+	DIRS=$(dirs -l -p | sed '1d')
+	for DIR in $DIRS; do
+		if ! umount $VERBOSE $DIR; then
+			umount $VERBOSE -l $DIR
+		fi
+	done
+}
+
+if [ $MYNAME = entersde ]; then
+	GETOPTS=$(getopt -o sh --long arm,i686,size,help -n "$0" -- "$@")
+	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
+	eval set -- "$GETOPTS"
+	while true; do
+		case "$1" in
+			--arm)
+				export SDK_FS=buildsys-arm.ext4 ARCH=arm; shift
+				;;
+			--i686)
+				export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
+				;;
+			-s | --size)
+				export SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
+				;;
+			-h | --help)
+				${MYNAME}_print_help_and_exit; shift
+				;;
+			--)
+				shift ; break
+				;;
+			*)
+				${MYNAME}_print_help_and_exit
+				;;
+		esac
+	done
+	[ -n "$1" ] && BSROOT="$1"
+else
+	MYNAME='buildsys'
+	GETOPTS=$(getopt -o sCf:j:h --long arm,i686,size,directory,config:,jobs:,help -n "$0" -- "$@")
+	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
+	eval set -- "$GETOPTS"
+	set -a
+	while true; do
+		case "$1" in
+			--arm)
+				export SDK_FS=buildsys-arm.ext4 ARCH=arm; shift
+				;;
+			--i686)
+				export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
+				;;
+			-s | --size)
+				SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
+				;;
+			-C | --directory)
+				BSROOT="$2"; shift 2
+				;;
+			-f | --config)
+				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${2#*DEVROOT/} "; shift 2
+				;;
+			-h | --help)
+				${MYNAME}_print_help_and_exit; shift
+				;;
+			--)
+				shift ; break
+				;;
+			*)
+				INTERNOPTS+="$1 "; shift
+				;;
+		esac
+	done
+	set +a
+fi
+
+if [ "$EUID" != 0 ]; then
+	echo "You have to be root to run \"$MYNAME\"" >&2
+	exec su root -c "$0 $@"
+fi
+
+trap quit EXIT
+
+# Set defaults
+: ${ARCH:="i686"}
+: ${SDK_FS:="buildsys-$ARCH.ext4"}
+: ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
+: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
+: ${DEVROOT_IN_SDK:="/root"}
+: ${BSROOT:="$PWD"}
+: ${DEVROOT:="$BSROOT/DEVROOT"}
+: ${SDE:="$BSROOT/SDE"}
+
+if [ "$MYNAME" = entersde ]; then
+	CMD="/tools/bin/bash --login +h"
+	VERBOSE='--verbose'
+else
+	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
+fi
+
+[ -d "$SDE" ] || mkdir "$SDE"
+cd "$BSROOT"
+if [ ! -r ${SDK_FS} ]; then
+	if [ ! -r ${SDK_FS}.xz ]; then
+		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
+		mv ${SDK_FS}.xz.partial ${SDK_FS}.xz
+	fi
+	xz -dv ${SDK_FS}.xz
+fi
+if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
+	e2fsck -f ${SDK_FS}
+	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
+fi
+dirs -c
+mount $VERBOSE -o loop -t ext4 "$BSROOT/${SDK_FS}" "$SDE"
+pushd -n "$SDE" &> /dev/null
+mount $VERBOSE --bind /dev "$SDE/dev"
+pushd -n "$SDE/dev" &> /dev/null
+mount $VERBOSE -t devpts devpts "$SDE/dev/pts"
+pushd -n "$SDE/dev/pts" &> /dev/null
+mount $VERBOSE -t tmpfs shm "$SDE/dev/shm"
+pushd -n "/run/shm" &> /dev/null
+mount $VERBOSE -t proc proc "$SDE/proc"
+pushd -n "$SDE/proc" &> /dev/null
+mount $VERBOSE -t sysfs sysfs "$SDE/sys"
+pushd -n "$SDE/sys" &> /dev/null
+mount $VERBOSE --bind "$DEVROOT" "$SDE/$DEVROOT_IN_SDK"
+pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
+ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
+$SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
+	ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
+	$CMD
