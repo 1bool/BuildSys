@@ -1,4 +1,4 @@
 BuildSys to build a linux system automatically
 
-Then execute following to build the world for the first time:
+Execute following to build the world for the first time:
 	./buildsys -f first-stage.conf
