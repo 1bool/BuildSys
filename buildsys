@@ -56,6 +56,7 @@ quit()
 			umount $VERBOSE -l $DIR
 		fi
 	done
+	rm -f $LOCKFILE
 }
 
 if [ $MYNAME = entersde ]; then
@@ -127,17 +128,17 @@ if [ "$EUID" != 0 ]; then
 	exec su root -c "$0 $@"
 fi
 
-trap quit EXIT
-
 # Set defaults
 : ${ARCH:="i686"}
-: ${SDK_FS:="buildsys-$ARCH.ext4"}
+: ${SDK_NAME:="buildsys-$ARCH"}
+: ${SDK_FS:="$SDK_NAME.ext4"}
 : ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
 : ${DEVROOT_IN_SDK:="/root"}
 : ${BSROOT:="$PWD"}
 : ${DEVROOT:="$BSROOT/DEVROOT"}
-: ${SDE:="$BSROOT/SDE"}
+: ${SDE:="$BSROOT/$SDK_NAME"}
+: ${LOCKFILE:="$BSROOT/.$SDK_NAME.lock"}
 
 if [ "$MYNAME" = entersde ]; then
 	CMD="/tools/bin/bash --login +h"
@@ -159,6 +160,14 @@ if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
 	e2fsck -f ${SDK_FS}
 	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
 fi
+
+if [ -f $LOCKFILE ]; then
+	echo "Error: $SDK_FS already in use"
+	exit 1
+else
+	touch $LOCKFILE
+fi
+trap quit EXIT
 dirs -c
 mount $VERBOSE -o loop -t ext4 "$BSROOT/${SDK_FS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
