@@ -28,6 +28,7 @@ buildsys_print_help_and_exit()
 	echo " --arm			Enter SDK environment for ARM architecture"
 	echo " -s, --size N		Set lowest size limit of SDK filesystem to N MB"
 	echo "			(default: 1024)"
+	echo " -c DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
 	echo " -f FILE, --config FILE	Use FILE as build config"
 	echo "			(default: build-${ARCH:-i686}.conf)"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
@@ -52,11 +53,16 @@ quit()
 	set +e
 	DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
-		if ! umount $VERBOSE $DIR; then
-			umount $VERBOSE -l $DIR
+		if [ -n "$VERBOSE" ]; then
+			if ! umount $VERBOSE $DIR; then
+				umount $VERBOSE -l $DIR
+			fi
+		else
+			umount -lf $DIR
 		fi
 	done
 	rm -f $LOCKFILE
+	rmdir $SDE
 }
 
 if [ $MYNAME = entersde ]; then
@@ -88,7 +94,7 @@ if [ $MYNAME = entersde ]; then
 	[ -n "$1" ] && BSROOT="$1"
 else
 	MYNAME='buildsys'
-	GETOPTS=$(getopt -o sCf:j:h --long arm,i686,size,directory,config:,jobs:,help -n "$0" -- "$@")
+	GETOPTS=$(getopt -o sc:f:j:h --long arm,i686,size,dir:,config:,jobs:,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
 	set -a
@@ -103,7 +109,7 @@ else
 			-s | --size)
 				SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
-			-C | --directory)
+			-c | --dir)
 				BSROOT="$2"; shift 2
 				;;
 			-f | --config)
@@ -147,7 +153,7 @@ else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
 
-[ -d "$SDE" ] || mkdir "$SDE"
+mkdir -p "$SDE"
 cd "$BSROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then

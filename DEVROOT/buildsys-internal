@@ -1,5 +1,4 @@
 #!/tools/bin/bash
-# Wenbo Wang (1ball.w@gmail.com)
 
 set -eE
 if [ "$ARCH" = i686 ]; then
@@ -12,10 +11,20 @@ export ARCH SDKARCH=$ARCH
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
 
+bs_error()
+{
+	echo -e "!!!!!!!! Error: $@ !!!!!!!!!!" >&2
+}
+
+bs_notice()
+{
+	echo -e ">>>>>>>>> $@ <<<<<<<<<<"
+}
+
 quit()
 {
-	echo -e "\nError occured during build process..." >&2
-	return 1
+	bs_error "buildsys process interrupted..."
+	exit 1
 }
 
 unpack()
@@ -33,7 +42,7 @@ unpack()
 			unzip "$1" -d "$TGT_DIR"
 			;;
 		*)
-			echo "Error: Unkown package format for \"$1\"" >&2
+			bs_error "Unkown package format for \"$1\""
 			return 1
 			;;
 	esac
@@ -92,7 +101,7 @@ walk_pkg_dir()
 		set -aeE
 		PKG_DIR="${PACKAGES}/${PKG}"
 		if [ ! -d "$PKG_DIR" ]; then
-			echo "Error: Package directory \"$PKG_DIR\" not found"
+			bs_error "Package directory \"$PKG_DIR\" not found"
 			return 1
 		fi
 		TGT_DIR="$PKG_DIR"
@@ -104,7 +113,7 @@ walk_pkg_dir()
 			elif [ -d "$SRC_DIR" ]; then
 				MAKEDIR="$SRC_DIR"
 			else
-				echo "Error: Cannot find make directory for \"$PKG\"." >&2
+				bs_error "Cannot find make directory for \"$PKG\"." >&2
 				exit 1
 			fi
 			TGT_DIR="$MAKEDIR"
@@ -125,7 +134,7 @@ build_pkgs()
 {
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
-			echo "Error: Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
+			bs_error "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
 			return 1
 		fi
 		(
@@ -141,7 +150,7 @@ build_pkgs()
 					wget -c -P "$PKG_POOL"/partial "$PKG_URL"
 					mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
 				else
-					echo "Error: Package ${PKG_NAME}-${VERSION} not found." >&2
+					bs_error "Package ${PKG_NAME}-${VERSION} not found." >&2
 					return 1
 				fi
 			fi
@@ -191,7 +200,7 @@ build_pkgs()
 					make
 					MAKEDIR=$PWD
 				else
-					echo "Error: Don't know how to build package $PKG." >&2
+					bs_error "Don't know how to build package $PKG."
 					return 1
 				fi
 			fi
@@ -207,18 +216,18 @@ build_pkgs()
 			fi
 			touch .done
 		else
-			echo "${PKG} has already been built. Skip."
+			bs_notice "${PKG} has already been built. Skip."
 			return
 		fi
 		)
 	done
-	echo -e "\nBuild complete."
+	bs_notice "Build complete."
 }
 
 make_clean_pkg()
 {
 	if ! grep -q '^clean' Makefile; then
-		echo >&2 "Error: \"${PKG_NAME}\" does not support make clean"
+		bs_error "\"${PKG_NAME}\" does not support make clean"
 		return 1
 	fi
 	make clean
@@ -233,7 +242,7 @@ make_distclean_pkg()
 	elif grep -q '^clean' Makefile; then
 		make clean
 	else
-		echo >&2 "Error: \"${PKG_NAME}\" does not support make clean or distclean"
+		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 		return 1
 	fi
 	cd $PKG_DIR
@@ -243,7 +252,7 @@ make_distclean_pkg()
 make_uninstall_pkg()
 {
 	if ! grep -q '^uninstall' Makefile; then
-		echo >&2 "Error: \"${PKG_NAME}\" does not support make uninstall"
+		bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
 		return 1
 	fi
 	make uninstall
@@ -253,7 +262,7 @@ make_uninstall_pkg()
 make_install_tgt_pkg()
 {
 	if [ "$TARGET_INSTALL" = n ]; then
-		echo "Package $PKG is not required to be installed on target."
+		bs_notice "Package \"$PKG\" is not required to be installed on target."
 		return
 	fi
 	[ -x $SPECS/$PKG/pre-install ] && $SPECS/$PKG/pre-install
@@ -285,18 +294,18 @@ remove_pkg()
 clean_pkgs()
 {
 	walk_build_dir make_clean_pkg
-	echo -e "\nPackage ${BUILD_LIST[@]} clean complete."
+	bs_notice "Package ${BUILD_LIST[@]} clean complete."
 }
 
 distclean_pkgs()
 {
 	walk_build_dir -c make_distclean_pkg
-	echo -e "\nPackage ${BUILD_LIST[@]} dist clean complete."
+	bs_notice "Package ${BUILD_LIST[@]} dist clean complete."
 }
 
 uninstall_pkgs()
 {
-	echo -e "\n${BUILD_LIST[@]} are going to be uninstalled.\n"
+	bs_notice "${BUILD_LIST[@]} are going to be uninstalled."
 	while true; do
 		echo -n "Proceed uninstall? (y/n) "
 		read ANSWER
@@ -313,29 +322,27 @@ uninstall_pkgs()
 		esac
 	done
 	walk_build_dir make_uninstall_pkg
-	echo -e "\nPackage ${BUILD_LIST[@]} uninstall complete."
+	bs_notice "Package ${BUILD_LIST[@]} uninstall complete."
 }
 
 rebuild_pkgs()
 {
-	echo -e "\nRebuilding package(s) \"${BUILD_LIST[@]}\" ...\n"
+	bs_notice "Rebuilding package(s) \"${BUILD_LIST[@]}\"..."
 	walk_pkg_dir -c remove_pkg
 	build_pkgs
-	echo -e "\nPackage(s) \"${BUILD_LIST[@]}\" rebuild complete."
+	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
 }
 
 strip_rootfs()
 {
 	OPATH=$PATH
 	PATH=/tools/bin
-	echo -e "\nStripping file system in $PWD ...\n"
-	set +eE
+	bs_notice "Stripping file system in ${PWD}..."
 	find . -name "*.a" | xargs rm -rf
 	find . -name "*.la" | xargs rm -rf
 	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
 	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
 	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man}
-	set -eE
 	PATH=$OPATH
 }
 
@@ -343,22 +350,24 @@ make_tgt_pkgs()
 {
 	build_pkgs
 	pushd $FS_ROOT
-	echo -e "\nCleaning ${FS_ROOT}\n"
+	bs_notice "Cleaning ${FS_ROOT}"
 	rm -rfv * .[!.]*
 	if [ "$TARGET_pkgS" = all ] && declare -F configure_system &> /dev/null; then
-		echo -e "\nConfiguring system in $PWD ...\n"
+		bs_notice "Configuring system in ${PWD}..."
 		configure_system
 	fi
-	echo -e "\nInstalling pkgs into ${FS_ROOT}\n"
+	bs_notice "Installing pkgs into ${FS_ROOT}"
 	walk_build_dir make_install_tgt_pkg
+	set +eE
 	strip_rootfs
+	set -eE
 	popd
 #	cd ${FS_ROOT}${BUILD_DEST}
 #	sudo rm -rf include doc examples demos lib/dbus-1.0/include lib/glib-2.0/include share/doc share/gtk-doc
 #	cd $FS_ROOT
 #	sudo tar -pczvf $MECLOUD_BIN --numeric-owner --owner=root --group=root .
 #	sudo chown $(id -ru):$(id -rg) $MECLOUD_BIN
-	echo -e "\nRootFS generated in $FS_ROOT."
+	bs_notice "RootFS generated in $FS_ROOT"
 }
 
 toolchain_link()
@@ -409,7 +418,7 @@ print_help_and_exit()
 
 main()
 {
-	echo -e "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}\n"
+	bs_notice "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -434,7 +443,7 @@ while true; do
 			elif [ -f "$INCDIR/$2" ]; then
 				BUILD_CONF="$INCDIR/$2"
 			else
-				echo >&2 "Error: File \"$2\" not found"
+				bs_error "File \"$2\" not found"
 				exit 1
 			fi
 			shift 2
@@ -456,7 +465,7 @@ while true; do
 done
 
 if [ ! -d "$INCDIR" ]; then
-	echo "Error: Directory \"$INCDIR\" for global configuration not found" >&2
+	bs_error "Directory \"$INCDIR\" for global configuration not found"
 	return 1
 fi
 
@@ -472,7 +481,7 @@ for VAR in PACKAGES FS_ROOT PKG_POOL; do
 done
 
 if [ "$RET" = 1 ]; then
-	echo "Error: Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}" >&2
+	bs_error "Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}"
 	return 1
 fi
 
@@ -503,7 +512,7 @@ esac
 case "$@" in
 	all|'')
 		if [ "${#BUILD_LIST[@]}" = 0 ]; then
-			echo "Error: No package to build. Please define BUILD_LIST in ${BUILD_CONF}" >&2
+			bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
 			return 1
 		fi
 		;;
@@ -514,7 +523,7 @@ esac
 
 cd "$DEV_ROOT"
 if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then
-	echo "Error: Directory \"$SPECS\" for SPECS not found" >&2
+	bs_error "Directory \"$SPECS\" for SPECS not found"
 	return 1
 fi
 
