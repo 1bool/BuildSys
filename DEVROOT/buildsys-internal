@@ -1,12 +1,14 @@
 #!/tools/bin/bash
 
 set -eE
+export SDKARCH=$ARCH
 if [ "$ARCH" = i686 ]; then
 	set +h
+	unset ARCH
 else
 	set -h
+	export ARCH
 fi
-export ARCH SDKARCH=$ARCH
 
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
@@ -113,7 +115,7 @@ walk_pkg_dir()
 			elif [ -d "$SRC_DIR" ]; then
 				MAKEDIR="$SRC_DIR"
 			else
-				bs_error "Cannot find make directory for \"$PKG\"." >&2
+				bs_error "Cannot find make directory for \"$PKG\"."
 				exit 1
 			fi
 			TGT_DIR="$MAKEDIR"
@@ -134,7 +136,7 @@ build_pkgs()
 {
 	for PKG in ${BUILD_LIST[@]}; do
 		if [ ! -r ${SPECS}/${PKG}/spec ]; then
-			bs_error "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}" >&2
+			bs_error "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}"
 			return 1
 		fi
 		(
@@ -150,7 +152,7 @@ build_pkgs()
 					wget -c -P "$PKG_POOL"/partial "$PKG_URL"
 					mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
 				else
-					bs_error "Package ${PKG_NAME}-${VERSION} not found." >&2
+					bs_error "Package ${PKG_NAME}-${VERSION} not found."
 					return 1
 				fi
 			fi
@@ -470,7 +472,7 @@ if [ ! -d "$INCDIR" ]; then
 fi
 
 set -a
-source ${BUILD_CONF:="$INCDIR/build-${ARCH}.conf"}
+source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
 
 for VAR in PACKAGES FS_ROOT PKG_POOL; do
