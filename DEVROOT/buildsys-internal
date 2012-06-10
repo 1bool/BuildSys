@@ -96,7 +96,7 @@ get_file()
 		ftp://*)
 			bs_notice "Downloading ${SOURCE}"
 			wget -c -O "$DEST/${SOURCE_FILE}.partial" "$SOURCE"
-			mv "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
+			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
 			;;
 		*)
 			if [ -f "$SOURCE" ]; then
@@ -164,7 +164,7 @@ pkg_unpack_patch()
 		pushd "$SRC_DIR"
 		for PATCH in ${PATCHES[@]}; do
 			get_file "$PATCH" "$PKG_POOL"
-			patch -Np1 < $PKG_POOL/${PATCH##*/}
+			patch --verbose -Np1 < $PKG_POOL/${PATCH##*/}
 		done
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
