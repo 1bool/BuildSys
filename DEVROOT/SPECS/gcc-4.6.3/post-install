@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Some packages expect the C preprocessor to be installed in the /lib directory.
 ln -sv ../usr/bin/cpp lib

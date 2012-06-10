@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Move the shared libraries to the /lib directory, where they are expected to reside.
 mv -v usr/lib/libncursesw.so.5* lib

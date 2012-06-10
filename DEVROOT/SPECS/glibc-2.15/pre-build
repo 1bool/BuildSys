@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # When running make install, a script called test-installation.pl performs a small sanity test on our newly installed Glibc. However, because our toolchain still points to the /tools directory, the sanity test would be carried out against the wrong Glibc.
 DL=$(readelf -l /bin/sh | sed -n 's@.*interpret.*/tools\(.*\)]$@\1@p')

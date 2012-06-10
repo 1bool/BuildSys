@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Fix a bug in the Spanish message translations which prevents kbd from building with gettext-0.18.1.1:
 sed -i '/guardado\ el/s/\(^.*en\ %\)\(.*\)/\14\$\2/' po/es.po

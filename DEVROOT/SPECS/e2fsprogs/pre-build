@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Skip build doc libext2fs.dvi to prevent build error
 sed -i 's/libext2fs.info libext2fs.dvi/libext2fs.info/g' doc/Makefile.in

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Move the static libraries to a more appropriate location.
 mv -v lib/lib{readline,history}.a usr/lib

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Install the modules, if the kernel configuration uses them:
 export INSTALL_MOD_PATH=$PWD

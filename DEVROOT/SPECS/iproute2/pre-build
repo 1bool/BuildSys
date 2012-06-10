@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # The arpd binary included in this package is dependent on Berkeley DB. Because arpd is not a very common requirement on a base Linux system, remove the dependency on Berkeley DB by applying the commands below.
 sed -i '/^TARGETS/s@arpd@@g' misc/Makefile

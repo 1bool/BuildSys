@@ -1,3 +1,3 @@
-#!/bin/sh
+#!/bin/bash -eE
 # Install the libiberty header file that is needed by some packages
 cp -v "${SRC_DIR}/include/libiberty.h" usr/include

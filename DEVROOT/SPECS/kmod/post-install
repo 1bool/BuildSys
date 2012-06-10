@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 for target in depmod insmod modinfo modprobe rmmod; do
 	ln -sfv ../bin/kmod sbin/$target

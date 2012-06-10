@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Move the killall and fuser programs to the location specified by the FHS
 mv -v usr/bin/fuser   bin

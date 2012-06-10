@@ -1,6 +1,7 @@
 #!/tools/bin/bash
 
 set -eE
+
 export SDKARCH=$ARCH
 if [ "$ARCH" = i686 ]; then
 	set +h
@@ -38,7 +39,7 @@ unpack()
 	fi
 	case $2 in
 		tar.gz | tar.bz2 | tar.xz)
-			tar -xvf "$1" -C "$TGT_DIR"
+			tar -xf "$1" -C "$TGT_DIR"
 			;;
 		zip)
 			unzip "$1" -d "$TGT_DIR"
@@ -84,164 +85,144 @@ guess_pkg_from_url()
 
 walk_pkg_dir()
 {
-	local CONTINUE='false'
+	SETOPTS='-eET'
 	OPTIND=1
-	while getopts "bc" FLAG
+	while getopts "c" FLAG
 	do
 		case "$FLAG" in
-			b)
-				M='y'
-				;;
 			c)
-				CONTINUE='true'
+				SETOPTS=''
 				;;
 		esac
 	done
 	shift $((OPTIND - 1))
 	for PKG in ${BUILD_LIST[@]}; do
 		(
-		set -aeE
-		PKG_DIR="${PACKAGES}/${PKG}"
-		if [ ! -d "$PKG_DIR" ]; then
-			bs_error "Package directory \"$PKG_DIR\" not found"
-			return 1
-		fi
-		TGT_DIR="$PKG_DIR"
+		set -a $SETOPTS
 		source ${SPECS}/${PKG}/spec
 		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
-		if [ "$M" = y ]; then
-			if [ -d "$PKG_DIR/build" ]; then
-				MAKEDIR="$PKG_DIR/build"
-			elif [ -d "$SRC_DIR" ]; then
-				MAKEDIR="$SRC_DIR"
-			else
-				bs_error "Cannot find make directory for \"$PKG\"."
-				exit 1
-			fi
-			TGT_DIR="$MAKEDIR"
+		PKG_DIR="${PACKAGES}/${PKG}"
+		mkdir -p "$PKG_DIR"
+		if [ -d "$PKG_DIR/build" ]; then
+			MAKEDIR="$PKG_DIR/build"
+		elif [ -d "$SRC_DIR" ]; then
+			MAKEDIR="$SRC_DIR"
 		fi
-		pushd "$TGT_DIR"
-		$@
+		pushd "$PKG_DIR"
+		for ACT in "$@"; do
+			$ACT
+		done
 		popd
-		) || $CONTINUE
-	done
-}
-
-walk_build_dir()
-{
-	walk_pkg_dir -b $@
-}
-
-build_pkgs()
-{
-	for PKG in ${BUILD_LIST[@]}; do
-		if [ ! -r ${SPECS}/${PKG}/spec ]; then
-			bs_error "Cannot read spec defined for package \"${PKG}\" in ${SPECS}/${PKG}"
-			return 1
-		fi
-		(
-		set -aeE
-		source ${SPECS}/${PKG}/spec
-		[ -n "$PKG_URL" ] && guess_pkg_from_url "$PKG_URL"
-		PKG_DIR="${PACKAGES}/${PKG}"
-		mkdir -p ${PKG_DIR}
-		cd ${PKG_DIR}
-		if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
-			if [ ! -r "$PKG_POOL/${PKG_FILE_NAME}" ] ; then
-				if [ -n "$PKG_URL" ]; then
-					wget -c -P "$PKG_POOL"/partial "$PKG_URL"
-					mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
-				else
-					bs_error "Package ${PKG_NAME}-${VERSION} not found."
-					return 1
-				fi
-			fi
-			unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
-			touch .unpacked
-		fi
-		# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
-		# pre-build can be used to do patching job
-		if [ ! -f .patched ]; then
-			pushd "$SRC_DIR"
-			[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch "$PKG_POOL"
-			for PATCH_URL in ${PATCHES[@]}; do
-				PATCH_FILE=${PATCH_URL##*/}
-				if [ ! -r $PKG_POOL/$PATCH_FILE ]; then
-				   wget -c -P "$PKG_POOL"/partial "$PATCH_URL"
-				   mv "$PKG_POOL"/partial/"$PATCH_FILE" "$PKG_POOL"
-			   fi
-				[ "${PATCH_FILE##*.}" = patch ] && patch -Np1 < $PKG_POOL/$PATCH_FILE
-			done
-			[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
-			popd
-			touch .patched
-		fi
-		if [ ! -f .built ]; then
-			pushd "$SRC_DIR"
-			if [ -x ${SPECS}/${PKG}/build ]; then
-				${SPECS}/${PKG}/build
-			else
-				if [ -r Makefile ] && [ ! -x configure ]; then
-					make
-					make install
-					MAKEDIR=$PWD
-				elif [ -x configure ]; then
-					MAKEDIR=${PKG_DIR}/build
-					if [ ! -f ${PKG_DIR}/.configured ]; then
-						mkdir -p $MAKEDIR
-						pushd $MAKEDIR
-						$SRC_DIR/configure ${CONFIGFLAGS}
-						popd
-						touch ${PKG_DIR}/.configured
-					fi
-					cd $MAKEDIR
-					make 
-					make install
-				elif [ -r ${PKG_NAME}.pro ]; then
-					qmake
-					make
-					MAKEDIR=$PWD
-				else
-					bs_error "Don't know how to build package $PKG."
-					return 1
-				fi
-			fi
-			popd
-			touch .built
-		fi
-		if [ ! -f .done ]; then
-			# post-install can be used to fix installation problems
-			if [ -x ${SPECS}/${PKG}/post-install ]; then
-				pushd /
-				${SPECS}/${PKG}/post-install
-				popd
-			fi
-			touch .done
-		else
-			bs_notice "${PKG} has already been built. Skip."
-			return
-		fi
 		)
 	done
-	bs_notice "Build complete."
 }
 
-make_clean_pkg()
+pkg_unpack_patch()
 {
-	if ! grep -q '^clean' Makefile; then
+	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
+		if [ ! -r "$PKG_POOL/${PKG_FILE_NAME}" ] ; then
+			if [ -n "$PKG_URL" ]; then
+				bs_notice "Downloading file ${PKG_FILE_NAME}"
+				wget -c -P "$PKG_POOL"/partial "$PKG_URL"
+				mv "$PKG_POOL"/partial/$PKG_FILE_NAME "$PKG_POOL"
+			else
+				bs_error "Package ${PKG_NAME}-${VERSION} not found."
+				return 1
+			fi
+		fi
+		bs_notice "Unpacking file ${PKG_FILE_NAME}"
+		unpack "${PKG_POOL}/${PKG_FILE_NAME}" $SUFFIX
+		touch .unpacked
+	fi
+	# Execute any script or binary: shell, perl, python, java, etc... with env variables exported to it
+	# pre-build can be used to do patching job
+	if [ ! -f .patched ]; then
+		pushd "$SRC_DIR"
+		[ -r $SPECS/$PKG/*.patch ] && cp -v $SPECS/$PKG/*.patch "$PKG_POOL"
+		for PATCH_URL in ${PATCHES[@]}; do
+			PATCH_FILE=${PATCH_URL##*/}
+			if [ ! -r $PKG_POOL/$PATCH_FILE ]; then
+				wget -c -P "$PKG_POOL"/partial "$PATCH_URL"
+				mv "$PKG_POOL"/partial/"$PATCH_FILE" "$PKG_POOL"
+			fi
+			[ "${PATCH_FILE##*.}" = patch ] && patch -Np1 < $PKG_POOL/$PATCH_FILE
+		done
+		[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
+		popd
+		touch .patched
+	fi
+}
+
+pkg_make_install()
+{
+	if [ ! -f .built ]; then
+		pushd "$SRC_DIR"
+		bs_notice "Building package ${PKG} in $SRC_DIR"
+		if [ -x ${SPECS}/${PKG}/build ]; then
+			${SPECS}/${PKG}/build
+		else
+			if [ -r Makefile ] && [ ! -x configure ]; then
+				make
+				make PREFIX="$PREFIX" install
+				MAKEDIR=$PWD
+			elif [ -x configure ]; then
+				MAKEDIR=${PKG_DIR}/build
+				if [ ! -f ${PKG_DIR}/.configured ]; then
+					mkdir -p $MAKEDIR
+					pushd $MAKEDIR
+					$SRC_DIR/configure ${CONFIGFLAGS}
+					popd
+					touch ${PKG_DIR}/.configured
+				fi
+				cd $MAKEDIR
+				make 
+				make install
+			elif [ -r ${PKG_NAME}.pro ]; then
+				qmake
+				make
+				MAKEDIR=$PWD
+			else
+				bs_error "Don't know how to build package $PKG."
+				return 1
+			fi
+		fi
+		popd
+		touch .built
+	fi
+	if [ ! -f .done ]; then
+		# post-install can be used to fix installation problems
+		if [ -x ${SPECS}/${PKG}/post-install ]; then
+			pushd /
+			${SPECS}/${PKG}/post-install
+			popd
+		fi
+		touch .done
+	else
+		bs_notice "${PKG} has already been built. Skip."
+		return
+	fi
+}
+
+pkg_make_clean()
+{
+	cd $MAKEDIR
+	if ! grep -q '^clean:' Makefile; then
 		bs_error "\"${PKG_NAME}\" does not support make clean"
 		return 1
 	fi
+	bs_notice "Cleaing \"$PKG\"..."
 	make clean
 	cd $PKG_DIR
 	rm -f .done .built
 }
 
-make_distclean_pkg()
+pkg_make_distclean()
 {
-	if grep -q '^distclean' Makefile; then
+	cd $MAKEDIR
+	bs_notice "Dist cleaing \"$PKG\"..."
+	if grep -q '^distclean:' Makefile; then
 		make distclean
-	elif grep -q '^clean' Makefile; then
+	elif grep -q '^clean:' Makefile; then
 		make clean
 	else
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
@@ -251,22 +232,26 @@ make_distclean_pkg()
 	rm -f .done .built .configured
 }
 
-make_uninstall_pkg()
+pkg_make_uninstall()
 {
+	cd $MAKEDIR
 	if ! grep -q '^uninstall' Makefile; then
 		bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
 		return 1
 	fi
+	bs_notice "Uninstalling \"$PKG\"..."
 	make uninstall
 	rm -f $PKG_DIR/.done
 }
 
-make_install_tgt_pkg()
+pkg_make_dest_install()
 {
 	if [ "$TARGET_INSTALL" = n ]; then
 		bs_notice "Package \"$PKG\" is not required to be installed on target."
 		return
 	fi
+	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
+	cd $MAKEDIR
 	[ -x $SPECS/$PKG/pre-install ] && $SPECS/$PKG/pre-install
 	if [ $(basename ${PWD}) = 'build' ]; then
 		make DESTDIR=${FS_ROOT} install
@@ -282,26 +267,26 @@ make_install_tgt_pkg()
 	fi
 }
 
-remove_pkg()
+pkg_remove()
 {
 	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_URL" ]; then
 		cd ..
-		rm -rvf "$PKG_DIR"
+		bs_notice "Removing $PKG_DIR"
+		rm -rf "$PKG_DIR"
 	elif [ -d "$MAKEDIR" ]; then
-		cd "$MAKEDIR"
-		make_distclean_pkg
+		pkg_make_distclean
 	fi
 }
 
 clean_pkgs()
 {
-	walk_build_dir make_clean_pkg
+	walk_pkg_dir pkg_make_clean
 	bs_notice "Package ${BUILD_LIST[@]} clean complete."
 }
 
 distclean_pkgs()
 {
-	walk_build_dir -c make_distclean_pkg
+	walk_pkg_dir -c pkg_make_distclean
 	bs_notice "Package ${BUILD_LIST[@]} dist clean complete."
 }
 
@@ -323,16 +308,23 @@ uninstall_pkgs()
 				;;
 		esac
 	done
-	walk_build_dir make_uninstall_pkg
+	walk_pkg_dir pkg_make_uninstall
 	bs_notice "Package ${BUILD_LIST[@]} uninstall complete."
 }
 
 rebuild_pkgs()
 {
 	bs_notice "Rebuilding package(s) \"${BUILD_LIST[@]}\"..."
-	walk_pkg_dir -c remove_pkg
-	build_pkgs
+	walk_pkg_dir -c pkg_remove
+	walk_pkg_dir pkg_unpack_patch pkg_make_install
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
+}
+
+unpack_pkgs()
+{
+	bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
+	walk_pkg_dir pkg_unpack_patch
+	bs_notice "Package(s) \"${BUILD_LIST[@]}\" unpack complete."
 }
 
 strip_rootfs()
@@ -348,18 +340,23 @@ strip_rootfs()
 	PATH=$OPATH
 }
 
-make_tgt_pkgs()
+build_pkgs()
 {
-	build_pkgs
+	bs_notice "Start building package(s) \"${BUILD_LIST[@]}\"..."
+	walk_pkg_dir pkg_unpack_patch pkg_make_install
+	bs_notice "Build complete"
+}
+
+install_tgt_pkgs()
+{
 	pushd $FS_ROOT
 	bs_notice "Cleaning ${FS_ROOT}"
-	rm -rfv * .[!.]*
+	rm -rf * .[!.]*
 	if [ "$TARGET_pkgS" = all ] && declare -F configure_system &> /dev/null; then
 		bs_notice "Configuring system in ${PWD}..."
 		configure_system
 	fi
-	bs_notice "Installing pkgs into ${FS_ROOT}"
-	walk_build_dir make_install_tgt_pkg
+	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	set +eE
 	strip_rootfs
 	set -eE
@@ -404,13 +401,14 @@ print_help_and_exit()
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo " -h, --help		Print this help"
 	echo "Command:"
-	echo " build			Build only, don't make target rootfs"
-	echo " rebuild		Clean up and then rebuild packages"
+	echo " unpack			Unpack only, don't build the package"
+	echo " build			Unpack and build only, don't make target rootfs"
 	echo " install		Build and install packages into dest root directory"
 	echo "			(This is default if no Command specified)"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
+	echo " rebuild		Clean up and then rebuild packages"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in config file"
 	echo "			(default all for empty PackageName)"
@@ -420,7 +418,7 @@ print_help_and_exit()
 
 main()
 {
-	bs_notice "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
+	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL"/partial logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -428,7 +426,7 @@ main()
 		touch /.first_config
 		popd
 	fi
-	${ACTION:-make_tgt_pkgs}
+	${ACTION:-install_tgt_pkgs}
 }
 
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
@@ -440,11 +438,11 @@ eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
 		-f|--config)
-			if [ -f "$2" ]; then
-				BUILD_CONF="$2"
-			elif [ -f "$INCDIR/$2" ]; then
-				BUILD_CONF="$INCDIR/$2"
-			else
+			BUILD_CONF="$2"
+			if [ ! -f "$BUILD_CONF" ]; then
+				BUILD_CONF="$INCDIR/${BUILD_CONF##*/}"
+			fi
+			if [ ! -f "$BUILD_CONF" ]; then
 				bs_error "File \"$2\" not found"
 				exit 1
 			fi
@@ -503,8 +501,14 @@ case "$1" in
 	rebuild)
 		ACTION=rebuild_pkgs; shift
 		;;
+	unpack)
+		ACTION=unpack_pkgs; shift
+		;;
 	build)
 		ACTION=build_pkgs; shift
+		;;
+	install)
+		ACTION=install_tgt_pkgs; shift
 		;;
 	help)
 		print_help_and_exit

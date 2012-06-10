@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Install the static libraries and headers
+DESTDIR=$PWD
 cd $MAKEDIR
-make install-libs
+make DESTDIR=$DESTDIR install-libs
 cd -
 
 # Make the installed static libraries writable so debugging symbols can be removed later

@@ -1,6 +1,7 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Fix bug #3 "glibc build loop in NPTL"
+mkdir -p usr/include
 mv -fv usr/tmp-include/* usr/include
 rmdir -v usr/tmp-include
 

@@ -1,5 +1,8 @@
-#!/bin/sh
+#!/bin/bash -eE
 
+# mv command will be moved, so use /tools/bin instead of /usr/bin
+OPATH=$PATH
+PATH=/tools/bin
 # Move programs to the locations specified by the FHS.
 mv -v usr/bin/{cat,chgrp,chmod,chown,cp,date,dd,df,echo} bin
 mv -v usr/bin/{false,ln,ls,mkdir,mknod,mv,pwd,rm} bin
@@ -10,3 +13,5 @@ sed -i s/\"1\"/\"8\"/1 usr/share/man/man8/chroot.8
 
 # Some of the scripts in the bootscripts depend on head, sleep, and nice. As /usr may not be available during the early stages of booting, those binaries need to be on the root partition.
 mv -v usr/bin/{head,sleep,nice} bin
+
+PATH=$OPATH

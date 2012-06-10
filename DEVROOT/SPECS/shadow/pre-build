@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Disable the installation of the groups program and its man pages, as Coreutils provides a better version:
 sed -i 's/groups$(EXEEXT) //' src/Makefile.in

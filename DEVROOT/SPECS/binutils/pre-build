@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 # Suppress the installation of an outdated standards.info file as a newer one is installed later on in the Autoconf instructions
 rm -fv etc/standards.info
 sed -i.bak '/^INFO/s/standards.info //' etc/Makefile.in

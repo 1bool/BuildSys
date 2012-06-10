@@ -3,6 +3,7 @@
 PATH=$PATH:/sbin:/usr/sbin
 MYNAME="$(basename "$0")"
 [ "$(uname -m)" = 'x86_64' ] && SET32=linux32
+: ${DEVROOT_IN_SDK:="/root"}
 
 entersde_print_help_and_exit()
 {
@@ -30,17 +31,18 @@ buildsys_print_help_and_exit()
 	echo "			(default: 1024)"
 	echo " -c DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
 	echo " -f FILE, --config FILE	Use FILE as build config"
-	echo "			(default: build-${ARCH:-i686}.conf)"
+	echo "			(default: build-${SDKARCH:-i686}.conf)"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo " -h, --help		Print this help"
 	echo "Command:"
-	echo " build			Build only, don't make target rootfs"
-	echo " rebuild		Clean up and then rebuild packages"
+	echo " unpack			Unpack only, don't build the package"
+	echo " build			Unpack and build only, don't make target rootfs"
 	echo " install		Build and install packages into dest root directory"
 	echo "			(This is default if no Command specified)"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
+	echo " rebuild		Clean up and then rebuild packages"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in config file"
 	echo "			(default all for empty PackageName)"
@@ -129,9 +131,10 @@ else
 	set +a
 fi
 
+export PARAMS="$@"
 if [ "$EUID" != 0 ]; then
 	echo "You have to be root to run \"$MYNAME\"" >&2
-	exec su root -c "$0 $@"
+	exec su root -c "${0} ${PARAMS}"
 fi
 
 # Set defaults
@@ -140,7 +143,6 @@ fi
 : ${SDK_FS:="$SDK_NAME.ext4"}
 : ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
-: ${DEVROOT_IN_SDK:="/root"}
 : ${BSROOT:="$PWD"}
 : ${DEVROOT:="$BSROOT/DEVROOT"}
 : ${SDE:="$BSROOT/$SDK_NAME"}

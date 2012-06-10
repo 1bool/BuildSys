@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # Create some devices and directories that Udev cannot handle due to them being required very early in the boot process, or by Udev itself
 install -dv lib/{firmware,udev/devices/pts}

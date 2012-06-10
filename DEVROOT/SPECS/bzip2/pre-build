@@ -1,8 +1,12 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 # The following command ensures installation of symbolic links are relative.
 sed -i 's@\(ln -s -f \)$(PREFIX)/bin/@\1@' Makefile
 
-# Prepare Bzip2 for compilation
+# Ensure the man pages are installed into the correct location:
+sed -i "s@(PREFIX)/man@(PREFIX)/share/man@g" Makefile
+
+# This will cause Bzip2 to be built using a different Makefile file, in this case the Makefile-libbz2_so file, which creates a dynamic libbz2.so library and links the Bzip2 utilities against it. 
 make -f Makefile-libbz2_so
+# Prepare Bzip2 for compilation
 make clean

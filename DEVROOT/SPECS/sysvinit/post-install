@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eE
 
 cat > "etc/inittab" << "EOF"
 # Begin /etc/inittab
