@@ -312,6 +312,13 @@ uninstall_pkgs()
 	bs_notice "Package ${BUILD_LIST[@]} uninstall complete."
 }
 
+build_pkgs()
+{
+	bs_notice "Start building package(s) \"${BUILD_LIST[@]}\"..."
+	walk_pkg_dir pkg_unpack_patch pkg_make_install
+	bs_notice "Build complete"
+}
+
 rebuild_pkgs()
 {
 	bs_notice "Rebuilding package(s) \"${BUILD_LIST[@]}\"..."
@@ -340,19 +347,12 @@ strip_rootfs()
 	PATH=$OPATH
 }
 
-build_pkgs()
-{
-	bs_notice "Start building package(s) \"${BUILD_LIST[@]}\"..."
-	walk_pkg_dir pkg_unpack_patch pkg_make_install
-	bs_notice "Build complete"
-}
-
 install_tgt_pkgs()
 {
 	pushd $FS_ROOT
 	bs_notice "Cleaning ${FS_ROOT}"
 	rm -rf * .[!.]*
-	if [ "$TARGET_pkgS" = all ] && declare -F configure_system &> /dev/null; then
+	if [ -z "$TARGET_PKGS" ] || [ "$TARGET_PKGS" = all ] && declare -F configure_system &> /dev/null; then
 		bs_notice "Configuring system in ${PWD}..."
 		configure_system
 	fi
@@ -515,7 +515,8 @@ case "$1" in
 		;;
 esac
 
-case "$@" in
+TARGET_PKGS="$@"
+case "$TARGET_PKGS" in
 	all|'')
 		if [ "${#BUILD_LIST[@]}" = 0 ]; then
 			bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
