@@ -109,6 +109,26 @@ get_file()
 	esac
 }
 
+conf_support_opts()
+{
+	local ARG RET=0
+	for ARG in $@; do
+		./configure --help | fgrep -q -e "$ARG"
+		: $(( RET |= $? ))
+	done
+	return $RET
+}
+
+export_cross_tools()
+{
+	local TOOL
+	for TOOL in CC AR AS RANLIB LD STRIP; do
+		LOWERCASE=$(echo $TOOL | tr '[:upper:]' '[:lower:]')
+		export eval $TOOL=${1}-${LOWERCASE}
+	done
+	export CXX="${1}-g++"
+}
+
 walk_pkg_dir()
 {
 	SETOPTS='-eET'
@@ -193,19 +213,29 @@ pkg_make_install()
 			${SPECS}/${PKG}/build
 		else
 			if [ -r Makefile ] && [ ! -x configure ]; then
-				make
-				make PREFIX="$PREFIX" install
+				MAKEFLAGS="PREFIX=$PREFIX $MAKEFLAGS"
+				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
+				make $CROSS_MAKEOPTS
+				make $CROSS_MAKEOPTS install
 				MAKEDIR=$PWD
 			elif [ -x configure ]; then
 				MAKEDIR=${PKG_DIR}/build
 				if [ ! -f ${PKG_DIR}/.configured ]; then
+					CONFIGFLAGS="--prefix=$PREFIX $CONFIGFLAGS"
+					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
+						if conf_support_opts '--build' '--host'; then
+							CONFIGFLAGS="--build=$BUILDSYS_BUILD --host=$BUILDSYS_HOST $CONFIGFLAGS"
+						fi
+					fi
 					mkdir -p $MAKEDIR
 					pushd $MAKEDIR
-					$SRC_DIR/configure --prefix="$PREFIX" $CROSSCONFOPTS ${CONFIGFLAGS}
+					bs_notice "Executing configure with $CONFIGFLAGS"
+					$SRC_DIR/configure ${CONFIGFLAGS}
 					popd
 					touch ${PKG_DIR}/.configured
 				fi
 				cd $MAKEDIR
+				bs_notice "Executing make with $MAKEFLAGS"
 				make 
 				make install
 			elif [ -r ${PKG_NAME}.pro ]; then
@@ -370,10 +400,10 @@ strip_rootfs()
 	OPATH=$PATH
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
-	find . -name "*.a" | xargs rm -rf
-	find . -name "*.la" | xargs rm -rf
-	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
-	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
+	find . -name "*.a" | xargs rm -rvf
+	find . -name "*.la" | xargs rm -rvf
+	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip -v --strip-all 2> /dev/null
+	find ./{,usr/}lib -type f 2> /dev/null | xargs strip -v --strip-debug 2> /dev/null
 	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man}
 	PATH=$OPATH
 }
@@ -450,6 +480,21 @@ print_help_and_exit()
 main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
+	case $ARCH in
+		i686)
+			toolchain_link root
+			;;
+		arm)
+			export BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu"
+			export_cross_tools $BUILDSYS_HOST
+			CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
+			toolchain_link tools
+			# Hacking... Below should be done in SDE in the first place, not here
+			if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
+				ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
+			fi
+			;;
+	esac
 	mkdir -vp "$BUILD_DIR" "$FS_ROOT" "$PKG_POOL" logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -480,7 +525,7 @@ while true; do
 			shift 2
 			;;
 		-j|--jobs)
-			JOBS="$2"
+			JOBS="$1 $2"
 			shift 2
 			;;
 		-h|--help)
@@ -515,13 +560,8 @@ if [ "$RET" = 1 ]; then
 	bs_error "Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}"
 	return 1
 fi
-
-if [ "$ARCH" = 'arm' ]; then
-	export BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu"
-	CROSSCONFOPTS="--build=$BUILDSYS_BUILD --host=$BUILDSYS_HOST"
-fi
-
-[ -n "$JOBS" ] && export MAKEFLAGS+="-j$JOBS"
+ 
+MAKEFLAGS+="$JOBS"
 export -f toolchain_link
 
 case "$1" in

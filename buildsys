@@ -155,6 +155,12 @@ else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
 
+if [ "$ARCH" = 'i686' ]; then
+    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
+else
+    SDKPATH=/tools/bin
+fi
+
 mkdir -p "$SDE"
 cd "$BSROOT"
 if [ ! -r ${SDK_FS} ]; then
@@ -194,6 +200,5 @@ pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
-    PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
-	ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
-	$CMD
+    PATH=$SDKPATH ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
+    $CMD
