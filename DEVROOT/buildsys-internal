@@ -38,10 +38,10 @@ unpack()
 	fi
 	case "$1" in
 		*.tar.gz | *.tar.bz2 | *.tar.xz | *.tgz | *.tbz | *.txz)
-			tar -xf "$1" -C "$DEST"
+			tar -xvf "$1" -C "$DEST"
 			;;
 		*.zip)
-			unzip "$1" -d "$DEST"
+			unzip -v "$1" -d "$DEST"
 			;;
 		*)
 			bs_error "Unknown package format for \"$1\""
@@ -76,9 +76,9 @@ guess_pkg_info()
 		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
 	fi
 	if [ -z "$SRC_DIR" ]; then
-		SRC_DIR="${PACKAGES}/${PKG}/${PKG_NAME}-${VERSION}"
+		SRC_DIR="${BUILD_DIR}/${PKG}/${PKG_NAME}-${VERSION}"
 	else
-		SRC_DIR="${PACKAGES}/${PKG}/${SRC_DIR}"
+		SRC_DIR="${BUILD_DIR}/${PKG}/${SRC_DIR}"
 	fi
 }
 
@@ -131,12 +131,12 @@ walk_pkg_dir()
 			SPECFILE="${SPECS}/${PKG}/spec-$SDKARCH"
 		fi
 		if [ ! -f "$SPECFILE" ]; then
-			bs_notice "File \"${SPECFILE}\" not found, falling back to default spec" 
+			bs_notice "File \"${SPECFILE}\" not found, falling back to default spec"
 			SPECFILE="${SPECS}/${PKG}/spec"
 		fi
 		source "$SPECFILE"
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
-		PKG_DIR="${PACKAGES}/${PKG}"
+		PKG_DIR="${BUILD_DIR}/${PKG}"
 		mkdir -p "$PKG_DIR"
 		if [ -d "$PKG_DIR/build" ]; then
 			MAKEDIR="$PKG_DIR/build"
@@ -450,7 +450,7 @@ print_help_and_exit()
 main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
-	mkdir -vp "$PACKAGES" "$FS_ROOT" "$PKG_POOL" logs
+	mkdir -vp "$BUILD_DIR" "$FS_ROOT" "$PKG_POOL" logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
@@ -504,7 +504,7 @@ set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
 
-for VAR in PACKAGES FS_ROOT PKG_POOL PREFIX; do
+for VAR in BUILD_DIR FS_ROOT PKG_POOL PREFIX; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
 		VAR_NOT_DEF+="$VAR "
 		RET=1
@@ -516,9 +516,9 @@ if [ "$RET" = 1 ]; then
 	return 1
 fi
 
-if [ "$ARCH" = arm ]; then
+if [ "$ARCH" = 'arm' ]; then
 	export BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu"
-	CROSSCONFOPTS="--build=$BUILDSYS_HOST --host=$BUILDSYS_BUILD"
+	CROSSCONFOPTS="--build=$BUILDSYS_BUILD --host=$BUILDSYS_HOST"
 fi
 
 [ -n "$JOBS" ] && export MAKEFLAGS+="-j$JOBS"

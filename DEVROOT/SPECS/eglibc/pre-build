@@ -1,0 +1,22 @@
+#!/bin/bash -eE
+
+# When running make install, a script called test-installation.pl performs a small sanity test on our newly installed Glibc. However, because our toolchain still points to the /tools directory, the sanity test would be carried out against the wrong Glibc.
+DL=$(readelf -l /bin/sh | sed -n 's@.*interpret.*/tools\(.*\)]$@\1@p')
+sed -i "s|libs -o|libs -L/usr/lib -Wl,-dynamic-linker=$DL -o|" scripts/test-installation.pl
+unset DL
+
+# In addition, there is a bug in the test-installation.pl script in that it tries to link a test program to a library that isn't installed by make install.
+sed -i -e 's/"db1"/& \&\& $name ne "nss_test1"/' scripts/test-installation.pl
+
+# The ldd shell script contains Bash-specific syntax.
+sed -i 's|@BASH@|/bin/bash|' elf/ldd.bash.in
+
+# Because Glibc no longer supports i386, its developers say to use the compiler flag -march=i486 when building it for x86 machines. There are several ways to accomplish that, but testing shows that the flag is best placed inside the build variable “CFLAGS”. Instead of overriding completely what Glibc's internal build system uses for CFLAGS, append the new flag to the existing contents of CFLAGS by making use of the special file configparms. The -mtune=native flag is also necessary to reset a reasonable value for -mtune that is changed when setting -march.
+#mkdir -p $SRC_DIR/.build
+#echo "CFLAGS += -march=i486 -mtune=native -O3 -pipe" > $PKG_DIR/build/configparms
+
+# Though it is a harmless message, the install stage of Glibc will complain about the absence of /etc/ld.so.conf.
+touch /etc/ld.so.conf
+
+# Set toolchain to link with /tools for building glibc
+toolchain_link tools
