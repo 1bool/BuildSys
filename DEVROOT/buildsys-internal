@@ -388,6 +388,20 @@ rebuild_pkgs()
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
 }
 
+reinstall_pkgs()
+{
+	bs_notice "Reinstalling package(s) \"${BUILD_LIST[@]}\"..."
+	pushd $FS_ROOT
+	bs_notice "Cleaning ${FS_ROOT}"
+	rm -rf * .[!.]*
+	walk_pkg_dir -c pkg_remove
+	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
+	strip_rootfs
+	bs_notice "RootFS generated in $FS_ROOT"
+	popd
+	bs_notice "Package(s) \"${BUILD_LIST[@]}\" reinstall complete."
+}
+
 unpack_pkgs()
 {
 	bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
@@ -400,10 +414,15 @@ strip_rootfs()
 	OPATH=$PATH
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
-	find . -name "*.a" | xargs rm -rf
-	find . -name "*.la" | xargs rm -rf
-	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
-	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
+	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
+	EXE_LIST=$(find . -type f -executable)
+	if [ -n "$EXE_LIST" ]; then
+		: ${STRIP:=strip}
+		file -Ni $EXE_LIST | fgrep -e 'application/x-executable; charset=binary' \
+			| cut -d':' -f1 | xargs $STRIP -v --strip-all
+		file -Ni $EXE_LIST | fgrep -e 'application/x-sharedlib; charset=binary' \
+			| cut -d':' -f1 | xargs $STRIP -v --strip-debug
+	fi
 	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man,include}
 	PATH=$OPATH
 }
@@ -418,16 +437,9 @@ install_tgt_pkgs()
 		configure_system
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
-	set +eE
 	strip_rootfs
-	set -eE
-	popd
-#	cd ${FS_ROOT}${BUILD_DEST}
-#	sudo rm -rf include doc examples demos lib/dbus-1.0/include lib/glib-2.0/include share/doc share/gtk-doc
-#	cd $FS_ROOT
-#	sudo tar -pczvf $MECLOUD_BIN --numeric-owner --owner=root --group=root .
-#	sudo chown $(id -ru):$(id -rg) $MECLOUD_BIN
 	bs_notice "RootFS generated in $FS_ROOT"
+	popd
 }
 
 toolchain_link()
@@ -480,7 +492,7 @@ print_help_and_exit()
 main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
-	case $ARCH in
+	case $SDKARCH in
 		i686)
 			toolchain_link root
 			;;
@@ -495,6 +507,7 @@ main()
 			fi
 			;;
 	esac
+	export -f toolchain_link
 	mkdir -vp "$BUILD_DIR" "$FS_ROOT" "$PKG_POOL" logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -560,9 +573,6 @@ if [ "$RET" = 1 ]; then
 	bs_error "Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}"
 	return 1
 fi
- 
-MAKEFLAGS+="$JOBS"
-export -f toolchain_link
 
 case "$1" in
 	clean)
@@ -576,6 +586,9 @@ case "$1" in
 		;;
 	rebuild)
 		ACTION=rebuild_pkgs; shift
+		;;
+	reinstall)
+		ACTION=reinstall_pkgs; shift
 		;;
 	unpack)
 		ACTION=unpack_pkgs; shift
@@ -603,6 +616,11 @@ case "$TARGET_PKGS" in
 		BUILD_LIST=($@)
 		;;
 esac
+
+if [ -r /proc/cpuinfo ]; then
+	: ${JOBS:="-j $(fgrep processor /proc/cpuinfo | wc -l)"}
+fi
+MAKEFLAGS+="$JOBS"
 
 cd "$DEV_ROOT"
 if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then
