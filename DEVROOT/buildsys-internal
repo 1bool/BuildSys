@@ -374,7 +374,7 @@ strip_rootfs()
 	find . -name "*.la" | xargs rm -rf
 	find ./{,usr/}{,s}bin -type f 2> /dev/null | xargs strip --strip-all 2> /dev/null
 	find ./{,usr/}lib -type f 2> /dev/null | xargs strip --strip-debug 2> /dev/null
-	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man}
+	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man,include}
 	PATH=$OPATH
 }
 

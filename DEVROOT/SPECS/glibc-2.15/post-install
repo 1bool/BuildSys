@@ -2,8 +2,10 @@
 
 # Fix bug #3 "glibc build loop in NPTL"
 mkdir -p usr/include
-mv -fv usr/tmp-include/* usr/include
-rmdir -v usr/tmp-include
+if [ -d usr/tmp-include ]; then
+	cp -av usr/tmp-include/* usr/include
+	rm -vrf usr/tmp-include
+fi
 
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
 cp -v $SRC_DIR/sunrpc/rpc/*.h usr/include/rpc
