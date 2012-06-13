@@ -1,7 +1,7 @@
 #!/bin/bash -eE
 
 # There are some packages that expect to find the lex library in /usr/lib.
-ln -sv libfl.a ${PREFIX#/}/lib/libl.a
+ln -sfv libfl.a ${PREFIX#/}/lib/libl.a
 
 # A few programs do not know about flex yet and try to run its predecessor, lex. To support those programs, create a wrapper script named lex that calls flex in lex emulation mode.
 

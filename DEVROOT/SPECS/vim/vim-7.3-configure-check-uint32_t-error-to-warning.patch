@@ -1,0 +1,37 @@
+diff -Naru vim73.orig/src/auto/configure vim73/src/auto/configure
+--- vim73.orig/src/auto/configure	2010-08-13 22:17:15.000000000 +0800
++++ vim73/src/auto/configure	2012-06-14 02:10:24.979565879 +0800
+@@ -11642,7 +11642,8 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking uint32_t is 32 bits" >&5
+ $as_echo_n "checking uint32_t is 32 bits... " >&6; }
+ if test "$cross_compiling" = yes; then :
+-  as_fn_error "could not compile program using uint32_t." "$LINENO" 5
++   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot check uint32_t when cross-compiling." >&5
++ $as_echo "$as_me: WARNING: cannot check uint32_t when cross-compiling." >&2;}
+ else
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+diff -Naru vim73.orig/src/configure.in vim73/src/configure.in
+--- vim73.orig/src/configure.in	2010-08-13 22:15:17.000000000 +0800
++++ vim73/src/configure.in	2012-06-14 02:09:19.947243395 +0800
+@@ -3180,7 +3180,7 @@
+ }],
+ AC_MSG_RESULT(ok),
+ AC_MSG_ERROR([WRONG!  uint32_t not defined correctly.]),
+-AC_MSG_ERROR([could not compile program using uint32_t.]))
++AC_MSG_WARN([cannot check uint32_t when cross-compiling.]))
+ 
+ dnl Check for memmove() before bcopy(), makes memmove() be used when both are
+ dnl present, fixes problem with incompatibility between Solaris 2.4 and 2.5.
+diff -Naru vim73.orig/src/version.c vim73/src/version.c
+--- vim73.orig/src/version.c	2010-08-01 21:45:48.000000000 +0800
++++ vim73/src/version.c	2012-06-14 02:11:31.063893570 +0800
+@@ -715,6 +715,8 @@
+ static int included_patches[] =
+ {   /* Add new patch number below this line */
+ /**/
++    378,
++/**/
+     0
+ };
+ 

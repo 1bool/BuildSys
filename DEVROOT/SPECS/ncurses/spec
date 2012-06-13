@@ -1,4 +1,4 @@
-CONFIGFLAGS='--prefix=/usr --with-shared --without-debug --enable-widec'
+CONFIGFLAGS='--with-shared --without-debug --enable-widec'
 PKG_LOCATION='ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.9.tar.gz'
 
 #--enable-widec

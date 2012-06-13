@@ -37,9 +37,6 @@ mkdir -pv usr/lib/locale
 #make DESTDIR=$(dirs -l +1) localedata/install-locales
 #popd
 
-# Set tool chain not to link /tools as we have glibc in root directory now.
-toolchain_link root
-
 # The /etc/nsswitch.conf file needs to be created because, although Glibc provides defaults when this file is missing or corrupt, the Glibc defaults do not work well in a networked environment. The time zone also needs to be configured. 
 cat > etc/nsswitch.conf << "EOF"
 # Begin /etc/nsswitch.conf

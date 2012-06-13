@@ -107,14 +107,18 @@ get_file()
 	esac
 }
 
-add_conf_opts()
+precede_conf_opts()
 {
-	local ARG
+	local ARG CONFIGURE=configure
 	for ARG in $@; do
-		if ! grep -F -q -e "${ARG%=*}" configure; then
-			bs_notice "${PKG}'s configure does not support ${ARG%=*} directive"
+		if [ "$PKG_NAME" = 'vim' ]; then
+			CONFIGURE=src/auto/configure
 		fi
-		CONFIGFLAGS="$ARG $CONFIGFLAGS"
+		if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
+			bs_notice "${PKG}'s configure does not support ${ARG%=*} directive"
+		else
+			CONFIGFLAGS="$ARG $CONFIGFLAGS"
+		fi
 	done
 }
 
@@ -247,9 +251,9 @@ pkg_make_install()
 			elif [ -x configure ]; then
 				MAKEDIR=${PKG_DIR}/build
 				if [ ! -f ${PKG_DIR}/.configured ]; then
-					add_conf_opts "--prefix=$PREFIX"
+					precede_conf_opts "--prefix=$PREFIX"
 					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
-						add_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
+						precede_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
 					fi
 					mkdir -p $MAKEDIR
 					pushd $MAKEDIR
