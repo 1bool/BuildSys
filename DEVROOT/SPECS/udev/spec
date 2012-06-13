@@ -1,6 +1,5 @@
 PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev-182.tar.xz'
-# Not really a patch, but config files:
-PATCHES='http://www.linuxfromscratch.org/lfs/downloads/development/udev-config-20100128.tar.bz2'
+ADDITIONS='http://www.linuxfromscratch.org/lfs/downloads/development/udev-config-20100128.tar.bz2'
 CONFIGFLAGS="--prefix=/usr           \
 			 --with-rootprefix=''    \
 			 --bindir=/sbin          \
@@ -24,8 +23,9 @@ CONFIGFLAGS="--prefix=/usr           \
 #    These options prevent Udev from installing helper programs and other extras which require more external libraries. These libraries are not part of the base LFS system. See the Udev README file for more information.
 
 # Since pkg-config has not been installed yet, we'll have to specify library locations.
-BLKID_CFLAGS="-I/usr/include/blkid"
-BLKID_LIBS="-L/lib -lblkid"
-KMOD_CFLAGS="-I/usr/include"
-KMOD_LIBS="-L/lib -lkmod"
-export BLKID_CFLAGS BLKID_LIBS KMOD_CFLAGS KMOD_LIBS
+#BLKID_CFLAGS="-I/usr/include/blkid"
+#BLKID_LIBS="-L/lib -lblkid"
+#KMOD_CFLAGS="-I/usr/include"
+#KMOD_LIBS="-L/lib -lkmod"
+
+DEPS=pkg-config

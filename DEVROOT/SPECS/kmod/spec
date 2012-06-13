@@ -1,11 +1,13 @@
-VERSION=7
-PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-7.tar.xz'
-CONFIGFLAGS='--prefix=/usr --bindir=/bin --libdir=/lib --sysconfdir=/etc --with-xz --with-zlib'
-liblzma_CFLAGS="-I/usr/include"
-liblzma_LIBS="-L/lib -llzma"
-zlib_CFLAGS="-I/usr/include"
-zlib_LIBS="-L/lib -lz"
-export liblzma_CFLAGS liblzma_LIBS zlib_CFLAGS zlib_LIBS
+PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-8.tar.xz'
+CONFIGFLAGS='--with-rootlibdir=/lib --bindir=/bin --libdir=/lib --sysconfdir=/etc --with-xz --with-zlib'
+
 # lib* and --with-*
 #    These options enable Kmod to handle compressed kernel modules. The shell variables are required in order for the xz and zlib headers and libraries to be found in the absence of pkg-config.
+#liblzma_CFLAGS="-I/usr/include"
+#liblzma_LIBS="-L/lib -llzma"
+#zlib_CFLAGS="-I/usr/include"
+#zlib_LIBS="-L/lib -lz"
 
+MAKEFLAGS='pkgconfigdir=/usr/lib/pkgconfig'
+
+DEPS=pkg-config

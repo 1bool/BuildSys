@@ -1,6 +1,7 @@
 #!/bin/bash -eE
 
 # Move the shared libraries to the /lib directory, where they are expected to reside.
+mkdir -p lib
 mv -v usr/lib/libncursesw.so.5* lib
 # Because the libraries have been moved, one symlink points to a non-existent file. Recreate it.
 ln -sfv ../../lib/libncursesw.so.5 usr/lib/libncursesw.so

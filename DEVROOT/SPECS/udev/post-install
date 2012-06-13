@@ -9,8 +9,8 @@ fi
 # Remove an empty documentation directory:
 rmdir -v usr/share/doc/udev
 
-UDEVCONF_DIR=$(basename ${PATCHES[0]})
+UDEVCONF_DIR=$(basename ${ADDITIONS[0]})
 UDEVCONF_DIR=${UDEVCONF_DIR%%.*}
-pushd "${PKG_DIR}/${UDEVCONF_DIR}"
+pushd "${SRC_DIR}/${UDEVCONF_DIR}"
 make DESTDIR=$(dirs -l +1) install
 popd

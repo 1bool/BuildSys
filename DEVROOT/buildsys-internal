@@ -91,9 +91,7 @@ get_file()
 		return
 	fi
 	case "$SOURCE" in
-		http://*)
-			;&
-		ftp://*)
+		http://* | ftp://*)
 			bs_notice "Downloading ${SOURCE}"
 			wget -c -O "$DEST/${SOURCE_FILE}.partial" "$SOURCE"
 			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
@@ -109,14 +107,15 @@ get_file()
 	esac
 }
 
-conf_support_opts()
+add_conf_opts()
 {
-	local ARG RET=0
+	local ARG
 	for ARG in $@; do
-		./configure --help | fgrep -q -e "$ARG"
-		: $(( RET |= $? ))
+		if ! grep -F -q -e "${ARG%=*}" configure; then
+			bs_notice "${PKG}'s configure does not support ${ARG%=*} directive"
+		fi
+		CONFIGFLAGS="$ARG $CONFIGFLAGS"
 	done
-	return $RET
 }
 
 export_cross_tools()
@@ -127,6 +126,28 @@ export_cross_tools()
 		export eval $TOOL=${1}-${LOWERCASE}
 	done
 	export CXX="${1}-g++"
+}
+
+toolchain_link()
+{
+	pushd /tools/bin > /dev/null
+	case "$1" in
+		tools)
+			ln -vf ld-old ld
+			rm -vf `dirname $(gcc --print-libgcc-file-name)`/specs
+			;;
+		root)
+			ln -vf ld-new ld
+			gcc -dumpspecs | sed -e 's@/tools@@g' \
+				-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
+				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
+				`dirname $(gcc --print-libgcc-file-name)`/specs
+			;;
+		*)
+			return 1
+			;;
+	esac
+	popd > /dev/null
 }
 
 walk_pkg_dir()
@@ -142,19 +163,24 @@ walk_pkg_dir()
 		esac
 	done
 	shift $((OPTIND - 1))
+
 	for PKG in ${BUILD_LIST[@]}; do
 		(
+		local SPECFOUND=0
 		set -a $SETOPTS
-		if [ -n "$SPEC_NAME" ]; then
-			SPECFILE="${SPECS}/${PKG}/$SPEC_NAME"
-		else
-			SPECFILE="${SPECS}/${PKG}/spec-$SDKARCH"
+		for SPECFILE in "${SPECS}/${PKG}/spec" "${SPECS}/${PKG}/${SPEC_NAME}"; do
+			if [ -f $SPECFILE ]; then
+				bs_notice "Reading $SPECFILE"
+				source $SPECFILE
+				: $((SPECFOUND |= 1))
+			fi
+		done
+		if [ $SPECFOUND = 0 ]; then
+			bs_error "${PKG}'s spec not found"
+			exit 1
 		fi
-		if [ ! -f "$SPECFILE" ]; then
-			bs_notice "File \"${SPECFILE}\" not found, falling back to default spec"
-			SPECFILE="${SPECS}/${PKG}/spec"
-		fi
-		source "$SPECFILE"
+		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
+		toolchain_link $BUILDSYS_LINK
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		PKG_DIR="${BUILD_DIR}/${PKG}"
 		mkdir -p "$PKG_DIR"
@@ -215,29 +241,27 @@ pkg_make_install()
 			if [ -r Makefile ] && [ ! -x configure ]; then
 				MAKEFLAGS="PREFIX=$PREFIX $MAKEFLAGS"
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
-				make $CROSS_MAKEOPTS
-				make $CROSS_MAKEOPTS install
+				make $MAKEFLAGS $CROSS_MAKEOPTS
+				make $MAKEFLAGS $CROSS_MAKEOPTS install
 				MAKEDIR=$PWD
 			elif [ -x configure ]; then
 				MAKEDIR=${PKG_DIR}/build
 				if [ ! -f ${PKG_DIR}/.configured ]; then
-					CONFIGFLAGS="--prefix=$PREFIX $CONFIGFLAGS"
+					add_conf_opts "--prefix=$PREFIX"
 					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
-						if conf_support_opts '--build' '--host'; then
-							CONFIGFLAGS="--build=$BUILDSYS_BUILD --host=$BUILDSYS_HOST $CONFIGFLAGS"
-						fi
+						add_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
 					fi
 					mkdir -p $MAKEDIR
 					pushd $MAKEDIR
-					bs_notice "Executing configure with $CONFIGFLAGS"
+					bs_notice "Executing configure $CONFIGFLAGS"
 					$SRC_DIR/configure ${CONFIGFLAGS}
 					popd
 					touch ${PKG_DIR}/.configured
 				fi
 				cd $MAKEDIR
-				bs_notice "Executing make with $MAKEFLAGS"
-				make 
-				make install
+				bs_notice "Executing make $MAKEFLAGS"
+				make $MAKEFLAGS
+				make $MAKEFLAGS install
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make
@@ -397,7 +421,6 @@ reinstall_pkgs()
 	walk_pkg_dir -c pkg_remove
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs
-	bs_notice "RootFS generated in $FS_ROOT"
 	popd
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" reinstall complete."
 }
@@ -415,16 +438,17 @@ strip_rootfs()
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
 	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
-	EXE_LIST=$(find . -type f -executable)
+	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni)
 	if [ -n "$EXE_LIST" ]; then
-		: ${STRIP:=strip}
-		file -Ni $EXE_LIST | fgrep -e 'application/x-executable; charset=binary' \
-			| cut -d':' -f1 | xargs $STRIP -v --strip-all
-		file -Ni $EXE_LIST | fgrep -e 'application/x-sharedlib; charset=binary' \
-			| cut -d':' -f1 | xargs $STRIP -v --strip-debug
+		echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
+			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-all 2> /dev/null || true
+		echo "$EXE_LIST" | grep -F -e 'application/x-sharedlib; charset=binary' \
+			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	fi
-	rm -rvf usr/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} usr/{doc,info,man,include}
+	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} \
+		./${PREFIX}/{doc,info,man,include}
 	PATH=$OPATH
+	bs_notice "RootFS stripped in $FS_ROOT"
 }
 
 install_tgt_pkgs()
@@ -437,31 +461,14 @@ install_tgt_pkgs()
 		configure_system
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
-	strip_rootfs
-	bs_notice "RootFS generated in $FS_ROOT"
+	strip_rootfs "$FS_ROOT"
 	popd
+	bs_notice "RootFS generated in $FS_ROOT"
 }
 
-toolchain_link()
+resolve_deps()
 {
-	pushd /tools/bin
-	case "$1" in
-		tools)
-			ln -vf ld-old ld
-			rm -vf `dirname $(gcc --print-libgcc-file-name)`/specs
-			;;
-		root)
-			ln -vf ld-new ld
-			gcc -dumpspecs | sed -e 's@/tools@@g' \
-				-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
-				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
-				`dirname $(gcc --print-libgcc-file-name)`/specs
-			;;
-		*)
-			return 1
-			;;
-	esac
-	popd
+	return
 }
 
 print_help_and_exit()
@@ -492,22 +499,33 @@ print_help_and_exit()
 main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
-	case $SDKARCH in
-		i686)
-			toolchain_link root
-			;;
-		arm)
-			export BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu"
-			export_cross_tools $BUILDSYS_HOST
-			CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
-			toolchain_link tools
-			# Hacking... Below should be done in SDE in the first place, not here
-			if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
-				ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
-			fi
-			;;
-	esac
-	export -f toolchain_link
+
+	if [ -r /proc/cpuinfo ]; then
+		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
+	fi
+	MAKEFLAGS+="$JOBS"
+
+	if [ "$PREFIX" = /tools ]; then
+		export BUILDSYS_LINK=tools
+	else
+		case $SDKARCH in
+			i?86 | x86*)
+				export BUILDSYS_LINK=root
+				;;
+			arm)
+				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+				export_cross_tools $BUILDSYS_HOST
+				CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
+				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
+					ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
+				fi
+
+				;;
+		esac
+	fi
+
+	resolve_deps
+
 	mkdir -vp "$BUILD_DIR" "$FS_ROOT" "$PKG_POOL" logs
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
@@ -515,6 +533,7 @@ main()
 		touch /.first_config
 		popd
 	fi
+
 	${ACTION:-install_tgt_pkgs}
 }
 
@@ -616,11 +635,6 @@ case "$TARGET_PKGS" in
 		BUILD_LIST=($@)
 		;;
 esac
-
-if [ -r /proc/cpuinfo ]; then
-	: ${JOBS:="-j $(fgrep processor /proc/cpuinfo | wc -l)"}
-fi
-MAKEFLAGS+="$JOBS"
 
 cd "$DEV_ROOT"
 if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then

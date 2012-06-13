@@ -198,7 +198,10 @@ pushd -n "$SDE/sys" &> /dev/null
 mount $VERBOSE --bind "$DEVROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
+if [ -r "$SDE/tools/etc/hostname" ]; then
+	read SDENAME < $SDE/tools/etc/hostname
+fi
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
-    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' HOSTNAME=$SDENAME\
     PATH=$SDKPATH ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
     $CMD

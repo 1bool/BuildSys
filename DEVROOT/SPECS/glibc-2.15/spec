@@ -6,7 +6,11 @@ CONFIGFLAGS+=' --includedir=/usr/tmp-include'
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/glibc-2.15-fixes-1.patch'
 # Fix a bug that prevents Glibc from building with GCC-4.7.0:
 PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/glibc-2.15-gcc_fix-1.patch'
+
 PATH=/tools/bin:/tools/sbin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 DEPS=kernel-headers
+
 # Clear ARCH=x86 passed to glibc package to prevent build failure
 ARCH=
+
+BUILDSYS_LINK=tools

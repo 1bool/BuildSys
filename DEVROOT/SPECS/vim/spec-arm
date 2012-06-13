@@ -1,7 +1,12 @@
-PKG_LOCATION='ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2'
-VERSION=7.3
-CONFIGFLAGS='--prefix=/usr --enable-multibyte --srcdir=../src --with-features=tiny'
-SRC_DIR=vim73
+CONFIGFLAGS="--prefix=/usr --enable-multibyte --with-features=tiny \
+				vim_cv_getcwd_broken=no \
+				vim_cv_memmove_handles_overlap=yes \
+				vim_cv_stat_ignores_slash=no \
+				vim_cv_terminfo=yes \
+				vim_cv_tgent=zero \
+				vim_cv_toupper_broken=no \
+				vim_cv_tty_group=world \
+				ac_cv_sizeof_int=4"
 
 #--enable-multibyte
 #    This switch enables support for editing files in multibyte character encodings. This is needed if using a locale with a multibyte character set. This switch is also helpful to be able to edit text files initially created in Linux distributions like Fedora that use UTF-8 as a default character set.

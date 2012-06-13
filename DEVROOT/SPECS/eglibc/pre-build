@@ -17,6 +17,3 @@ sed -i 's|@BASH@|/bin/bash|' elf/ldd.bash.in
 
 # Though it is a harmless message, the install stage of Glibc will complain about the absence of /etc/ld.so.conf.
 touch /etc/ld.so.conf
-
-# Set toolchain to link with /tools for building glibc
-toolchain_link tools

@@ -1,5 +1,0 @@
-#!/bin/bash -eE
-
-# The udev-config tarball contains LFS-specific files used to configure Udev. Unpack it into the Udev source directory:
-UDEV_CONFIG=$(basename ${PATCHES[0]})
-tar -xvf $PKG_POOL/${UDEV_CONFIG} -C $PKG_DIR
