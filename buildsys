@@ -29,10 +29,12 @@ buildsys_print_help_and_exit()
 	echo " --arm			Enter SDK environment for ARM architecture"
 	echo " -s, --size N		Set lowest size limit of SDK filesystem to N MB"
 	echo "			(default: 1024)"
-	echo " -c DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
+	echo " -C DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
+	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
 	echo "			(default: build-${SDKARCH:-i686}.conf)"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
+	echo "			(default N = number of CPUs)"
 	echo " -h, --help		Print this help"
 	echo "Command:"
 	echo " unpack			Unpack only, don't build the package"
@@ -42,7 +44,6 @@ buildsys_print_help_and_exit()
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
-	echo " rebuild		Clean up and then rebuild packages"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in config file"
 	echo "			(default all for empty PackageName)"
@@ -111,7 +112,7 @@ else
 			-s | --size)
 				SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
-			-c | --dir)
+			-C | --dir)
 				BSROOT="$2"; shift 2
 				;;
 			-f | --config)
