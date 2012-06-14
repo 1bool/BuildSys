@@ -160,7 +160,7 @@ fi
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
-		enter)
+		enter | '')
 			CMD="/tools/bin/bash --login +h"
 			VERBOSE='--verbose'
 			;;
