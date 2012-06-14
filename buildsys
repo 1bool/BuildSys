@@ -97,7 +97,7 @@ if [ $MYNAME = entersde ]; then
 	[ -n "$1" ] && BSROOT="$1"
 else
 	MYNAME='buildsys'
-	GETOPTS=$(getopt -o sc:f:j:h --long arm,i686,size,dir:,config:,jobs:,help -n "$0" -- "$@")
+	GETOPTS=$(getopt -o scC:f:j:h --long arm,i686,size,continue,dir:,config:,jobs:,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
 	set -a

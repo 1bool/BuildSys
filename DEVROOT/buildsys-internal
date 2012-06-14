@@ -538,7 +538,7 @@ main()
 
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
-GETOPTS=$(getopt -o f:j:h --long config:,jobs:,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o cf:j:h --long continue,config:,jobs:,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 
 eval set -- "$GETOPTS"
