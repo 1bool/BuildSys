@@ -115,7 +115,8 @@ else
 				BSROOT="$2"; shift 2
 				;;
 			-f | --config)
-				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${2#*DEVROOT/} "; shift 2
+				CONF="$2"
+				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF#*DEVROOT/} "; shift 2
 				;;
 			-h | --help)
 				${MYNAME}_print_help_and_exit; shift
@@ -147,6 +148,7 @@ fi
 : ${DEVROOT:="$BSROOT/DEVROOT"}
 : ${SDE:="$BSROOT/$SDK_NAME"}
 : ${LOCKFILE:="$BSROOT/.$SDK_NAME.lock"}
+: ${CONF:=$DEVROOT/INC/build-$ARCH.conf}
 
 if [ "$MYNAME" = entersde ]; then
 	CMD="/tools/bin/bash --login +h"
@@ -154,6 +156,15 @@ if [ "$MYNAME" = entersde ]; then
 else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
+
+for BUILD_CONF in "$CONF" "$DEVROOT/INC/$CONF" 'NULL'; do
+	[ -f "$BUILD_CONF" ] && break
+done
+if [ "$BUILD_CONF" = 'NULL' ]; then
+	echo "Error: File $CONF not found"
+	exit 1
+fi
+source $CONF
 
 if [ "$ARCH" = 'i686' ]; then
     SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin

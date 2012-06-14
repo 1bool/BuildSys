@@ -3,13 +3,6 @@
 set -eE
 
 export SDKARCH=$ARCH
-if [ "$ARCH" = i686 ]; then
-	set +h
-	unset ARCH
-else
-	set -h
-	export ARCH
-fi
 
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
@@ -442,7 +435,7 @@ strip_rootfs()
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
 	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
-	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni)
+	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
 	if [ -n "$EXE_LIST" ]; then
 		echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
 			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-all 2> /dev/null || true
@@ -584,6 +577,14 @@ fi
 set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
+
+if [ "$ARCH" = i686 ]; then
+	set +h
+	unset ARCH
+else
+	set -h
+	export ARCH
+fi
 
 for VAR in BUILD_DIR FS_ROOT PKG_POOL PREFIX; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
