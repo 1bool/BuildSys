@@ -412,6 +412,7 @@ rebuild_pkgs()
 {
 	bs_notice "Rebuilding package(s) \"${BUILD_LIST[@]}\"..."
 	walk_pkg_dir -c pkg_remove
+	rm -vf /.first_config
 	walk_pkg_dir pkg_unpack_patch pkg_make_install
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
 }
@@ -423,6 +424,7 @@ reinstall_pkgs()
 	bs_notice "Cleaning ${FS_ROOT}"
 	rm -rf * .[!.]*
 	walk_pkg_dir -c pkg_remove
+	rm -vf /.first_config
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs
 	popd
@@ -460,9 +462,12 @@ install_tgt_pkgs()
 	pushd $FS_ROOT
 	bs_notice "Cleaning ${FS_ROOT}"
 	rm -rf * .[!.]*
-	if [ -z "$TARGET_PKGS" ] || [ "$TARGET_PKGS" = all ] && declare -F configure_system &> /dev/null; then
-		bs_notice "Configuring system in ${PWD}..."
-		configure_system
+	if [ -z "$TARGET_PKGS" ] || [ "$TARGET_PKGS" = all ] && [ ! -f .first_config ]; then
+		if declare -F configure_system &> /dev/null; then
+			bs_notice "Configuring system in ${PWD}..."
+			configure_system
+			touch .first_config
+		fi
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs "$FS_ROOT"
@@ -487,8 +492,9 @@ print_help_and_exit()
 	echo "Command:"
 	echo " unpack			Unpack only, don't build the package"
 	echo " build			Unpack and build only, don't make target rootfs"
-	echo " install		Build and install packages into dest root directory"
+	echo " genroot		Build packages and generate root filesystem"
 	echo "			(This is default if no Command specified)"
+	echo " regenerate			Rebuild and regenerate root filesystem"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -610,7 +616,7 @@ case "$1" in
 	rebuild)
 		ACTION=rebuild_pkgs; shift
 		;;
-	reinstall)
+	regenerate)
 		ACTION=reinstall_pkgs; shift
 		;;
 	unpack)
@@ -619,7 +625,7 @@ case "$1" in
 	build)
 		ACTION=build_pkgs; shift
 		;;
-	install)
+	genroot)
 		ACTION=install_tgt_pkgs; shift
 		;;
 	help)

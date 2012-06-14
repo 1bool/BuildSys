@@ -2,10 +2,12 @@
 
 # Move a misplaced program to its proper location:
 mv -v usr/bin/passwd bin
-# To enable shadowed passwords, run the following command:
-chroot . pwconv
-# To enable shadowed group passwords, run:
-chroot . grpconv
+if [ -z "$BUILDSYS_HOST" ]; then
+	# To enable shadowed passwords, run the following command:
+	chroot . pwconv
+	# To enable shadowed group passwords, run:
+	chroot . grpconv
+fi
 
 # /etc/default/useradd Parameter Explanations
 # GROUP=1000

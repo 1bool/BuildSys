@@ -1,11 +1,11 @@
 PATH=/tools/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:$HOME/bin
-BUILD_DIR=$DEV_ROOT/BUILD-ARM
+BUILD_DIR=$DEV_ROOT/BUILD-S3C6410
 SPECS=$DEV_ROOT/SPECS
 PKG_POOL=$DEV_ROOT/POOL
-FS_ROOT=$DEV_ROOT/ARMROOT
+FS_ROOT=$DEV_ROOT/ROOT
 PREFIX=/usr
-CFLAGS='-Os -pipe '
-CXXFLAGS='-Os -pipe '
+CFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
+CXXFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
 ARCH=arm
 SPEC_NAME=spec-arm
 BUILD_LIST=(
@@ -66,8 +66,12 @@ configure_system()
 	ln -fsv /run/lock var/lock
 	mkdir -pv var/{opt,cache,lib/{misc,locate},local}
 
-	ln -fsv /tools/bin/{sh,bash,cat,echo,pwd,stty} bin
-	cp -a /tools/$BUILDSYS_HOST/lib/*.so* lib
+	ln -fsv /tools/bin/{bash,cat,echo,pwd,stty} /bin
+	ln -sfv /tools/bin/perl /usr/bin
+	ln -sfv /tools/lib/libgcc_s.so{,.1} /usr/lib
+	ln -sfv /tools/lib/libstdc++.so{,.6} /usr/lib
+	sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la
+	ln -sfv /tools/bin/bash /bin/sh
 
 	cat > etc/passwd <<- "EOF"
 	root:x:0:0:root:/root:/bin/bash

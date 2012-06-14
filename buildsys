@@ -37,8 +37,9 @@ buildsys_print_help_and_exit()
 	echo "Command:"
 	echo " unpack			Unpack only, don't build the package"
 	echo " build			Unpack and build only, don't make target rootfs"
-	echo " install		Build and install packages into dest root directory"
+	echo " genroot		Build packages and generate root filesystem"
 	echo "			(This is default if no Command specified)"
+	echo " regenerate			Rebuild and regenerate root filesystem"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -168,7 +169,7 @@ if [ ! -r ${SDK_FS} ]; then
 		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
 		mv ${SDK_FS}.xz.partial ${SDK_FS}.xz
 	fi
-	xz -dv ${SDK_FS}.xz
+	xz -dkv ${SDK_FS}.xz
 fi
 if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
 	e2fsck -f ${SDK_FS}
