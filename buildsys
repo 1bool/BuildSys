@@ -5,17 +5,22 @@ MYNAME="$(basename "$0")"
 [ "$(uname -m)" = 'x86_64' ] && SET32=linux32
 : ${DEVROOT_IN_SDK:="/root"}
 
-entersde_print_help_and_exit()
+sde_print_help_and_exit()
 {
 	exec >&2
 	echo -e "Usage:\n $MYNAME [Options] [BuildSysRootDir]"
 	echo "Options:"
-	echo " --i686		Enter SDK environment for i686 architecture (default if not specified)"
-	echo " --arm		Enter SDK environment for ARM architecture"
-	echo " -s, --size N	Set lowest size limit of SDK filesystem to N MB (default: 1024)"
-	echo " -h, --help	Print this help"
-	echo "BuildSysRootDir:"
-	echo "		Buildsys root directory, default is current directory if not specified"
+	echo " --i686			Enter buildsys environment for i686 architecture"
+	echo "			(this is default if not specified)"
+	echo " --arm			Enter buildsys environment for ARM architecture"
+	echo " -s, --size N		Set lowest size limit of buildsys filesystem to N MB"
+	echo "			(default: 1024)"
+	echo " -C DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
+	echo " -h, --help		Print this help"
+	echo "Command:"
+	echo " enter			Get into buildsys environment"
+	echo " reset			Reset buildsys environment to initial state"
+	echo "			(reset all arch if not specified with --i686 or --arm)"
 	exit
 }
 
@@ -24,10 +29,10 @@ buildsys_print_help_and_exit()
 	exec >&2
 	echo -e "Usage:\n $MYNAME [Options] Command PackageName ..."
 	echo "Options:"
-	echo " --i686			Enter SDK environment for i686 architecture"
+	echo " --i686			Enter buildsys environment for i686 architecture"
 	echo "			(default i686 if not specified)"
-	echo " --arm			Enter SDK environment for ARM architecture"
-	echo " -s, --size N		Set lowest size limit of SDK filesystem to N MB"
+	echo " --arm			Enter buildsys environment for ARM architecture"
+	echo " -s, --size N		Set lowest size limit of buildsys filesystem to N MB"
 	echo "			(default: 1024)"
 	echo " -C DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
 	echo " -c, --continue		Resume previous buildsys process"
@@ -68,7 +73,7 @@ quit()
 	rmdir $SDE
 }
 
-if [ $MYNAME = entersde ]; then
+if [ $MYNAME = sde ]; then
 	GETOPTS=$(getopt -o sh --long arm,i686,size,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
@@ -83,6 +88,9 @@ if [ $MYNAME = entersde ]; then
 			-s | --size)
 				export SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
+			-C | --dir)
+				BSROOT="$2"; shift 2
+				;;
 			-h | --help)
 				${MYNAME}_print_help_and_exit; shift
 				;;
@@ -94,7 +102,6 @@ if [ $MYNAME = entersde ]; then
 				;;
 		esac
 	done
-	[ -n "$1" ] && BSROOT="$1"
 else
 	MYNAME='buildsys'
 	GETOPTS=$(getopt -o scC:f:j:h --long arm,i686,size,continue,dir:,config:,jobs:,help -n "$0" -- "$@")
@@ -146,19 +153,53 @@ fi
 : ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
 : ${BSROOT:="$PWD"}
-: ${DEVROOT:="$BSROOT/DEVROOT"}
+: ${DEV_ROOT:="$BSROOT/DEVROOT"}
 : ${SDE:="$BSROOT/$SDK_NAME"}
 : ${LOCKFILE:="$BSROOT/.$SDK_NAME.lock"}
-: ${CONF:=$DEVROOT/INC/build-$ARCH.conf}
+: ${CONF:=$DEV_ROOT/INC/build-$ARCH.conf}
 
-if [ "$MYNAME" = entersde ]; then
-	CMD="/tools/bin/bash --login +h"
-	VERBOSE='--verbose'
+if [ "$MYNAME" = sde ]; then
+	case "$1" in
+		enter)
+			CMD="/tools/bin/bash --login +h"
+			VERBOSE='--verbose'
+			;;
+		reset)
+			while true; do
+				echo -n "Proceed reset buildsys for $ARCH? (y/n) "
+				read ANSWER
+				case "$ANSWER" in
+					[nN] | [Nn][Oo])
+						echo "Buildsys reset canceled."
+						exit
+						;;
+					[yY] | [Yy][Ee][Ss])
+						break
+						;;
+					*)
+						;;
+				esac
+			done
+			SDKARCH=$ARCH
+			for BUILD_CONFIG in $DEV_ROOT/INC/*; do
+				source "$BUILD_CONFIG"
+				if [ "$ARCH" = $SDKARCH ]; then
+				echo \"$ARCH\" \"$SDKARCH\"
+					rm -rvf "$BUILD_DIR" "$FS_ROOT"
+				fi
+			done
+			rm -vf "buildsys-$SDKARCH.ext4"
+			exit
+			;;
+		*)
+			${MYNAME}_print_help_and_exit
+			;;
+	esac
 else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
 
-for BUILD_CONF in "$CONF" "$DEVROOT/INC/$CONF" 'NULL'; do
+for BUILD_CONF in "$CONF" "$DEV_ROOT/INC/$CONF" 'NULL'; do
 	[ -f "$BUILD_CONF" ] && break
 done
 if [ "$BUILD_CONF" = 'NULL' ]; then
@@ -180,7 +221,7 @@ if [ ! -r ${SDK_FS} ]; then
 		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
 		mv ${SDK_FS}.xz.partial ${SDK_FS}.xz
 	fi
-	xz -dv ${SDK_FS}.xz
+	xz -dkv ${SDK_FS}.xz
 fi
 if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
 	e2fsck -f ${SDK_FS}
@@ -207,7 +248,7 @@ mount $VERBOSE -t proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
-mount $VERBOSE --bind "$DEVROOT" "$SDE/$DEVROOT_IN_SDK"
+mount $VERBOSE --bind "$DEV_ROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
 if [ -r "$SDE/tools/etc/hostname" ]; then
