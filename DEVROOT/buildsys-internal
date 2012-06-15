@@ -617,12 +617,6 @@ case "$1" in
 	uninstall)
 		ACTION=uninstall_pkgs; shift
 		;;
-	rebuild)
-		ACTION=rebuild_pkgs; shift
-		;;
-	regenerate)
-		ACTION=reinstall_pkgs; shift
-		;;
 	unpack)
 		ACTION=unpack_pkgs; shift
 		;;
