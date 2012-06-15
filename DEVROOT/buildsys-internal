@@ -201,11 +201,14 @@ pkg_unpack_patch()
 		if [ -z "$PKG_LOCATION" ]; then
 			bs_error "No source file defined for \"$PKG\""
 			return 1
+		fi
+		if [ -d "$PKG_LOCATION" ]; then
+			ln -sv "$PKG_LOCATION" "$PKG_DIR"
 		else
 			get_file "$PKG_LOCATION" "$PKG_POOL"
+			bs_notice "Unpacking file ${PKG_FILE_NAME}"
+			unpack "${PKG_POOL}/${PKG_FILE_NAME}"
 		fi
-		bs_notice "Unpacking file ${PKG_FILE_NAME}"
-		unpack "${PKG_POOL}/${PKG_FILE_NAME}"
 		for ADDITION in ${ADDITIONS[@]}; do
 			get_file "$ADDITION" "$PKG_POOL"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
@@ -464,7 +467,7 @@ tar_pkgs()
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs "$FS_ROOT"
 	TARNAME=$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] _)
-	tar -Jcvf $DEV_ROOT/$TARNAME.tar.xz * .[!.]*
+	tar -Jcvf $BUILD_DIR/$TARNAME.tar.xz * .[!.]*
 	popd
 	bs_notice "File $DEV_ROOT/$TARNAME.tar.xz generation succeed"
 }

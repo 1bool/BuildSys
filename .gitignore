@@ -8,8 +8,9 @@
 *.ext4.xz
 
 SDE
-DEVROOT/ROOT
+DEVROOT/*ROOT*
 DEVROOT/POOL
 DEVROOT/logs
+DEVROOT/BUILD*
 .bash_history
 .viminfo
