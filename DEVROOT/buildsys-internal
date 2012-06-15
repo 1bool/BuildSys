@@ -449,12 +449,12 @@ strip_rootfs()
 	bs_notice "RootFS stripped in $FS_ROOT"
 }
 
-install_tgt_pkgs()
+tar_pkgs()
 {
 	pushd $FS_ROOT
 	bs_notice "Cleaning ${FS_ROOT}"
 	rm -rf * .[!.]*
-	if [ -z "$TARGET_PKGS" ] || [ "$TARGET_PKGS" = all ] && [ ! -f .first_config ]; then
+	if [ "$TARGET_PKGS" = all ] && [ ! -f .first_config ]; then
 		if declare -F configure_system &> /dev/null; then
 			bs_notice "Configuring system in ${PWD}..."
 			configure_system
@@ -463,8 +463,10 @@ install_tgt_pkgs()
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs "$FS_ROOT"
+	TARNAME=$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] _)
+	tar -Jcvf $DEV_ROOT/$TARNAME.tar.xz * .[!.]*
 	popd
-	bs_notice "RootFS generated in $FS_ROOT"
+	bs_notice "File $DEV_ROOT/$TARNAME.tar.xz generation succeed"
 }
 
 resolve_deps()
@@ -537,7 +539,7 @@ main()
 		popd
 	fi
 
-	${ACTION:-install_tgt_pkgs}
+	${ACTION:-tar_pkgs}
 }
 
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
@@ -623,8 +625,8 @@ case "$1" in
 	build)
 		ACTION=build_pkgs; shift
 		;;
-	genroot)
-		ACTION=install_tgt_pkgs; shift
+	gentar)
+		ACTION=tar_pkgs; shift
 		;;
 	help)
 		print_help_and_exit
@@ -632,17 +634,11 @@ case "$1" in
 esac
 
 TARGET_PKGS="$@"
-case "$TARGET_PKGS" in
-	all|'')
-		if [ "${#BUILD_LIST[@]}" = 0 ]; then
-			bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
-			return 1
-		fi
-		;;
-	*)
-		BUILD_LIST=($@)
-		;;
-esac
+: ${TARGET_PKGS:=all}
+if [ "$TARGET_PKGS" = all ] && [ "${#BUILD_LIST[@]}" = 0 ]; then
+	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
+	return 1
+fi
 
 cd "$DEV_ROOT"
 if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then
