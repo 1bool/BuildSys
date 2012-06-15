@@ -3,13 +3,6 @@
 set -eE
 
 export SDKARCH=$ARCH
-if [ "$ARCH" = i686 ]; then
-	set +h
-	unset ARCH
-else
-	set -h
-	export ARCH
-fi
 
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
@@ -403,28 +396,27 @@ uninstall_pkgs()
 
 build_pkgs()
 {
-	bs_notice "Start building package(s) \"${BUILD_LIST[@]}\"..."
-	walk_pkg_dir pkg_unpack_patch pkg_make_install
-	bs_notice "Build complete"
-}
-
-rebuild_pkgs()
-{
-	bs_notice "Rebuilding package(s) \"${BUILD_LIST[@]}\"..."
-	walk_pkg_dir -c pkg_remove
-	rm -vf /.first_config
+	if [ -z "$CONTINUE" ]; then
+		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
+		walk_pkg_dir -c pkg_remove
+	else
+		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
+	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
 }
 
-reinstall_pkgs()
+install_pkgs()
 {
-	bs_notice "Reinstalling package(s) \"${BUILD_LIST[@]}\"..."
 	pushd $FS_ROOT
-	bs_notice "Cleaning ${FS_ROOT}"
-	rm -rf * .[!.]*
-	walk_pkg_dir -c pkg_remove
-	rm -vf /.first_config
+	if [ -z "$CONTINUE" ]; then
+		bs_notice "Cleaning ${FS_ROOT}"
+		rm -rf * .[!.]*
+		bs_notice "Installing package(s) \"${BUILD_LIST[@]}\"..."
+		walk_pkg_dir -c pkg_remove
+	else
+		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
+	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs
 	popd
@@ -444,7 +436,7 @@ strip_rootfs()
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
 	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
-	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni)
+	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
 	if [ -n "$EXE_LIST" ]; then
 		echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
 			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-all 2> /dev/null || true
@@ -485,9 +477,11 @@ print_help_and_exit()
 	exec >&2
 	echo -e "Usage:\n $(basename $0) [Options] Command PackageName ..."
 	echo "Options:"
+	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
 	echo "			(default: build-${SDKARCH:-i686}.conf)"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
+	echo "			(default N = number of CPUs)"
 	echo " -h, --help		Print this help"
 	echo "Command:"
 	echo " unpack			Unpack only, don't build the package"
@@ -498,7 +492,6 @@ print_help_and_exit()
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
-	echo " rebuild		Clean up and then rebuild packages"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in config file"
 	echo "			(default all for empty PackageName)"
@@ -549,12 +542,15 @@ main()
 
 [ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
-GETOPTS=$(getopt -o f:j:h --long config:,jobs:,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o cf:j:h --long continue,config:,jobs:,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 
 eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
+		-c|--continue)
+			CONTINUE=1; shift
+			;;
 		-f|--config)
 			BUILD_CONF="$2"
 			if [ ! -f "$BUILD_CONF" ]; then
@@ -590,6 +586,14 @@ fi
 set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
+
+if [ "$ARCH" = i686 ]; then
+	set +h
+	unset ARCH
+else
+	set -h
+	export ARCH
+fi
 
 for VAR in BUILD_DIR FS_ROOT PKG_POOL PREFIX; do
 	if [ -z "$(eval echo \$$VAR)" ]; then
