@@ -158,6 +158,9 @@ fi
 : ${LOCKFILE:="$BS_ROOT/.$SDK_NAME.lock"}
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
+: ${POOL_DIR:="$BS_ROOT/POOL"}
+
+mkdir -p $POOL_DIR
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
