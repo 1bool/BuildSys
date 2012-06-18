@@ -92,7 +92,7 @@ get_file()
 			;;
 		*)
 			if [ -f "$SOURCE" ]; then
-				ln -v "$SOURCE" "$DEST"
+				ln -v "$SOURCE" "$DEST" || cp -v "$SOURCE" "$DEST"
 			else
 				bs_error "File \"$SOURCE\" not found"
 				return 1
