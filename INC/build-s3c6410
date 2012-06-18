@@ -1,15 +1,40 @@
 PATH=/tools/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:$HOME/bin
-DEV_ROOT=/root
-BUILD_DIR=$DEV_ROOT/BUILD-TOOLS
-SPECS=$DEV_ROOT/SPECS
-PKG_POOL=$DEV_ROOT/POOL
-FS_ROOT=$DEV_ROOT/ROOT
-PREFIX=/tools
-CFLAGS='-O3 -pipe'
-CXXFLAGS='-O3 -pipe'
-ARCH=i686
-ACTION=build_pkgs
-BUILD_LIST="flex popt pkg-config"
+PREFIX=/usr
+CFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
+CXXFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
+ARCH=arm
+SPEC_NAME=spec-arm
+BUILD_LIST=(
+	eglibc
+	zlib
+	file
+	sed
+	bzip2
+	ncurses
+	util-linux
+	e2fsprogs
+	coreutils
+	iana-etc
+	procps
+	grep
+	readline
+	bash
+	gdbm
+	gawk
+	findutils
+	xz
+	gzip
+	iproute2
+	kmod
+	kbd
+	less
+	shadow
+	tar
+	udev
+	vim
+	sysvinit
+	bootscripts
+	)
 
 configure_system()
 {
@@ -37,14 +62,12 @@ configure_system()
 	ln -fsv /run/lock var/lock
 	mkdir -pv var/{opt,cache,lib/{misc,locate},local}
 
-	[ -x /bin/bash ] || ln -fsv /tools/bin/{bash,cat,echo,pwd,stty} /bin
-	[ -x /usr/bin/perl ] || ln -sv /tools/bin/perl /usr/bin
-	[ -f /usr/lib/libgcc_s.so ] || ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib
-	if [ ! -f /usr/lib/libstdc++.so ]; then
-		ln -sv /tools/lib/libstdc++.so{,.6} /usr/lib
-		sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la
-	fi
-	[ -x /bin/sh ] || ln -sv bash /bin/sh
+	ln -fsv /tools/bin/{bash,cat,echo,pwd,stty} /bin
+	ln -sfv /tools/bin/perl /usr/bin
+	ln -sfv /tools/lib/libgcc_s.so{,.1} /usr/lib
+	ln -sfv /tools/lib/libstdc++.so{,.6} /usr/lib
+	sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la
+	ln -sfv /tools/bin/bash /bin/sh
 
 	cat > etc/passwd <<- "EOF"
 	root:x:0:0:root:/root:/bin/bash
@@ -191,4 +214,5 @@ configure_system()
 	# End /etc/fstab
 	EOF
 }
+
 unset USERNAME

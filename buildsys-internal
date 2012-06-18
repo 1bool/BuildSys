@@ -2,10 +2,11 @@
 
 set -eE
 
-export SDKARCH=$ARCH
-
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
+: ${DEV_ROOT:=/root}
+export DEV_ROOT SDKARCH=$ARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
+	PKG_POOL=$DEV_ROOT/POOL FS_ROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
 
 bs_error()
 {
@@ -466,10 +467,10 @@ tar_pkgs()
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs "$FS_ROOT"
-	TARNAME=$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] _)
-	tar -Jcvf $BUILD_DIR/$TARNAME.tar.xz * .[!.]*
+	TARNAME=$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] _)${BUILD_CONF}-$(date +%F-%X)
+	tar -Jcvf $GEN_DIR/$TARNAME.tar.xz * .[!.]*
 	popd
-	bs_notice "File $DEV_ROOT/$TARNAME.tar.xz generation succeed"
+	bs_notice "File $TARNAME.tar.xz generated successful"
 }
 
 resolve_deps()
@@ -534,7 +535,7 @@ main()
 
 	resolve_deps
 
-	mkdir -vp "$BUILD_DIR" "$FS_ROOT" "$PKG_POOL" logs
+	cd "$DEV_ROOT"
 	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
 		pushd /
 		configure_system
@@ -544,8 +545,6 @@ main()
 
 	${ACTION:-tar_pkgs}
 }
-
-[ -n "$DEV_ROOT" ] && export DEV_ROOT INCDIR="$DEV_ROOT/INC"
 
 GETOPTS=$(getopt -o cf:j:h --long continue,config:,jobs:,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
@@ -600,17 +599,8 @@ else
 	export ARCH
 fi
 
-for VAR in BUILD_DIR FS_ROOT PKG_POOL PREFIX; do
-	if [ -z "$(eval echo \$$VAR)" ]; then
-		VAR_NOT_DEF+="$VAR "
-		RET=1
-	fi
-done
-
-if [ "$RET" = 1 ]; then
-	bs_error "Variable \"${VAR_NOT_DEF}\" must be defined in ${BUILD_CONF}"
-	return 1
-fi
+: ${PREFIX:=/usr}
+export PREFIX
 
 case "$1" in
 	clean)
@@ -640,12 +630,6 @@ TARGET_PKGS="$@"
 : ${TARGET_PKGS:=all}
 if [ "$TARGET_PKGS" = all ] && [ "${#BUILD_LIST[@]}" = 0 ]; then
 	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
-	return 1
-fi
-
-cd "$DEV_ROOT"
-if [ ! -d "${SPECS:-$DEV_ROOT/SPECS}" ]; then
-	bs_error "Directory \"$SPECS\" for SPECS not found"
 	return 1
 fi
 

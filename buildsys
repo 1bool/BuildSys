@@ -60,7 +60,7 @@ buildsys_print_help_and_exit()
 quit()
 {
 	set +e
-	DIRS=$(dirs -l -p | sed '1d')
+	local DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
 		if [ -n "$VERBOSE" ]; then
 			if ! umount $VERBOSE $DIR; then
@@ -90,7 +90,7 @@ if [ $MYNAME = sde ]; then
 				export SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
 			-C | --dir)
-				BSROOT="$2"; shift 2
+				BS_ROOT="$2"; shift 2
 				;;
 			-h | --help)
 				${MYNAME}_print_help_and_exit; shift
@@ -121,11 +121,11 @@ else
 				SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
 			-C | --dir)
-				BSROOT="$2"; shift 2
+				BS_ROOT="$2"; shift 2
 				;;
 			-f | --config)
 				CONF="$2"
-				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF#*DEVROOT/} "; shift 2
+				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF} "; shift 2
 				;;
 			-h | --help)
 				${MYNAME}_print_help_and_exit; shift
@@ -153,11 +153,11 @@ fi
 : ${SDK_FS:="$SDK_NAME.ext4"}
 : ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
-: ${BSROOT:="$PWD"}
-: ${DEV_ROOT:="$BSROOT/DEVROOT"}
-: ${SDE:="$BSROOT/$SDK_NAME"}
-: ${LOCKFILE:="$BSROOT/.$SDK_NAME.lock"}
-: ${CONF:=$DEV_ROOT/INC/build-$ARCH.conf}
+: ${BS_ROOT:="$PWD"}
+: ${SDE:="$BS_ROOT/$SDK_NAME"}
+: ${LOCKFILE:="$BS_ROOT/.$SDK_NAME.lock"}
+: ${INC_DIR:="$BS_ROOT/INC"}
+: ${CONF:=$INC_DIR/build-$ARCH.conf}
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -182,11 +182,11 @@ if [ "$MYNAME" = sde ]; then
 				esac
 			done
 			SDKARCH=$ARCH
-			for BUILD_CONFIG in $DEV_ROOT/INC/*; do
+			cd $INC_DIR
+			for BUILD_CONFIG in *; do
 				source "$BUILD_CONFIG"
 				if [ "$ARCH" = $SDKARCH ]; then
-				echo \"$ARCH\" \"$SDKARCH\"
-					rm -rvf "$BUILD_DIR" "$FS_ROOT"
+					rm -rvf "$BUILD_CONFIG"
 				fi
 			done
 			rm -vf "buildsys-$SDKARCH.ext4"
@@ -200,14 +200,27 @@ else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
 
-for BUILD_CONF in "$CONF" "$DEV_ROOT/INC/$CONF" 'NULL'; do
+for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
 	[ -f "$BUILD_CONF" ] && break
 done
 if [ "$BUILD_CONF" = 'NULL' ]; then
-	echo "Error: File $CONF not found"
+	echo "Error: File $CONF not found in $INC_DIR"
 	exit 1
 fi
+export BS_ROOT CONF
+(
+DEV_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
+mkdir -p "$DEV_ROOT"
+cd $DEV_ROOT
 source $CONF
+mkdir -vp INC SPECS BUILD ROOT POOL GEN logs
+cp -a $BS_ROOT/buildsys-internal .
+)
+
+if [ ! -d "${SPECS:-$BS_ROOT/SPECS}" ]; then
+	echo "Error: Directory \"$SPECS\" for SPECS not found"
+	exit 1
+fi
 
 if [ "$ARCH" = 'i686' ]; then
     SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
@@ -215,8 +228,8 @@ else
     SDKPATH=/tools/bin
 fi
 
+cd "$BS_ROOT"
 mkdir -p "$SDE"
-cd "$BSROOT"
 if [ ! -r ${SDK_FS} ]; then
 	if [ ! -r ${SDK_FS}.xz ]; then
 		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
@@ -235,9 +248,10 @@ if [ -f $LOCKFILE ]; then
 else
 	touch $LOCKFILE
 fi
+
 trap quit EXIT
 dirs -c
-mount $VERBOSE -o loop -t ext4 "$BSROOT/${SDK_FS}" "$SDE"
+mount $VERBOSE -o loop -t ext4 "$BS_ROOT/${SDK_FS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
 mount $VERBOSE --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
@@ -249,8 +263,12 @@ mount $VERBOSE -t proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
-mount $VERBOSE --bind "$DEV_ROOT" "$SDE/$DEVROOT_IN_SDK"
+mount $VERBOSE --bind "$BS_ROOT/$(basename $CONF)" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
+for DIR in SPECS INC POOL; do
+	mount $VERBOSE --bind "$DEV_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
+	pushd -n "$SDE/$DEVROOT_IN_SDK/$DIR" &> /dev/null
+done
 ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
 if [ -r "$SDE/tools/etc/hostname" ]; then
 	read SDENAME < $SDE/tools/etc/hostname
@@ -259,3 +277,6 @@ $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' HOSTNAME=$SDENAME \
     PATH=$SDKPATH ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
     $CMD
+
+mkdir -p "$BS_ROOT/GEN"
+mv -vf $GEN/* "$BS_ROOT/GEN"
