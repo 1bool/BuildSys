@@ -282,4 +282,4 @@ $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     $CMD
 
 mkdir -p "$BS_ROOT/GEN"
-mv -vf $GEN/* "$BS_ROOT/GEN"
+mv -vf $BS_ROOT/$GEN/* "$BS_ROOT/GEN"
