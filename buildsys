@@ -158,9 +158,8 @@ fi
 : ${LOCKFILE:="$BS_ROOT/.$SDK_NAME.lock"}
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
-: ${POOL_DIR:="$BS_ROOT/POOL"}
 
-mkdir -p $POOL_DIR
+mkdir -p $BS_ROOT/POOL
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -189,10 +188,10 @@ if [ "$MYNAME" = sde ]; then
 			for BUILD_CONFIG in *; do
 				source "$BUILD_CONFIG"
 				if [ "$ARCH" = $SDKARCH ]; then
-					rm -rvf "$BUILD_CONFIG"
+					rm -rvf "$BS_ROOT/BUILD/$BUILD_CONFIG"
 				fi
 			done
-			rm -vf "buildsys-$SDKARCH.ext4"
+			rm -vf "$BS_ROOT/buildsys-$SDKARCH.ext4"
 			exit
 			;;
 		*)
@@ -210,15 +209,13 @@ if [ "$BUILD_CONF" = 'NULL' ]; then
 	echo "Error: File $CONF not found in $INC_DIR"
 	exit 1
 fi
-export BS_ROOT CONF
-(
+
 DEV_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
 mkdir -p "$DEV_ROOT"
 cd $DEV_ROOT
-source $CONF
 mkdir -vp INC SPECS BUILD ROOT POOL GEN logs
-cp -a $BS_ROOT/buildsys-internal .
-)
+ln -f $BS_ROOT/buildsys-internal
+cd -
 
 if [ ! -d "${SPECS:-$BS_ROOT/SPECS}" ]; then
 	echo "Error: Directory \"$SPECS\" for SPECS not found"
@@ -266,10 +263,10 @@ mount $VERBOSE -t proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
-mount $VERBOSE --bind "$BS_ROOT/$(basename $CONF)" "$SDE/$DEVROOT_IN_SDK"
+mount $VERBOSE --bind "$BS_ROOT/BUILD/$(basename $CONF)" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 for DIR in SPECS INC POOL; do
-	mount $VERBOSE --bind "$DEV_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
+	mount $VERBOSE --bind "$BS_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
 	pushd -n "$SDE/$DEVROOT_IN_SDK/$DIR" &> /dev/null
 done
 ln $VERBOSE -sf "$DEVROOT_IN_SDK/buildsys-internal" "$SDE/tools/bin"
