@@ -6,11 +6,8 @@
 *.swo
 *.ext4
 *.ext4.xz
+*.lock
 
-SDE
-DEVROOT/*ROOT*
-DEVROOT/POOL
-DEVROOT/logs
-DEVROOT/BUILD*
+BUILD
 .bash_history
 .viminfo
