@@ -163,6 +163,7 @@ walk_pkg_dir()
 	shift $((OPTIND - 1))
 
 	for PKG in ${BUILD_LIST[@]}; do
+		export PKG
 		(
 		local SPECFOUND=0
 		set -a $SETOPTS
@@ -628,7 +629,9 @@ esac
 
 TARGET_PKGS="$@"
 : ${TARGET_PKGS:=all}
-if [ "$TARGET_PKGS" = all ] && [ "${#BUILD_LIST[@]}" = 0 ]; then
+if [ "$TARGET_PKGS" != all ]; then
+	BUILD_LIST="$TARGET_PKGS"
+elif [ "${#BUILD_LIST[@]}" = 0 ]; then
 	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
 	return 1
 fi

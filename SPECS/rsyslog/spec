@@ -1,2 +1,2 @@
 PKG_LOCATION='http://www.rsyslog.com/files/download/rsyslog/rsyslog-5.8.9.tar.gz'
-VERSION=5.8.9
+CONFIGFLAGS='--sbindir=/sbin'
