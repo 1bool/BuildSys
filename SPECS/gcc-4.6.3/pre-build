@@ -7,4 +7,4 @@ sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
 sed -i 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in
 
 # The fixincludes script is known to occasionally erroneously attempt to "fix" the system headers installed so far. As the headers up to this point are known to not require fixing, issue the following command to prevent the fixincludes script from running.
-sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
+#sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in

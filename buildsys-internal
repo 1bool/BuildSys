@@ -32,10 +32,10 @@ unpack()
 	fi
 	case "$1" in
 		*.tar.gz | *.tar.bz2 | *.tar.xz | *.tgz | *.tbz | *.txz)
-			tar -xvf "$1" -C "$DEST"
+			tar -xf "$1" -C "$DEST"
 			;;
 		*.zip)
-			unzip -v "$1" -d "$DEST"
+			unzip "$1" -d "$DEST"
 			;;
 		*)
 			bs_error "Unknown package format for \"$1\""
@@ -183,11 +183,7 @@ walk_pkg_dir()
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		PKG_DIR="${BUILD_DIR}/${PKG}"
 		mkdir -p "$PKG_DIR"
-		if [ -d "$PKG_DIR/build" ]; then
-			MAKEDIR="$PKG_DIR/build"
-		elif [ -d "$SRC_DIR" ]; then
-			MAKEDIR="$SRC_DIR"
-		fi
+		MAKEDIR="$PKG_DIR/build"
 		pushd "$PKG_DIR"
 		for ACT in "$@"; do
 			$ACT
@@ -213,6 +209,7 @@ pkg_unpack_patch()
 		fi
 		for ADDITION in ${ADDITIONS[@]}; do
 			get_file "$ADDITION" "$PKG_POOL"
+			bs_notice "Unpacking file ${PKG_FILE_NAME}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
 		done
 		touch .unpacked
@@ -239,15 +236,15 @@ pkg_make_install()
 		bs_notice "Building package ${PKG} in $SRC_DIR"
 		if [ -x ${SPECS}/${PKG}/build ]; then
 			${SPECS}/${PKG}/build
+			ln -vs "$SRC_DIR" "$MAKEDIR"
 		else
 			if [ -r Makefile ] && [ ! -x configure ]; then
 				MAKEFLAGS="PREFIX=$PREFIX $MAKEFLAGS"
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
 				make $MAKEFLAGS $CROSS_MAKEOPTS
 				make $MAKEFLAGS $CROSS_MAKEOPTS install
-				MAKEDIR=$PWD
+				ln -vs "$SRC_DIR" "$MAKEDIR"
 			elif [ -x configure ]; then
-				MAKEDIR=${PKG_DIR}/build
 				if [ ! -f ${PKG_DIR}/.configured ]; then
 					precede_conf_opts "--prefix=$PREFIX"
 					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
@@ -267,7 +264,7 @@ pkg_make_install()
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make
-				MAKEDIR=$PWD
+				ln -vs "$SRC_DIR" "$MAKEDIR"
 			else
 				bs_error "Don't know how to build package $PKG."
 				return 1
@@ -339,11 +336,12 @@ pkg_make_dest_install()
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	cd $MAKEDIR
-	[ -x $SPECS/$PKG/pre-install ] && $SPECS/$PKG/pre-install
-	if [ $(basename ${PWD}) = 'build' ]; then
-		make DESTDIR=${FS_ROOT} install
-	elif [ "${PKG_NAME}" != "linux" ]; then
+	if [[ "$PKG" == kernel* ]]; then
+		:
+	elif [ -r $SRC_DIR/Makefile ] && [ ! -x $SRC_DIR/configure ]; then
 		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}/${PREFIX} prefix=${FS_ROOT}/${PREFIX} install
+	elif [ -x $SRC_DIR/configure ]; then
+		make DESTDIR=${FS_ROOT} install
 	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
@@ -408,7 +406,7 @@ build_pkgs()
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install
-	bs_notice "Package(s) \"${BUILD_LIST[@]}\" rebuild complete."
+	bs_notice "Package(s) \"${BUILD_LIST[@]}\" build complete."
 }
 
 install_pkgs()
@@ -422,10 +420,14 @@ install_pkgs()
 	else
 		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
 	fi
+	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
+		configure_system
+		touch .first_config
+	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs
 	popd
-	bs_notice "Package(s) \"${BUILD_LIST[@]}\" reinstall complete."
+	bs_notice "Package(s) \"${BUILD_LIST[@]}\" install complete."
 }
 
 unpack_pkgs()
@@ -456,20 +458,18 @@ strip_rootfs()
 
 tar_pkgs()
 {
-	pushd $FS_ROOT
-	bs_notice "Cleaning ${FS_ROOT}"
-	rm -rf * .[!.]*
-	if [ "$TARGET_PKGS" = all ] && [ ! -f .first_config ]; then
-		if declare -F configure_system &> /dev/null; then
-			bs_notice "Configuring system in ${PWD}..."
+	if [ "$TARGET_PKGS" = all ]; then
+		pushd $FS_ROOT
+		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
 			configure_system
 			touch .first_config
 		fi
+		popd
 	fi
-	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
-	strip_rootfs "$FS_ROOT"
-	TARNAME=$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] _)${BUILD_CONF}-$(date +%F-%X)
-	tar -Jcvf $GEN_DIR/$TARNAME.tar.xz * .[!.]*
+	install_pkgs
+	TARNAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%F-%X)"
+	pushd $FS_ROOT
+	tar -Jcvf $GEN_DIR/$TARNAME.tar.xz .
 	popd
 	bs_notice "File $TARNAME.tar.xz generated successful"
 }
@@ -495,7 +495,6 @@ print_help_and_exit()
 	echo " build			Unpack and build only, don't make target rootfs"
 	echo " genroot		Build packages and generate root filesystem"
 	echo "			(This is default if no Command specified)"
-	echo " regenerate			Rebuild and regenerate root filesystem"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -523,7 +522,8 @@ main()
 				export BUILDSYS_LINK=root
 				;;
 			arm)
-				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" \
+					BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 				export_cross_tools $BUILDSYS_HOST
 				CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
 				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
@@ -536,13 +536,12 @@ main()
 
 	resolve_deps
 
-	cd "$DEV_ROOT"
-	if declare -F configure_system > /dev/null && [ ! -f /.first_config ]; then
-		pushd /
+	cd /
+	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
 		configure_system
-		touch /.first_config
-		popd
+		touch .first_config
 	fi
+	cd "$DEV_ROOT"
 
 	${ACTION:-tar_pkgs}
 }
@@ -630,7 +629,7 @@ esac
 TARGET_PKGS="$@"
 : ${TARGET_PKGS:=all}
 if [ "$TARGET_PKGS" != all ]; then
-	BUILD_LIST="$TARGET_PKGS"
+	BUILD_LIST=("$TARGET_PKGS")
 elif [ "${#BUILD_LIST[@]}" = 0 ]; then
 	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
 	return 1
@@ -638,4 +637,4 @@ fi
 
 trap quit ERR
 
-main $@ 2>&1 | tee "$DEV_ROOT/logs/build-$START_TIME.log"
+main $@ 2>&1 | tee "$DEV_ROOT/LOG/build-$(basename $BUILD_CONF)-$START_TIME.log"

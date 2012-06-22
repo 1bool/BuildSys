@@ -159,7 +159,7 @@ fi
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
 
-mkdir -p $BS_ROOT/POOL
+mkdir -p $BS_ROOT/POOL $BS_ROOT/GEN $BS_ROOT/LOG
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -168,6 +168,10 @@ if [ "$MYNAME" = sde ]; then
 			VERBOSE='--verbose'
 			;;
 		reset)
+			if [ -f $LOCKFILE ]; then
+				echo "Error: $SDK_FS already in use"
+				exit 1
+			fi
 			while true; do
 				echo -n "Proceed reset buildsys for $ARCH? (y/n) "
 				read ANSWER
@@ -183,15 +187,17 @@ if [ "$MYNAME" = sde ]; then
 						;;
 				esac
 			done
+			echo -n "Resetting buildsys for $ARCH... "
 			SDKARCH=$ARCH
 			cd $INC_DIR
 			for BUILD_CONFIG in *; do
 				source "$BUILD_CONFIG"
 				if [ "$ARCH" = $SDKARCH ]; then
-					rm -rvf "$BS_ROOT/BUILD/$BUILD_CONFIG"
+					rm -rf "$BS_ROOT/BUILD/$BUILD_CONFIG"
 				fi
 			done
-			rm -vf "$BS_ROOT/buildsys-$SDKARCH.ext4"
+			rm -f "$BS_ROOT/buildsys-$SDKARCH.ext4"
+			echo done.
 			exit
 			;;
 		*)
@@ -211,9 +217,9 @@ if [ "$BUILD_CONF" = 'NULL' ]; then
 fi
 
 DEV_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
-mkdir -p "$DEV_ROOT"
+install -m 0755 -d "$DEV_ROOT"
 cd $DEV_ROOT
-mkdir -vp INC SPECS BUILD ROOT POOL GEN logs
+install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG
 ln -f $BS_ROOT/buildsys-internal
 cd -
 
@@ -265,7 +271,7 @@ mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount $VERBOSE --bind "$BS_ROOT/BUILD/$(basename $CONF)" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
-for DIR in SPECS INC POOL; do
+for DIR in SPECS INC POOL GEN LOG; do
 	mount $VERBOSE --bind "$BS_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
 	pushd -n "$SDE/$DEVROOT_IN_SDK/$DIR" &> /dev/null
 done
