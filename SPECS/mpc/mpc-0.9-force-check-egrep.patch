@@ -1,0 +1,12 @@
+diff -Naur mpc-0.9.orig/configure mpc-0.9/configure
+--- mpc-0.9.orig/configure	2011-02-21 18:12:02.000000000 +0800
++++ mpc-0.9/configure	2012-06-24 03:35:57.920538839 +0800
+@@ -4069,7 +4069,7 @@
+ fi
+ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ 
+-if test -z "$user_redefine_cc" ; then
++if true ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for grep that handles long lines and -e" >&5
+ $as_echo_n "checking for grep that handles long lines and -e... " >&6; }
+ if test "${ac_cv_path_GREP+set}" = set; then :

@@ -1,3 +1,4 @@
 PKG_LOCATION='http://www.multiprecision.org/mpc/download/mpc-0.9.tar.gz'
-CONFIGFLAGS+='--enable-shared'
+CONFIGFLAGS='--enable-shared'
+PATCHES='mpc-0.9-force-check-egrep.patch'
 TARGET_INSTALL=n

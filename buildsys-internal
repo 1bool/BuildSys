@@ -1,6 +1,6 @@
 #!/tools/bin/bash
 
-set -eE
+set -eET
 
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
@@ -78,7 +78,7 @@ guess_pkg_info()
 
 get_file()
 {
-	local SOURCE="$1" DEST="$2"
+	local SOURCE="$1" DEST="$2" FILE=
 	local SOURCE_FILE="${SOURCE##*/}"
 	if [ -f "$DEST"/"$SOURCE_FILE" ]; then
 		bs_notice "File \"$SOURCE_FILE\" already exists in \"$DEST\", skip getting"
@@ -91,9 +91,13 @@ get_file()
 			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
 			;;
 		*)
-			if [ -f "$SOURCE" ]; then
-				ln -vsf "$SOURCE" "$DEST" || cp -v "$SOURCE" "$DEST"
-			else
+			for FILE in "$SOURCE" "$SPECS/$PKG/$SOURCE" ""; do
+				if [ -f "$FILE" ]; then
+					ln -vsf "$FILE" "$DEST" || cp -v "$FILE" "$DEST"
+					break
+				fi
+			done
+			if [ -z "$FILE" ]; then
 				bs_error "File \"$SOURCE\" not found"
 				return 1
 			fi
@@ -128,6 +132,8 @@ export_cross_tools()
 
 toolchain_link()
 {
+	OPATH="$PATH"
+	PATH=/tools/bin
 	pushd /tools/bin > /dev/null
 	case "$1" in
 		tools)
@@ -146,6 +152,7 @@ toolchain_link()
 			;;
 	esac
 	popd > /dev/null
+	PATH="$OPATH"
 }
 
 walk_pkg_dir()
@@ -336,7 +343,7 @@ pkg_make_dest_install()
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	cd $MAKEDIR
-	if [[ "$PKG" == kernel* ]]; then
+	if [[ "$PKG_NAME" == linux ]]; then
 		:
 	elif [ -r $SRC_DIR/Makefile ] && [ ! -x $SRC_DIR/configure ]; then
 		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}/${PREFIX} prefix=${FS_ROOT}/${PREFIX} install
@@ -413,16 +420,17 @@ install_pkgs()
 {
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
-		bs_notice "Cleaning ${FS_ROOT}"
+		bs_notice "Cleaning packages and ${FS_ROOT}"
 		rm -rf * .[!.]*
-		bs_notice "Installing package(s) \"${BUILD_LIST[@]}\"..."
 		walk_pkg_dir -c pkg_remove
 	else
 		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
 	fi
-	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-		configure_system
-		touch .first_config
+	if [ "$TARGET_PKGS" = all ]; then
+		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
+			configure_system
+			touch .first_config
+		fi
 	fi
 	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
 	strip_rootfs
@@ -458,14 +466,6 @@ strip_rootfs()
 
 tar_pkgs()
 {
-	if [ "$TARGET_PKGS" = all ]; then
-		pushd $FS_ROOT
-		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-			configure_system
-			touch .first_config
-		fi
-		popd
-	fi
 	install_pkgs
 	TARNAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%F-%X)"
 	pushd $FS_ROOT
@@ -637,4 +637,4 @@ fi
 
 trap quit ERR
 
-main $@ 2>&1 | tee "$DEV_ROOT/LOG/build-$(basename $BUILD_CONF)-$START_TIME.log"
+main $@ 2>&1 | tee "$DEV_ROOT/LOG/$(basename $BUILD_CONF)-$START_TIME.log"
