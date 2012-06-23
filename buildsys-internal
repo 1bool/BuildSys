@@ -512,7 +512,7 @@ main()
 	if [ -r /proc/cpuinfo ]; then
 		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
 	fi
-	MAKEFLAGS+="$JOBS"
+	export MAKEFLAGS+="$JOBS"
 
 	if [ "$PREFIX" = /tools ]; then
 		export BUILDSYS_LINK=tools
