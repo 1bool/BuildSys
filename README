@@ -1,4 +1,4 @@
 BuildSys to build a linux system automatically
 
 Execute following to build the Linux world:
-	./buildsys
+	sudo ./buildsys
