@@ -9,5 +9,6 @@
 *.lock
 
 BUILD
+POOL
 .bash_history
 .viminfo
