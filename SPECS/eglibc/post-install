@@ -33,8 +33,8 @@ mkdir -pv ./tools/lib/locale
 #localedef -i tr_TR -f UTF-8 tr_TR.UTF-8 --prefix=./
 localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=./
 localedef -i zh_CN -f GB18030 zh_CN.GB18030 --prefix=./
-mv -v ./tools/lib/locale ./$PREFIX/lib/
-rmdir -p ./tools/lib || true
+mkdir -pv ./$PREFIX/lib/locale
+mv -vf ./tools/lib/locale/* ./$PREFIX/lib/locale
 
 # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
 #pushd $MAKEDIR
