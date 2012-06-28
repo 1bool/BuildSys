@@ -1,19 +1,19 @@
 #!/bin/bash -eE
 
 # Fix bug #3 "glibc build loop in NPTL"
-mkdir -p usr/include
-if [ -d usr/tmp-include ]; then
-	cp -av usr/tmp-include/* usr/include
-	rm -vrf usr/tmp-include
+mkdir -p ./$PREFIX/include
+if [ -d ./$PREFIX/tmp-include ]; then
+	cp -av ./$PREFIX/tmp-include/* ./$PREFIX/include
+	rm -vrf ./$PREFIX/tmp-include
 fi
 
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
-cp -v $SRC_DIR/sunrpc/rpc/*.h usr/include/rpc
-cp -v $SRC_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
-cp -v $SRC_DIR/nis/rpcsvc/*.h usr/include/rpcsvc
+cp -v $SRC_DIR/sunrpc/rpc/*.h ./$PREFIX/include/rpc
+cp -v $SRC_DIR/sunrpc/rpcsvc/*.h ./$PREFIX/include/rpcsvc
+cp -v $SRC_DIR/nis/rpcsvc/*.h ./$PREFIX/include/rpcsvc
 
 # Individual locales can be installed using the localedef program. E.g., the first localedef command below combines the /usr/share/i18n/locales/cs_CZ charset-independent locale definition with the /usr/share/i18n/charmaps/UTF-8.gz charmap definition and appends the result to the /usr/lib/locale/locale-archive file.
-mkdir -pv usr/lib/locale
+mkdir -pv ./$PREFIX/lib/locale
 #localedef -i cs_CZ -f UTF-8 cs_CZ.UTF-8
 #localedef -i de_DE -f ISO-8859-1 de_DE
 #localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro
@@ -30,7 +30,8 @@ mkdir -pv usr/lib/locale
 #localedef -i it_IT -f ISO-8859-1 it_IT
 #localedef -i ja_JP -f EUC-JP ja_JP
 #localedef -i tr_TR -f UTF-8 tr_TR.UTF-8
-/usr/bin/localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$PWD
+./$PREFIX/bin/localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=./
+./$PREFIX/bin/localedef -i zh_CN -f GB18030 zh_CN.GB18030 --prefix=./
 
 # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
 #pushd $MAKEDIR
@@ -56,7 +57,7 @@ rpc: files
 # End /etc/nsswitch.conf
 EOF
 
-cp -v --remove-destination usr/share/zoneinfo/Asia/Shanghai etc/localtime
+cp -v --remove-destination ./$PREFIX/share/zoneinfo/Asia/Shanghai etc/localtime
 
 # By default, the dynamic loader (/lib/ld-linux.so.2) searches through /lib and /usr/lib for dynamic libraries that are needed by programs as they are run. However, if there are libraries in directories other than /lib and /usr/lib, these need to be added to the /etc/ld.so.conf file in order for the dynamic loader to find them. Two directories that are commonly known to contain additional libraries are /usr/local/lib and /opt/lib, so add those directories to the dynamic loader's search path. 
 cat > etc/ld.so.conf << "EOF"

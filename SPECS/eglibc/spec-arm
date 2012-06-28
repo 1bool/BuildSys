@@ -2,7 +2,7 @@ VERSION=2.15
 SRC_DIR=eglibc-2.15
 PKG_LOCATION='http://cross-lfs.org/~cosmo/sources/eglibc-2.15-r17386.tar.bz2'
 ADDITIONS='http://cross-lfs.org/~cosmo/sources/eglibc-ports-2.15-r17386.tar.bz2'
-CONFIGFLAGS='--disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc --disable-debug --with-fp --without-cvs --enable-tls --cache-file=config.cache --with-headers=/usr/include'
+CONFIGFLAGS='--disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc --disable-debug --with-fp --without-cvs --enable-tls --cache-file=config.cache --with-headers=/usr/include libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes libc_cv_gnu89_inline=yes libc_cv_ssp=no'
 # Fix bug #3 "glibc build loop in NPTL"
 CONFIGFLAGS+=' --includedir=/usr/tmp-include'
 # The following patch fixes an issue where EGLIBC will improperly handle a condition where an elf binary has missing dependencies:

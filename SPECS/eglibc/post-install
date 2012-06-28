@@ -13,27 +13,28 @@ cp -v $SRC_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
 cp -v $SRC_DIR/nis/rpcsvc/*.h usr/include/rpcsvc
 
 # Individual locales can be installed using the localedef program. E.g., the first localedef command below combines the /usr/share/i18n/locales/cs_CZ charset-independent locale definition with the /usr/share/i18n/charmaps/UTF-8.gz charmap definition and appends the result to the /usr/lib/locale/locale-archive file.
-mkdir -pv usr/lib/locale
-if [ -z "$BUILDSYS_HOST" ]; then
-	# if localedef is arm executable, how to fix this?
-	#localedef -i cs_CZ -f UTF-8 cs_CZ.UTF-8
-	#localedef -i de_DE -f ISO-8859-1 de_DE
-	#localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro
-	#localedef -i de_DE -f UTF-8 de_DE.UTF-8
-	#localedef -i en_HK -f ISO-8859-1 en_HK
-	#localedef -i en_PH -f ISO-8859-1 en_PH
-	#localedef -i en_US -f ISO-8859-1 en_US
-	#localedef -i en_US -f UTF-8 en_US.UTF-8
-	#localedef -i es_MX -f ISO-8859-1 es_MX
-	#localedef -i fa_IR -f UTF-8 fa_IR
-	#localedef -i fr_FR -f ISO-8859-1 fr_FR
-	#localedef -i fr_FR@euro -f ISO-8859-15 fr_FR@euro
-	#localedef -i fr_FR -f UTF-8 fr_FR.UTF-8
-	#localedef -i it_IT -f ISO-8859-1 it_IT
-	#localedef -i ja_JP -f EUC-JP ja_JP
-	#localedef -i tr_TR -f UTF-8 tr_TR.UTF-8
-	localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=$PWD
-fi
+mkdir -pv ./tools/lib/locale
+# if localedef is arm executable, how to fix this?
+#localedef -i cs_CZ -f UTF-8 cs_CZ.UTF-8 --prefix=./
+#localedef -i de_DE -f ISO-8859-1 de_DE --prefix=./
+#localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro --prefix=./
+#localedef -i de_DE -f UTF-8 de_DE.UTF-8 --prefix=./
+#localedef -i en_HK -f ISO-8859-1 en_HK --prefix=./
+#localedef -i en_PH -f ISO-8859-1 en_PH --prefix=./
+#localedef -i en_US -f ISO-8859-1 en_US --prefix=./
+#localedef -i en_US -f UTF-8 en_US.UTF-8 --prefix=./
+#localedef -i es_MX -f ISO-8859-1 es_MX --prefix=./
+#localedef -i fa_IR -f UTF-8 fa_IR --prefix=./
+#localedef -i fr_FR -f ISO-8859-1 fr_FR --prefix=./
+#localedef -i fr_FR@euro -f ISO-8859-15 fr_FR@euro --prefix=./
+#localedef -i fr_FR -f UTF-8 fr_FR.UTF-8 --prefix=./
+#localedef -i it_IT -f ISO-8859-1 it_IT --prefix=./
+#localedef -i ja_JP -f EUC-JP ja_JP --prefix=./
+#localedef -i tr_TR -f UTF-8 tr_TR.UTF-8 --prefix=./
+localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=./
+localedef -i zh_CN -f GB18030 zh_CN.GB18030 --prefix=./
+mv -v ./tools/lib/locale ./$PREFIX/lib/
+rmdir -p ./tools/lib || true
 
 # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
 #pushd $MAKEDIR
@@ -59,7 +60,7 @@ rpc: files
 # End /etc/nsswitch.conf
 EOF
 
-cp -v --remove-destination usr/share/zoneinfo/Asia/Shanghai etc/localtime
+cp -v --remove-destination ./$PREFIX/share/zoneinfo/Asia/Shanghai etc/localtime
 
 # By default, the dynamic loader (/lib/ld-linux.so.2) searches through /lib and /usr/lib for dynamic libraries that are needed by programs as they are run. However, if there are libraries in directories other than /lib and /usr/lib, these need to be added to the /etc/ld.so.conf file in order for the dynamic loader to find them. Two directories that are commonly known to contain additional libraries are /usr/local/lib and /opt/lib, so add those directories to the dynamic loader's search path. 
 cat > etc/ld.so.conf << "EOF"

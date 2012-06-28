@@ -174,6 +174,14 @@ walk_pkg_dir()
 		(
 		local SPECFOUND=0
 		set -a $SETOPTS
+		if [ $(dirname $PKG) != . ]; then
+			source $INCDIR/$(dirname $PKG)
+			parse_conf_var
+			PKG=$(basename $PKG)
+		fi
+		PKG_DIR="${BUILD_DIR}/${PKG}"
+		mkdir -p "$PKG_DIR"
+		MAKEDIR="$PKG_DIR/build"
 		for SPECFILE in "${SPECS}/${PKG}/spec" "${SPECS}/${PKG}/${SPEC_NAME}"; do
 			if [ -f $SPECFILE ]; then
 				bs_notice "Reading $SPECFILE"
@@ -188,9 +196,6 @@ walk_pkg_dir()
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
-		PKG_DIR="${BUILD_DIR}/${PKG}"
-		mkdir -p "$PKG_DIR"
-		MAKEDIR="$PKG_DIR/build"
 		pushd "$PKG_DIR"
 		for ACT in "$@"; do
 			$ACT
@@ -408,7 +413,7 @@ build_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c pkg_remove
+		walk_pkg_dir -c pkg_make_distclean
 	else
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
 	fi
@@ -422,7 +427,6 @@ install_pkgs()
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Cleaning packages and ${FS_ROOT}"
 		rm -rf * .[!.]*
-		walk_pkg_dir -c pkg_remove
 	else
 		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
 	fi
@@ -440,7 +444,12 @@ install_pkgs()
 
 unpack_pkgs()
 {
-	bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
+	if [ -z "$CONTINUE" ]; then
+		bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
+		walk_pkg_dir -c pkg_remove
+	else
+		bs_notice "Continue unpacking package(s) \"${BUILD_LIST[@]}\"..."
+	fi
 	walk_pkg_dir pkg_unpack_patch
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" unpack complete."
 }
@@ -479,6 +488,39 @@ resolve_deps()
 	return
 }
 
+parse_conf_var()
+{
+	if [ "$ARCH" = i686 ]; then
+		set +h
+		unset ARCH
+	else
+		set -h
+		export ARCH
+	fi
+	: ${PREFIX:=/usr}
+	export PREFIX
+	if [ "$PREFIX" = /tools ]; then
+		export BUILDSYS_LINK=tools PKG_CONFIG_PATH=/tools/lib/pkg-config
+		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP
+	else
+		case $SDKARCH in
+			i?86 | x86*)
+				export BUILDSYS_LINK=root
+				;;
+			arm)
+				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" \
+					BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+				export_cross_tools $BUILDSYS_HOST
+				CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
+				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
+					ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
+				fi
+
+				;;
+		esac
+	fi
+}
+
 print_help_and_exit()
 {
 	exec >&2
@@ -509,31 +551,7 @@ main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 
-	if [ -r /proc/cpuinfo ]; then
-		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
-	fi
-	export MAKEFLAGS+="$JOBS"
-
-	if [ "$PREFIX" = /tools ]; then
-		export BUILDSYS_LINK=tools
-	else
-		case $SDKARCH in
-			i?86 | x86*)
-				export BUILDSYS_LINK=root
-				;;
-			arm)
-				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" \
-					BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-				export_cross_tools $BUILDSYS_HOST
-				CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
-				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
-					ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
-				fi
-
-				;;
-		esac
-	fi
-
+	parse_conf_var
 	resolve_deps
 
 	cd /
@@ -542,6 +560,11 @@ main()
 		touch .first_config
 	fi
 	cd "$DEV_ROOT"
+
+	if [ -r /proc/cpuinfo ]; then
+		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
+	fi
+	export MAKEFLAGS+=" $JOBS"
 
 	${ACTION:-tar_pkgs}
 }
@@ -590,17 +613,6 @@ fi
 set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
 set +a
-
-if [ "$ARCH" = i686 ]; then
-	set +h
-	unset ARCH
-else
-	set -h
-	export ARCH
-fi
-
-: ${PREFIX:=/usr}
-export PREFIX
 
 case "$1" in
 	clean)
