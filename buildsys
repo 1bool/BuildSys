@@ -81,13 +81,13 @@ if [ $MYNAME = sde ]; then
 	while true; do
 		case "$1" in
 			--arm)
-				export SDK_FS=buildsys-arm.ext4 ARCH=arm; shift
+				export ARCH=arm; shift
 				;;
 			--i686)
-				export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
+				export ARCH=i686; shift
 				;;
 			-s | --size)
-				export SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
+				export SDFS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
 			-C | --dir)
 				BS_ROOT="$2"; shift 2
@@ -112,13 +112,13 @@ else
 	while true; do
 		case "$1" in
 			--arm)
-				export SDK_FS=buildsys-arm.ext4 ARCH=arm; shift
+				export ARCH=arm; shift
 				;;
 			--i686)
-				export SDK_FS=buildsys-i686.ext4 ARCH=i686; shift
+				export ARCH=i686; shift
 				;;
 			-s | --size)
-				SDK_FS_SIZE="$((${2}*1024*1024))"; shift 2
+				SDFS_SIZE="$((${2}*1024*1024))"; shift 2
 				;;
 			-C | --dir)
 				BS_ROOT="$2"; shift 2
@@ -149,17 +149,18 @@ fi
 
 # Set defaults
 : ${ARCH:="i686"}
-: ${SDK_NAME:="buildsys-$ARCH"}
-: ${SDK_FS:="$SDK_NAME.ext4"}
-: ${SDK_FS_SIZE:="$((1*1024*1024*1024))"}
-: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDK_FS}.xz"}
 : ${BS_ROOT:="$PWD"}
-: ${SDE:="$BS_ROOT/$SDK_NAME"}
-: ${LOCKFILE:="$BS_ROOT/.$SDK_NAME.lock"}
 : ${INC_DIR:="$BS_ROOT/INC"}
+: ${SDFS_DIR:="$BS_ROOT/SDFS"}
+: ${SDFS_NAME:="buildsys-$ARCH"}
+: ${SDFS:="$SDFS_DIR/$SDFS_NAME.ext4"}
+: ${SDFS_SIZE:="$((1*1024*1024*1024))"}
+: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
+: ${SDE:="$BS_ROOT/$SDFS_NAME"}
+: ${LOCKFILE:="$BS_ROOT/.$SDFS_NAME.lock"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
 
-mkdir -p $BS_ROOT/POOL $BS_ROOT/GEN $BS_ROOT/LOG
+mkdir -p $BS_ROOT/POOL $BS_ROOT/GEN $BS_ROOT/LOG $SDFS_DIR
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -169,7 +170,7 @@ if [ "$MYNAME" = sde ]; then
 			;;
 		reset)
 			if [ -f $LOCKFILE ]; then
-				echo "Error: $SDK_FS already in use"
+				echo "Error: $SDFS already in use"
 				exit 1
 			fi
 			while true; do
@@ -236,20 +237,20 @@ fi
 
 cd "$BS_ROOT"
 mkdir -p "$SDE"
-if [ ! -r ${SDK_FS} ]; then
-	if [ ! -r ${SDK_FS}.xz ]; then
-		wget -c -O ${SDK_FS}.xz.partial "${SDK_URL}"
-		mv ${SDK_FS}.xz.partial ${SDK_FS}.xz
+if [ ! -r ${SDFS} ]; then
+	if [ ! -r ${SDFS}.xz ]; then
+		wget -c -O ${SDFS}.xz.partial "${SDK_URL}"
+		mv ${SDFS}.xz.partial ${SDFS}.xz
 	fi
-	xz -dkv ${SDK_FS}.xz
+	xz -dkv ${SDFS}.xz
 fi
-if (( $(stat -c%s ${SDK_FS}) < ${SDK_FS_SIZE} )); then
-	e2fsck -f ${SDK_FS}
-	resize2fs ${SDK_FS} $((${SDK_FS_SIZE}/1024))K
+if (( $(stat -c%s ${SDFS}) < ${SDFS_SIZE} )); then
+	e2fsck -f ${SDFS}
+	resize2fs ${SDFS} $((${SDFS_SIZE}/1024))K
 fi
 
 if [ -f $LOCKFILE ]; then
-	echo "Error: $SDK_FS already in use"
+	echo "Error: $SDFS already in use"
 	exit 1
 else
 	touch $LOCKFILE
@@ -257,7 +258,7 @@ fi
 
 trap quit EXIT
 dirs -c
-mount $VERBOSE -o loop -t ext4 "$BS_ROOT/${SDK_FS}" "$SDE"
+mount $VERBOSE -o loop -t ext4 "${SDFS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
 mount $VERBOSE --bind /dev "$SDE/dev"
 pushd -n "$SDE/dev" &> /dev/null
