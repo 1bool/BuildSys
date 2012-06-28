@@ -197,7 +197,7 @@ if [ "$MYNAME" = sde ]; then
 					rm -rf "$BS_ROOT/BUILD/$BUILD_CONFIG"
 				fi
 			done
-			rm -f "$BS_ROOT/buildsys-$SDKARCH.ext4"
+			rm -f "$SDFS"
 			echo done.
 			exit
 			;;
