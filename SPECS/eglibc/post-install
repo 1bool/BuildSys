@@ -13,33 +13,38 @@ cp -v $SRC_DIR/sunrpc/rpcsvc/*.h usr/include/rpcsvc
 cp -v $SRC_DIR/nis/rpcsvc/*.h usr/include/rpcsvc
 
 # Individual locales can be installed using the localedef program. E.g., the first localedef command below combines the /usr/share/i18n/locales/cs_CZ charset-independent locale definition with the /usr/share/i18n/charmaps/UTF-8.gz charmap definition and appends the result to the /usr/lib/locale/locale-archive file.
-mkdir -pv ./tools/lib/locale
-# if localedef is arm executable, how to fix this?
-#localedef -i cs_CZ -f UTF-8 cs_CZ.UTF-8 --prefix=./
-#localedef -i de_DE -f ISO-8859-1 de_DE --prefix=./
-#localedef -i de_DE@euro -f ISO-8859-15 de_DE@euro --prefix=./
-#localedef -i de_DE -f UTF-8 de_DE.UTF-8 --prefix=./
-#localedef -i en_HK -f ISO-8859-1 en_HK --prefix=./
-#localedef -i en_PH -f ISO-8859-1 en_PH --prefix=./
-#localedef -i en_US -f ISO-8859-1 en_US --prefix=./
-#localedef -i en_US -f UTF-8 en_US.UTF-8 --prefix=./
-#localedef -i es_MX -f ISO-8859-1 es_MX --prefix=./
-#localedef -i fa_IR -f UTF-8 fa_IR --prefix=./
-#localedef -i fr_FR -f ISO-8859-1 fr_FR --prefix=./
-#localedef -i fr_FR@euro -f ISO-8859-15 fr_FR@euro --prefix=./
-#localedef -i fr_FR -f UTF-8 fr_FR.UTF-8 --prefix=./
-#localedef -i it_IT -f ISO-8859-1 it_IT --prefix=./
-#localedef -i ja_JP -f EUC-JP ja_JP --prefix=./
-#localedef -i tr_TR -f UTF-8 tr_TR.UTF-8 --prefix=./
-localedef -i zh_CN -f UTF-8 zh_CN.UTF-8 --prefix=./
-localedef -i zh_CN -f GB18030 zh_CN.GB18030 --prefix=./
-mkdir -pv ./$PREFIX/lib/locale
-mv -vf ./tools/lib/locale/* ./$PREFIX/lib/locale
-
-# Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
-#pushd $MAKEDIR
-#make DESTDIR=$(dirs -l +1) localedata/install-locales
-#popd
+if [ $LOCALES != all ]; then
+    mkdir -pv ./tools/lib/locale
+    for LOCALE in $LOCALES; do
+	case $LOCALE in
+	    en_HK|en_PH|en_US|es_MX|fr_FR|it_IT)
+		localedef -i $LOCALE -f ISO-8859-1 $LOCALE --prefix=./
+		;;&
+	    cs_CZ|de_DE|en_US|fr_FR|tr_TR|zh_CN)
+		localedef -i $LOCALE -f UTF-8 $LOCALE.UTF-8 --prefix=./
+		;;&
+	    de_DE|fr_FR)
+		localedef -i $LOCALE@euro -f ISO-8859-15 $LOCALE@euro --prefix=./
+		;;&
+	    fa_IR)
+		localedef -i $LOCALE -f UTF-8 $LOCALE --prefix=./
+		;;
+	    zh_CN)
+		localedef -i $LOCALE -f GB18030 $LOCALE.GB18030 --prefix=./
+		;;
+	    ja_JP)
+		localedef -i $LOCALE -f EUC-JP $LOCALE --prefix=./
+		;;
+	esac
+    done
+    mkdir -pv ./$PREFIX/lib/locale
+    mv -vf ./tools/lib/locale/* ./$PREFIX/lib/locale
+else
+    # Alternatively, install all locales listed in the glibc-2.15/localedata/SUPPORTED file.
+    pushd $MAKEDIR
+    make DESTDIR=$(dirs -l +1) localedata/install-locales
+    popd
+fi
 
 # The /etc/nsswitch.conf file needs to be created because, although Glibc provides defaults when this file is missing or corrupt, the Glibc defaults do not work well in a networked environment. The time zone also needs to be configured. 
 cat > etc/nsswitch.conf << "EOF"

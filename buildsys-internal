@@ -11,6 +11,7 @@ export DEV_ROOT SDKARCH=$ARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
 bs_error()
 {
 	echo -e "!!!!!!!! Error: $@ !!!!!!!!!!" >&2
+	return 1
 }
 
 bs_notice()
@@ -39,7 +40,6 @@ unpack()
 			;;
 		*)
 			bs_error "Unknown package format for \"$1\""
-			return 1
 			;;
 	esac
 	return 0
@@ -99,7 +99,6 @@ get_file()
 			done
 			if [ -z "$FILE" ]; then
 				bs_error "File \"$SOURCE\" not found"
-				return 1
 			fi
 			;;
 	esac
@@ -191,7 +190,6 @@ walk_pkg_dir()
 		done
 		if [ $SPECFOUND = 0 ]; then
 			bs_error "${PKG}'s spec not found"
-			exit 1
 		fi
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
@@ -210,7 +208,6 @@ pkg_unpack_patch()
 	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "$PKG_LOCATION" ]; then
 			bs_error "No source file defined for \"$PKG\""
-			return 1
 		fi
 		if [ -d "$PKG_LOCATION" ]; then
 			ln -sv "$PKG_LOCATION" "$PKG_DIR"
@@ -255,7 +252,7 @@ pkg_make_install()
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
 				make $MAKEFLAGS $CROSS_MAKEOPTS
 				make $MAKEFLAGS $CROSS_MAKEOPTS install
-				ln -vs "$SRC_DIR" "$MAKEDIR"
+				ln -vfs "$SRC_DIR" "$MAKEDIR"
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/.configured ]; then
 					precede_conf_opts "--prefix=$PREFIX"
@@ -279,7 +276,6 @@ pkg_make_install()
 				ln -vs "$SRC_DIR" "$MAKEDIR"
 			else
 				bs_error "Don't know how to build package $PKG."
-				return 1
 			fi
 		fi
 		popd
@@ -304,7 +300,6 @@ pkg_make_clean()
 	cd $MAKEDIR
 	if ! grep -q '^clean:' Makefile; then
 		bs_error "\"${PKG_NAME}\" does not support make clean"
-		return 1
 	fi
 	bs_notice "Cleaing \"$PKG\"..."
 	make clean
@@ -322,7 +317,6 @@ pkg_make_distclean()
 		make clean
 	else
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
-		return 1
 	fi
 	cd $PKG_DIR
 	rm -f .done .built .configured
@@ -333,7 +327,6 @@ pkg_make_uninstall()
 	cd $MAKEDIR
 	if ! grep -q '^uninstall' Makefile; then
 		bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
-		return 1
 	fi
 	bs_notice "Uninstalling \"$PKG\"..."
 	make uninstall
@@ -348,12 +341,10 @@ pkg_make_dest_install()
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	cd $MAKEDIR
-	if [[ "$PKG_NAME" == linux ]]; then
-		:
-	elif [ -r $SRC_DIR/Makefile ] && [ ! -x $SRC_DIR/configure ]; then
-		make DESTDIR=${FS_ROOT} PREFIX=${FS_ROOT}/${PREFIX} prefix=${FS_ROOT}/${PREFIX} install
-	elif [ -x $SRC_DIR/configure ]; then
+	if  fgrep -q 'DESTDIR' Makefile || [[ "$PKG_NAME" == *glibc ]] || [[ "$PKG_NAME" == vim ]]; then
 		make DESTDIR=${FS_ROOT} install
+	elif fgrep -q 'PREFIX' Makefile; then
+		make PREFIX=${FS_ROOT}/${PREFIX} install
 	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
@@ -413,10 +404,19 @@ build_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c pkg_make_distclean
+		walk_pkg_dir -c pkg_make_uninstall pkg_make_distclean
+		if [ $TARGET_PKGS = all ]; then
+			rm /.first_config
+		fi
 	else
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
 	fi
+	pushd /
+	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
+		configure_system
+		touch .first_config
+	fi
+	popd
 	walk_pkg_dir pkg_unpack_patch pkg_make_install
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" build complete."
 }
@@ -456,6 +456,7 @@ unpack_pkgs()
 
 strip_rootfs()
 {
+	local LOCDIR LOCALE
 	OPATH=$PATH
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
@@ -468,7 +469,21 @@ strip_rootfs()
 			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	fi
 	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} \
-		./${PREFIX}/{doc,info,man,include}
+		./${PREFIX}/{doc,info,man,include} .first_config
+	if [ "$LOCALES" != all ]; then
+		pushd ./${PREFIX}/share/locale
+		for LOCDIR in *; do
+			if [ -d $LOCDIR ]; then
+				for LOCALE in $LOCALES; do
+					if [ $LOCDIR = $LOCALE ]; then
+						continue 2
+					fi
+				done
+				rm -rvf $LOCDIR
+			fi
+		done
+		popd
+	fi
 	PATH=$OPATH
 	bs_notice "RootFS stripped in $FS_ROOT"
 }
@@ -534,9 +549,10 @@ print_help_and_exit()
 	echo " -h, --help		Print this help"
 	echo "Command:"
 	echo " unpack			Unpack only, don't build the package"
-	echo " build			Unpack and build only, don't make target rootfs"
-	echo " genroot		Build packages and generate root filesystem"
+	echo " build			Build only, don't make target rootfs"
 	echo "			(This is default if no Command specified)"
+	echo " install			Install packages to rootfs"
+	echo " gentar		Generate root filesystem tarball"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -554,19 +570,13 @@ main()
 	parse_conf_var
 	resolve_deps
 
-	cd /
-	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-		configure_system
-		touch .first_config
-	fi
-	cd "$DEV_ROOT"
-
 	if [ -r /proc/cpuinfo ]; then
 		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
 	fi
 	export MAKEFLAGS+=" $JOBS"
 
-	${ACTION:-tar_pkgs}
+	cd "$DEV_ROOT"
+	${ACTION:-build_pkgs}
 }
 
 GETOPTS=$(getopt -o cf:j:h --long continue,config:,jobs:,help -n "$0" -- "$@")
@@ -607,7 +617,6 @@ done
 
 if [ ! -d "$INCDIR" ]; then
 	bs_error "Directory \"$INCDIR\" for global configuration not found"
-	return 1
 fi
 
 set -a
@@ -630,6 +639,9 @@ case "$1" in
 	build)
 		ACTION=build_pkgs; shift
 		;;
+	install)
+		ACTION=install_pkgs; shift
+		;;
 	gentar)
 		ACTION=tar_pkgs; shift
 		;;
@@ -644,7 +656,6 @@ if [ "$TARGET_PKGS" != all ]; then
 	BUILD_LIST=("$TARGET_PKGS")
 elif [ "${#BUILD_LIST[@]}" = 0 ]; then
 	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
-	return 1
 fi
 
 trap quit ERR
