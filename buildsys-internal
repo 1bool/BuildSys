@@ -423,12 +423,6 @@ build_pkgs()
 	else
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
 	fi
-	pushd /
-	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-		configure_system
-		touch .first_config
-	fi
-	popd
 	walk_pkg_dir pkg_unpack_patch pkg_make_install
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" build complete."
 }
@@ -512,9 +506,9 @@ tar_pkgs()
 iso_pkgs()
 {
 	tar_pkgs
-	BUILD_LIST=(kernel-cd isolinux tools/xorriso)
+	BUILD_LIST=(kernel-cd isolinux tools/expat tools/libarchive tools/curl tools/cmake tools/cdrkit)
 	export CONTINUE=1
-	install_pkgs
+	build_pkgs
 
 	pushd $FS_ROOT
 	mkdir -p fake/{needwrite,ramdisk}
@@ -624,6 +618,7 @@ iso_pkgs()
 	#ID is the volume id / label of the LFS boot CD that will be looked for.
 	ID=\"$IMG_NAME\"
 	EOF
+
 	cat >> $LFS/mnt/linuxrc <<- "EOF"
 	TMP_MOUNT="/mnt"
 
@@ -812,6 +807,13 @@ main()
 		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
 	fi
 	export MAKEFLAGS+=" $JOBS"
+
+	pushd /
+	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
+		configure_system
+		touch .first_config
+	fi
+	popd
 
 	cd "$DEV_ROOT"
 	${ACTION:-build_pkgs}

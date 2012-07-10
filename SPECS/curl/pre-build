@@ -1,0 +1,3 @@
+#!/bin/sh
+
+sed -i '/--static-libs)/{N;s#echo .*#echo #;}' curl-config.in

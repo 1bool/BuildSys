@@ -1,0 +1,7 @@
+VERSION=7.25.0
+PKG_LOCATION="http://curl.haxx.se/download/curl-$VERSION.tar.bz2"
+# --with-ca-path=/etc/ssl/certs: This option sets the directory to use as the path to the SSL certificates. If you've not installed OpenSSL-1.0.1c or GnuTLS-3.0.19 and the Certificate Authority Certificates you can remove this option.
+# --with-gssapi: This parameter adds Kerberos 5 support to libcurl.
+# --with-libssh2: This parameter adds SSH2 protocol support to libcurl.
+# --without-ssl --with-gnutls: To build with GnuTLS support instead of OpenSSL for SSL/TLS. 
+CONFIGFLAGS='--disable-static --with-ca-path=/etc/ssl/certs'

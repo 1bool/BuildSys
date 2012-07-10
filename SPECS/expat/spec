@@ -1,0 +1,2 @@
+VERSION=2.1.0
+PKG_LOCATION="http://downloads.sourceforge.net/expat/expat-$VERSION.tar.gz"

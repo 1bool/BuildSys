@@ -1,0 +1,23 @@
+#!/bin/sh
+
+if [ "$PWD" = '/' ]; then
+	return
+fi
+
+install $PKG_DIR/core/isolinux.bin ./isolinux/
+mv boot/* ./isolinux
+rmdir boot
+ln -s isolinux boot
+cat > isolinux/isolinux.cfg <<- "EOF"
+default bootcd
+prompt 1
+timeout 40
+
+label bootcd
+kernel lfskernel
+append initrd=initrd.gz root=/dev/ram0 init=/linuxrc ramdisk_size=16384
+
+label initrdshell
+kernel lfskernel
+append initrd=initrd.gz root=/dev/ram0 init=/bin/bash ramdisk_size=16384
+EOF

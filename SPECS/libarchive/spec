@@ -1,0 +1,4 @@
+VERSION=3.0.3
+PKG_LOCATION="http://libarchive.googlecode.com/files/libarchive-$VERSION.tar.gz"
+# --disable-static: This option prevents building the static archive versions of the libraries.
+CONFIGFLAGS='--disable-static'
