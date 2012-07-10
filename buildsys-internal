@@ -717,7 +717,7 @@ iso_pkgs()
 	mknod dev/hdc     b  22  0
 	mknod dev/hdd     b  22 64
 	mknod dev/hde     b  33  0
-	cp -v $ISO_ROOT/bin/{bash,mount,grep,umount,echo,dd,ls} bin/
+	cp -v $ISO_ROOT/bin/{bash,mount,grep,umount,echo,dd} bin/
 	cp -v $ISO_ROOT/usr/bin/test bin/
 	cp -v $ISO_ROOT/usr/sbin/chroot bin/
 	cp -v $ISO_ROOT/sbin/pivot_root bin/
