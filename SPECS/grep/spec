@@ -1,2 +1,3 @@
-VERSION=2.11
-PKG_LOCATION='http://ftp.gnu.org/gnu/grep/grep-2.11.tar.xz'
+VERSION=2.12
+PKG_LOCATION="http://ftp.gnu.org/gnu/grep/grep-$VERSION.tar.xz"
+CONFIGFLAGS='--bindir=/bin'

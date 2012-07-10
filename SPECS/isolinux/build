@@ -1,4 +1,4 @@
 #!/bin/sh
 
-install -d $DESTDIR/isolinux
-install $SRC_DIR/core/isolinux.bin $DESTDIR/isolinux
+#install -d $DESTDIR/isolinux
+#install $SRC_DIR/core/isolinux.bin $DESTDIR/isolinux

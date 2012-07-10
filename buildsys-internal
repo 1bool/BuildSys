@@ -237,7 +237,11 @@ walk_pkg_dir()
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		pushd "$PKG_DIR"
 		for ACT in "$@"; do
-			$ACT
+			if [ -n "$SETOPTS" ]; then
+				$ACT
+			else
+				$ACT || continue
+			fi
 		done
 		popd
 		)
@@ -375,17 +379,28 @@ pkg_make_uninstall()
 		return
 	fi
 	cd $MAKEDIR
-	if ! grep -q '^uninstall' Makefile; then
-		bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
-	fi
 	bs_notice "Uninstalling \"$PKG\"..."
-	make uninstall
-	rm -f $PKG_DIR/.done
+	case $PKG_NAME in
+		linux)
+			;;
+		*glibc)
+			;;
+		*)
+			if ! grep -q '^uninstall' Makefile; then
+				bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
+			fi
+			make DESTDIR=$FS_ROOT uninstall
+			;;
+	esac
+	rm -f $PKG_DIR/.installed
 }
 
 pkg_make_dest_install()
 {
 	if [ ! -d $MAKEDIR ]; then
+		if [ -f $PKG_DIR/.installed ]; then
+			bs_notice "$PKG has already been installed, skipping..."
+		fi
 		return
 	fi
 	if [ "$TARGET_INSTALL" = n ]; then
@@ -406,6 +421,7 @@ pkg_make_dest_install()
 		${SPECS}/${PKG}/post-install
 		popd
 	fi
+	touch $PKG_DIR/.installed
 }
 
 pkg_remove()
@@ -472,8 +488,11 @@ install_pkgs()
 {
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
-		bs_notice "Cleaning packages and ${FS_ROOT}"
-		rm -rf * .[!.]*
+		walk_pkg_dir -c pkg_make_uninstall
+		if [ "$TARGET_PKGS" = all ]; then
+			bs_notice "Cleaning packages and ${FS_ROOT}"
+			rm -rf * .[!.]*
+		fi
 	else
 		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
 	fi
@@ -546,18 +565,22 @@ tar_pkgs()
 
 iso_pkgs()
 {
-	tar_pkgs
-	BUILD_LIST=(kernel-cd isolinux tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
+	ISO_ROOT=
+	install_pkgs
 	export CONTINUE=1
+	BUILD_LIST=(kernel-cd isolinux)
+	install_pkgs
+	BUILD_LIST=(tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
 	build_pkgs
 
 	pushd $FS_ROOT
-	mkdir -p fake/{needwrite,ramdisk}
-	mv etc/ var/ root/ home/ fake/needwrite/
-	ln -s fake/needwrite/etc etc
-	ln -s fake/needwrite/var var
-	ln -s fake/needwrite/root root
-	ln -s fake/needwrite/home home
+	rm -rvf fake
+	mkdir -vp fake/{needwrite,ramdisk}
+	mv -v etc/ var/ root/ home/ fake/needwrite/
+	ln -vfs fake/needwrite/etc etc
+	ln -vfs fake/needwrite/var var
+	ln -vfs fake/needwrite/root root
+	ln -vfs fake/needwrite/home home
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh
 
@@ -593,10 +616,11 @@ iso_pkgs()
 			;;
 	esac
 	EOF
-	chmod 0755 etc/rc.d/init.d/create_ramdisk
-	ln -s ../init.d/create_ramdisk etc/rc.d/rcsysinit.d/S00create_ramdisk
+	chmod -v 0755 etc/rc.d/init.d/create_ramdisk
+	mkdir -vp etc/rc.d/rcsysinit.d
+	ln -vfs ../init.d/create_ramdisk etc/rc.d/rcsysinit.d/S00create_ramdisk
 
-	cat > /etc/fstab <<- "EOF"
+	cat > etc/fstab <<- "EOF"
 	# Begin /etc/fstab for a bootable CD
 
 	# file system  mount-point  type   options         dump  fsck
@@ -610,15 +634,17 @@ iso_pkgs()
 	tmp            /tmp         tmpfs  defaults        0     0
 	# End /etc/fstab
 	EOF
-	rm -f etc/rc.d/rcsysinit.d/S30checkfs
+
+	rm -vf etc/rc.d/rcsysinit.d/S30checkfs
 	sed -i -e 's/remount//g' etc/rc.d/init.d/mountfs
 	mknod lib/udev/devices/loop0 b 7 0
+	mkdir -pv dev
 	mknod dev/ram0 b 1 0
-	dd if=/dev/zero of=boot/initrd bs=1024 count=8192
-	mke2fs -m 0 -i 1024 -F boot/initrd
-	mount -o loop boot/initrd mnt
+	dd if=/dev/zero of=boot/initrd bs=1k count=1 seek=8191
+	mke2fs -v -m 0 -i 1024 -F boot/initrd
+	mount -vo loop boot/initrd mnt
 	pushd mnt
-	mkdir bin lib dev proc mnt
+	mkdir -vp bin lib dev proc mnt
 	mknod dev/ram0    b  1  0
 	mknod dev/null    c  1  3
 	mknod dev/zero    c  1  5
@@ -635,32 +661,32 @@ iso_pkgs()
 	mknod dev/hdc     b  22  0
 	mknod dev/hdd     b  22 64
 	mknod dev/hde     b  33  0
-	cp $FS_ROOT/bin/{bash,mount,grep,umount,echo} bin/
-	cp $FS_ROOT/usr/bin/test bin/
-	cp $FS_ROOT/usr/sbin/chroot bin/
-	cp $FS_ROOT/sbin/pivot_root bin/
-	ln -s bash bin/sh
-	ln -s test bin/[
-	cp $FS_ROOT/lib/{libncursesw.so.5,libdl.so.2,} lib/
-	cp $FS_ROOT/lib/{libc.so.6,libreadline.so.6} lib/
-	cp $FS_ROOT/lib/{libhistory.so.6,libblkid.so.1,libuuid.so.1} lib/
+	cp -va $FS_ROOT/bin/{bash,mount,grep,umount,echo} bin/
+	cp -va $FS_ROOT/usr/bin/test bin/
+	cp -va $FS_ROOT/usr/sbin/chroot bin/
+	cp -va $FS_ROOT/sbin/pivot_root bin/
+	ln -vfs bash bin/sh
+	ln -vfs test bin/[
+	cp -va $FS_ROOT/lib/{libncursesw.so.5,libdl.so.2} lib/
+	cp -va $FS_ROOT/lib/{libc.so.6,libreadline.so.6} lib/
+	cp -va $FS_ROOT/lib/{libhistory.so.6,libblkid.so.1,libuuid.so.1} lib/
 	if [ -f $FS_ROOT/lib/ld-linux.so.2 ] 
 	then 
-		cp -f $FS_ROOT/lib/ld-linux.so.2 lib/
+		cp -va -f $FS_ROOT/lib/ld-linux.so.2 lib/
 	fi
 	if [ -f $FS_ROOT/lib/ld.so.1 ] 
 	then 
-		cp -f $FS_ROOT/lib/ld.so.1 lib/
+		cp -va -f $FS_ROOT/lib/ld.so.1 lib/
 	fi
-	cp $FS_ROOT/bin/{cat,sleep,mknod} bin/
+	cp -va $FS_ROOT/bin/{cat,sleep,mknod} bin/
 
-	cat > $LFS/mnt/linuxrc <<- EOF
+	cat > linuxrc <<- EOF
 	#!/bin/sh
 	#ID is the volume id / label of the LFS boot CD that will be looked for.
 	ID=\"$IMG_NAME\"
 	EOF
 
-	cat >> $LFS/mnt/linuxrc <<- "EOF"
+	cat >> linuxrc <<- "EOF"
 	TMP_MOUNT="/mnt"
 
 	PATH="/bin:/sbin:/usr/bin:/usr/sbin"
@@ -759,11 +785,11 @@ iso_pkgs()
 		<dev/console >dev/console 2>&1
 
 	EOF
-	chmod 0755 linuxrc
+	chmod -v 0755 linuxrc
 	popd
-	umount $FS_ROOT/mnt
-	gzip $FS_ROOT/boot/initrd
-	mkisofs -R -l -L -D -b isolinux/isolinux.bin -c isolinux/boot.cat \
+	umount -vl $FS_ROOT/mnt
+	xz -v -9 $FS_ROOT/boot/initrd
+	genisoimage -R -l -L -D -b isolinux/isolinux.bin -c isolinux/boot.cat \
 		-no-emul-boot -boot-load-size 4 -boot-info-table -V "$IMG_NAME" \
 		. > $GEN_DIR/$IMG_NAME.iso
 	popd
@@ -807,7 +833,7 @@ main()
 {
 	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 
-	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%F-%X)"
+	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%Y%m%d%H%M)"
 
 	parse_conf_var
 	resolve_deps
