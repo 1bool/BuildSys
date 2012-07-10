@@ -5,7 +5,7 @@ set -eET
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
 : ${DEV_ROOT:=/root}
-export DEV_ROOT SDKARCH=$ARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
+export DEV_ROOT SDKARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
 	PKG_POOL=$DEV_ROOT/POOL FS_ROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
 
 bs_error()
@@ -164,7 +164,6 @@ parse_conf_var()
 				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
 					ln -s "${BUILDSYS_HOST}-gcc" "/tools/bin/${BUILDSYS_HOST}-cc"
 				fi
-
 				;;
 		esac
 	fi
