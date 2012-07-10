@@ -1,3 +1,4 @@
 #!/bin/sh
 
-install $PKG_DIR/core/isolinux.bin $DESTDIR/isolinux/
+install -d $DESTDIR/isolinux
+install $PKG_DIR/core/isolinux.bin $DESTDIR/isolinux

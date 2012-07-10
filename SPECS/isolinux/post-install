@@ -4,7 +4,8 @@ if [ "$PWD" = '/' ]; then
 	return
 fi
 
-install $PKG_DIR/core/isolinux.bin ./isolinux/
+install -d ./isolinux
+install $PKG_DIR/core/isolinux.bin ./isolinux
 mv boot/* ./isolinux
 rmdir boot
 ln -s isolinux boot
