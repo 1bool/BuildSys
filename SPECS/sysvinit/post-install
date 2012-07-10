@@ -19,7 +19,9 @@ ca:12345:ctrlaltdel:/sbin/shutdown -t1 -a -r now
 
 su:S016:once:/sbin/sulogin
 
-1:2345:respawn:/sbin/agetty -L -f /etc/issueserial ttyS0 115200
+1:2345:respawn:/sbin/agetty tty1 38400
+2:2345:respawn:/sbin/agetty tty2 38400
+3:2345:respawn:/sbin/agetty -L -f /etc/issueserial ttyS0 115200
 
 # End /etc/inittab
 EOF

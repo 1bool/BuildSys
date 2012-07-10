@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Remove sysklogd because we use sysrlogd instead
+sed -i -e '/sysklogd/d' $SRC_DIR/Makefile

@@ -17,8 +17,8 @@ fi
 sed -i 's/yes/no/' etc/default/useradd
 
 # Input root 3 times because "root" is too short for passwd to set.
-#chroot . passwd root <<-EOF
-#root
-#root
-#root
-#EOF
+chroot . passwd root <<-EOF
+root
+root
+root
+EOF

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mv -v usr/bin/{hostname,ping,ping6} bin
+mv -v usr/bin/traceroute sbin
