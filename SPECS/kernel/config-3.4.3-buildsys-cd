@@ -1087,11 +1087,13 @@ CONFIG_IDE=y
 # Please see Documentation/ide/ide.txt for help/info on IDE drives
 #
 CONFIG_IDE_XFER_MODE=y
+CONFIG_IDE_ATAPI=y
 # CONFIG_BLK_DEV_IDE_SATA is not set
 CONFIG_IDE_GD=y
 CONFIG_IDE_GD_ATA=y
 # CONFIG_IDE_GD_ATAPI is not set
-# CONFIG_BLK_DEV_IDECD is not set
+CONFIG_BLK_DEV_IDECD=y
+# CONFIG_BLK_DEV_IDECD_VERBOSE_ERRORS is not set
 # CONFIG_BLK_DEV_IDETAPE is not set
 # CONFIG_BLK_DEV_IDEACPI is not set
 # CONFIG_IDE_TASK_IOCTL is not set

@@ -61,10 +61,18 @@ buildsys_print_help_and_exit()
 quit()
 {
 	set +e
-	local DIRS=$(dirs -l -p | sed '1d')
+	local TIMES DIRS=$(dirs -l -p | sed '1d')
 	for DIR in $DIRS; do
 		if [ -n "$VERBOSE" ]; then
-			if ! umount $VERBOSE $DIR; then
+			for TIMES in 1 2 3; do
+				if ! umount $VERBOSE $DIR; then
+					sleep 1
+				else
+					unset TIMES
+					break
+				fi
+			done
+			if [ -n "$TIMES" ]; then
 				umount $VERBOSE -l $DIR
 			fi
 		else
@@ -227,14 +235,14 @@ install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG
 ln $VERBOSE -f $BS_ROOT/buildsys-internal
 cd -
 
-trap quit EXIT
-
 if [ -f $LOCKFILE ]; then
 	echo "Error: $SDFS already in use"
 	exit 1
 else
 	touch $LOCKFILE
 fi
+
+trap quit EXIT
 
 if [ ! -r ${SDFS} ]; then
 	cd $POOL
