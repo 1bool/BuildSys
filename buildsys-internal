@@ -70,9 +70,9 @@ guess_pkg_info()
 		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
 	fi
 	if [ -z "$SRC_DIR" ]; then
-		SRC_DIR="${BUILD_DIR}/${PKG}/${PKG_NAME}-${VERSION}"
+		SRC_DIR="$PKG_DIR/${PKG_NAME}-${VERSION}"
 	else
-		SRC_DIR="${BUILD_DIR}/${PKG}/${SRC_DIR}"
+		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
 }
 
@@ -214,14 +214,14 @@ walk_pkg_dir()
 		(
 		local SPECFOUND=0
 		set -a $SETOPTS
+		PKG_DIR="${BUILD_DIR}/${PKG}"
+		mkdir -p "$PKG_DIR"
+		MAKEDIR="$PKG_DIR/build"
 		if [ $(dirname $PKG) != . ]; then
 			source $INCDIR/$(dirname $PKG)
 			parse_conf_var
 			PKG=$(basename $PKG)
 		fi
-		PKG_DIR="${BUILD_DIR}/${PKG}"
-		mkdir -p "$PKG_DIR"
-		MAKEDIR="$PKG_DIR/build"
 		for SPECFILE in "${SPECS}/${PKG}/spec" "${SPECS}/${PKG}/${SPEC_NAME}"; do
 			if [ -f $SPECFILE ]; then
 				bs_notice "Reading $SPECFILE"
@@ -289,10 +289,10 @@ pkg_make_install()
 			ln -vs "$SRC_DIR" "$MAKEDIR"
 		else
 			if [ -r Makefile ] && [ ! -x configure ]; then
-				MAKEFLAGS="PREFIX=$PREFIX $MAKEFLAGS"
+				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $MAKEFLAGS"
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
 				make $MAKEFLAGS $CROSS_MAKEOPTS
-				make $MAKEFLAGS $CROSS_MAKEOPTS install
+				make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS:-install}
 				ln -vfs "$SRC_DIR" "$MAKEDIR"
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/.configured ]; then
@@ -310,7 +310,7 @@ pkg_make_install()
 				cd $MAKEDIR
 				bs_notice "Executing make $MAKEFLAGS"
 				make $MAKEFLAGS
-				make $MAKEFLAGS install
+				make $MAKEFLAGS ${MAKE_TARGETS:-install}
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make
@@ -411,7 +411,7 @@ pkg_make_dest_install()
 pkg_remove()
 {
 	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_LOCATION" ]; then
-		cd ..
+		cd $BUILD_DIR
 		bs_notice "Removing $PKG_DIR"
 		rm -rf "$PKG_DIR"
 	elif [ -d "$MAKEDIR" ]; then
@@ -547,7 +547,7 @@ tar_pkgs()
 iso_pkgs()
 {
 	tar_pkgs
-	BUILD_LIST=(kernel-cd isolinux tools.conf/cmake tools.conf/cdrkit)
+	BUILD_LIST=(kernel-cd isolinux tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
 	export CONTINUE=1
 	build_pkgs
 
@@ -835,7 +835,7 @@ eval set -- "$GETOPTS"
 while true; do
 	case "$1" in
 		-c|--continue)
-			CONTINUE=1; shift
+			export CONTINUE=1; shift
 			;;
 		-f|--config)
 			BUILD_CONF="$2"

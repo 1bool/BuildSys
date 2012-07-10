@@ -1,0 +1,10 @@
+#!/bin/sh
+
+pushd $MAKEDIR
+make install-dev install-lib
+popd
+
+chmod -v 0755 lib/libattr.so.1.1.0
+rm -v lib/libattr.{a,la,so}
+sed -i 's@/lib@/usr/lib@' usr/lib/libattr.la
+ln -sfv ../../lib/libattr.so.1 usr/lib/libattr.so

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+sed -i -e 's|/@pkg_name@|&-@pkg_version@|' include/builddefs.in
+ln -sfv $SRC_DIR $MAKEDIR
+#mkdir -vp $MAKEDIR
+#ln -svf $SRC_DIR/VERSION $MAKEDIR
