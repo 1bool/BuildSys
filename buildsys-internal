@@ -491,11 +491,235 @@ strip_rootfs()
 tar_pkgs()
 {
 	install_pkgs
-	TARNAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%F-%X)"
 	pushd $FS_ROOT
-	tar -Jcvf $GEN_DIR/$TARNAME.tar.xz .
+	tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
 	popd
-	bs_notice "File $TARNAME.tar.xz generated successful"
+	bs_notice "File $IMG_NAME.tar.xz generated successful"
+}
+
+iso_pkgs()
+{
+	tar_pkgs
+	BUILD_LIST=(kernel-cd isolinux tools/xorriso)
+	export CONTINUE=1
+	install_pkgs
+
+	pushd $FS_ROOT
+	mkdir -p fake/{needwrite,ramdisk}
+	mv etc/ var/ root/ home/ fake/needwrite/
+	ln -s fake/needwrite/etc etc
+	ln -s fake/needwrite/var var
+	ln -s fake/needwrite/root root
+	ln -s fake/needwrite/home home
+	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
+	#!/bin/sh
+
+	dev_ram=/dev/ram0
+	dir_ramdisk=/fake/ramdisk
+	dir_needwrite=/fake/needwrite
+
+	source /etc/rc.d/init.d/functions
+
+	case "$1" in
+		start)
+			echo -n "Creating ext2fs on $dev_ram ...              "
+			/sbin/mke2fs -m 0 -i 1024 -q $dev_ram > /dev/null 2>&1
+			evaluate_retval
+			sleep 1
+			echo -n "Mounting ramdisk on $dir_ramdisk ...         "
+			mount -n $dev_ram $dir_ramdisk
+			evaluate_retval
+			sleep 1
+			echo -n "Copying files to ramdisk ...                 "
+			cp -dpR $dir_needwrite/* $dir_ramdisk > /dev/null 2>&1
+			evaluate_retval
+			sleep 1
+			echo -n "Remount ramdisk to $dir_needwrite ...        "
+			umount -n $dir_ramdisk > /dev/null 2>&1
+			sleep 1
+			mount -n $dev_ram $dir_needwrite
+			sleep 1
+			;;
+		*)
+			echo "Usage: $0 {start}"
+			exit 1
+			;;
+	esac
+	EOF
+	chmod 0755 etc/rc.d/init.d/create_ramdisk
+	ln -s ../init.d/create_ramdisk etc/rc.d/rcsysinit.d/S00create_ramdisk
+
+	cat > /etc/fstab <<- "EOF"
+	# Begin /etc/fstab for a bootable CD
+
+	# file system  mount-point  type   options         dump  fsck
+	#                                                        order
+	#/dev/EDITME     /            EDITME  defaults        1     1
+	#/dev/EDITME     swap         swap   pri=1           0     0
+	proc           /proc        proc   defaults        0     0
+	sysfs          /sys         sysfs  defaults        0     0
+	devpts         /dev/pts     devpts gid=4,mode=620  0     0
+	tmpfs          /dev/shm     tmpfs  defaults        0     0
+	tmp            /tmp         tmpfs  defaults        0     0
+	# End /etc/fstab
+	EOF
+	rm -f etc/rc.d/rcsysinit.d/S30checkfs
+	sed -i -e 's/remount//g' etc/rc.d/init.d/mountfs
+	mknod lib/udev/devices/loop0 b 7 0
+	mknod dev/ram0 b 1 0
+	dd if=/dev/zero of=boot/initrd bs=1024 count=8192
+	mke2fs -m 0 -i 1024 -F boot/initrd
+	mount -o loop boot/initrd mnt
+	pushd mnt
+	mkdir bin lib dev proc mnt
+	mknod dev/ram0    b  1  0
+	mknod dev/null    c  1  3
+	mknod dev/zero    c  1  5
+	mknod dev/console c  5  1
+	mknod dev/ttyS0   c  4 64
+	mknod dev/sr0     b 11  0
+	mknod dev/sr1     b 11  1
+	mknod dev/sda     b  8  0
+	mknod dev/sdb     b  16  0
+	mknod dev/sdc     b  32  0
+	mknod dev/sdd     b  48  0
+	mknod dev/hda     b  3  0
+	mknod dev/hdb     b  3  64
+	mknod dev/hdc     b  22  0
+	mknod dev/hdd     b  22 64
+	mknod dev/hde     b  33  0
+	cp $FS_ROOT/bin/{bash,mount,grep,umount,echo} bin/
+	cp $FS_ROOT/usr/bin/test bin/
+	cp $FS_ROOT/usr/sbin/chroot bin/
+	cp $FS_ROOT/sbin/pivot_root bin/
+	ln -s bash bin/sh
+	ln -s test bin/[
+	cp $FS_ROOT/lib/{libncursesw.so.5,libdl.so.2,} lib/
+	cp $FS_ROOT/lib/{libc.so.6,libreadline.so.6} lib/
+	cp $FS_ROOT/lib/{libhistory.so.6,libblkid.so.1,libuuid.so.1} lib/
+	if [ -f $FS_ROOT/lib/ld-linux.so.2 ] 
+	then 
+		cp -f $FS_ROOT/lib/ld-linux.so.2 lib/
+	fi
+	if [ -f $FS_ROOT/lib/ld.so.1 ] 
+	then 
+		cp -f $FS_ROOT/lib/ld.so.1 lib/
+	fi
+	cp $FS_ROOT/bin/{cat,sleep,mknod} bin/
+
+	cat > $LFS/mnt/linuxrc <<- EOF
+	#!/bin/sh
+	#ID is the volume id / label of the LFS boot CD that will be looked for.
+	ID=\"$IMG_NAME\"
+	EOF
+	cat >> $LFS/mnt/linuxrc <<- "EOF"
+	TMP_MOUNT="/mnt"
+
+	PATH="/bin:/sbin:/usr/bin:/usr/sbin"
+
+	#this script searches for cdrom devices and then tries to find
+	#the LFS boot CD in order to mount it as / (rootfs)
+
+	#you need following programs:
+	#- /bin/sh (e.g. bash)
+	#- echo
+	#- [ (which is linked to test)
+	#- mount
+	#- umount
+	#- grep
+	#- pivot_root
+	#- chroot
+
+	#you need following devices:
+	#- /dev/hd*, /dev/sd*, /dev/sr* or /dev/cdrom*
+	#- /dev/null
+
+	#you need following directories:
+	#- /proc
+	#- $TMP_MOUNT
+
+	CHECK_TYPE="try_mount"
+
+	if [ ! -d "/proc/" ]; then
+		mkdir /proc
+	fi
+
+	mount -n proc /proc -t proc
+
+	#1. Create a list of possible cdrom devices.
+
+	CDROM_LIST="/dev/sr0 /dev/sr1 /dev/cdrom /dev/hda /dev/hdb /dev/hdc /dev/hdd
+	/dev/hde /dev/sda /dev/sdb"
+
+	#2. now we try to find the LFS boot CD (we use ID as identification)
+
+	LFS_CDROM_DEVICE=""
+	echo "Using $CHECK_TYPE"
+	for cdrom_device in $CDROM_LIST
+	do
+		echo -n "Checking $cdrom_device ... "
+
+		if [ "$CHECK_TYPE" = "try_mount" ]; then
+			mount -n -t iso9660 $cdrom_device $TMP_MOUNT > /dev/null 2>&1
+			media_found=$?
+		fi
+
+		if [ $media_found -eq 0 ]; then
+
+			echo -n "media found"
+			if [ "$CHECK_TYPE" = "try_mount" ]; then
+				[ -e "$TMP_MOUNT/$ID" ]
+				media_lfs=$?
+			fi
+
+			if [ "$CHECK_TYPE" = "try_mount" ]; then
+				umount -n $cdrom_device > /dev/null 2>&1
+			fi
+
+			if [ $media_lfs -eq 0 ]; then
+				echo ", LFS boot CD found. Ready!"
+				LFS_CDROM_DEVICE="$cdrom_device"
+				break;
+			else
+				echo ", not LFS boot CD."
+			fi
+
+		else
+			echo "no media "
+		fi
+	done
+
+	#3. mount LFS CD as / (root fs)
+	if [ "$LFS_CDROM_DEVICE" = "" ]; then
+
+		echo "No LFS boot CD found!!!  You will have to fix this to continue"
+		echo "do: mount -n -o ro -t iso9660 'your cd device' $TMP_MOUNT"
+		echo "Then exit shell to continue"
+		bash
+
+	else
+
+		echo "Booting from $LFS_CDROM_DEVICE ...                  "
+
+		mount -n -o ro -t iso9660 $LFS_CDROM_DEVICE $TMP_MOUNT
+	fi
+	cd $TMP_MOUNT
+	pivot_root . mnt
+	umount -n /mnt/proc >/dev/null 2>&1
+	exec chroot . sh -c 'umount -n /mnt >/dev/null 2>&1;\
+		exec -a init.new /sbin/init 3'\
+		<dev/console >dev/console 2>&1
+
+	EOF
+	chmod 0755 linuxrc
+	popd
+	umount $FS_ROOT/mnt
+	gzip $FS_ROOT/boot/initrd
+	mkisofs -R -l -L -D -b isolinux/isolinux.bin -c isolinux/boot.cat \
+		-no-emul-boot -boot-load-size 4 -boot-info-table -V "$IMG_NAME" \
+		. > $GEN_DIR/$IMG_NAME.iso
+	popd
+	bs_notice "Image $IMG_NAME.iso generated successful"
 }
 
 resolve_deps()
@@ -534,6 +758,7 @@ parse_conf_var()
 				;;
 		esac
 	fi
+	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%F-%X)"
 }
 
 print_help_and_exit()
@@ -553,6 +778,7 @@ print_help_and_exit()
 	echo "			(This is default if no Command specified)"
 	echo " install			Install packages to rootfs"
 	echo " gentar		Generate root filesystem tarball"
+	echo " geniso		Generate root filesystem installation cd"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -644,6 +870,9 @@ case "$1" in
 		;;
 	gentar)
 		ACTION=tar_pkgs; shift
+		;;
+	geniso)
+		ACTION=iso_pkgs; shift
 		;;
 	help)
 		print_help_and_exit

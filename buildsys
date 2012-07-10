@@ -47,6 +47,7 @@ buildsys_print_help_and_exit()
 	echo "			(This is default if no Command specified)"
 	echo " install			Install packages to rootfs"
 	echo " gentar		Generate root filesystem tarball"
+	echo " geniso		Generate root filesystem installation cd"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
