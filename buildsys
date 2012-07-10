@@ -152,16 +152,30 @@ fi
 : ${ARCH:="i686"}
 : ${BS_ROOT:="$PWD"}
 : ${INC_DIR:="$BS_ROOT/INC"}
-: ${SDFS_DIR:="$BS_ROOT/SDFS"}
+: ${POOL:="$BS_ROOT/POOL"}
 : ${SDFS_NAME:="buildsys-$ARCH"}
-: ${SDFS:="$SDFS_DIR/$SDFS_NAME.ext4"}
 : ${SDFS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
-: ${SDE:="$BS_ROOT/$SDFS_NAME"}
-: ${LOCKFILE:="$BS_ROOT/.$SDFS_NAME.lock"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
 
-mkdir -p $BS_ROOT/POOL $BS_ROOT/GEN $BS_ROOT/LOG $SDFS_DIR
+for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
+	[ -f "$BUILD_CONF" ] && break
+done
+if [ "$BUILD_CONF" = 'NULL' ]; then
+	echo "Error: File $CONF not found in $INC_DIR"
+	exit 1
+fi
+
+BUILD_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
+SDE="$BUILD_ROOT/SDE"
+LOCKFILE="$BUILD_ROOT/.$SDFS_NAME.lock"
+SDFS="$BUILD_ROOT/$SDFS_NAME.ext4"
+DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
+if [ "$ARCH" = 'i686' ]; then
+    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
+else
+    SDKPATH=/tools/bin
+fi
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -170,12 +184,12 @@ if [ "$MYNAME" = sde ]; then
 			VERBOSE='--verbose'
 			;;
 		reset)
-			if [ -f $LOCKFILE ]; then
-				echo "Error: $SDFS already in use"
+			if [ -f "$LOCKFILE" ]; then
+				echo "Error: $SDFS is in use"
 				exit 1
 			fi
 			while true; do
-				echo -n "Proceed reset buildsys for $ARCH? (y/n) "
+				echo -n "Proceed reset buildsys for $BUILD_ROOT? (y/n) "
 				read ANSWER
 				case "$ANSWER" in
 					[nN] | [Nn][Oo])
@@ -189,16 +203,8 @@ if [ "$MYNAME" = sde ]; then
 						;;
 				esac
 			done
-			echo -n "Resetting buildsys for $ARCH... "
-			SDKARCH=$ARCH
-			cd $INC_DIR
-			for BUILD_CONFIG in *; do
-				source "$BUILD_CONFIG"
-				if [ "$ARCH" = $SDKARCH ]; then
-					rm -rf "$BS_ROOT/BUILD/$BUILD_CONFIG"
-				fi
-			done
-			rm -f "$SDFS"
+			echo -n "Resetting buildsys for $BUILD_ROOT... "
+			rm -rf "$BUILD_ROOT"
 			echo done.
 			exit
 			;;
@@ -210,45 +216,18 @@ else
 	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
 fi
 
-for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
-	[ -f "$BUILD_CONF" ] && break
-done
-if [ "$BUILD_CONF" = 'NULL' ]; then
-	echo "Error: File $CONF not found in $INC_DIR"
-	exit 1
-fi
-
-DEV_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
-install -m 0755 -d "$DEV_ROOT"
-cd $DEV_ROOT
-install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG
-ln -f $BS_ROOT/buildsys-internal
-cd -
-
 if [ ! -d "${SPECS:-$BS_ROOT/SPECS}" ]; then
 	echo "Error: Directory \"$SPECS\" for SPECS not found"
 	exit 1
 fi
+mkdir $VERBOSE -p $POOL $BS_ROOT/GEN $BS_ROOT/LOG $SDFS_DIR
+install -m 0755 -d "$DEV_ROOT" "$SDE"
+cd $DEV_ROOT
+install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG
+ln $VERBOSE -f $BS_ROOT/buildsys-internal
+cd -
 
-if [ "$ARCH" = 'i686' ]; then
-    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
-else
-    SDKPATH=/tools/bin
-fi
-
-cd "$BS_ROOT"
-mkdir -p "$SDE"
-if [ ! -r ${SDFS} ]; then
-	if [ ! -r ${SDFS}.xz ]; then
-		wget -c -O ${SDFS}.xz.partial "${SDK_URL}"
-		mv ${SDFS}.xz.partial ${SDFS}.xz
-	fi
-	xz -dkv ${SDFS}.xz
-fi
-if (( $(stat -c%s ${SDFS}) < ${SDFS_SIZE} )); then
-	e2fsck -f ${SDFS}
-	resize2fs ${SDFS} $((${SDFS_SIZE}/1024))K
-fi
+trap quit EXIT
 
 if [ -f $LOCKFILE ]; then
 	echo "Error: $SDFS already in use"
@@ -257,7 +236,21 @@ else
 	touch $LOCKFILE
 fi
 
-trap quit EXIT
+if [ ! -r ${SDFS} ]; then
+	cd $POOL
+	if [ ! -r ${SDFS_NAME}.ext4.xz ]; then
+		wget -c -O ${SDFS_NAME}.ext4.xz.partial "${SDK_URL}"
+		mv ${SDFS_NAME}.ext4.xz.partial ${SDFS_NAME}.ext4.xz
+	fi
+	xz -dkv ${SDFS_NAME}.ext4.xz
+	mv ${SDFS_NAME}.ext4 $SDFS
+	cd -
+fi
+if (( $(stat -c%s ${SDFS}) < ${SDFS_SIZE} )); then
+	e2fsck -f ${SDFS}
+	resize2fs ${SDFS} $((${SDFS_SIZE}/1024))K
+fi
+
 dirs -c
 mount $VERBOSE -o loop -t ext4 "${SDFS}" "$SDE"
 pushd -n "$SDE" &> /dev/null
@@ -271,7 +264,7 @@ mount $VERBOSE -t proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
-mount $VERBOSE --bind "$BS_ROOT/BUILD/$(basename $CONF)" "$SDE/$DEVROOT_IN_SDK"
+mount $VERBOSE --bind "$DEV_ROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
 for DIR in SPECS INC POOL GEN LOG; do
 	mount $VERBOSE --bind "$BS_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"

@@ -297,6 +297,9 @@ pkg_make_install()
 
 pkg_make_clean()
 {
+	if [ ! -d $MAKEDIR ]; then
+		return
+	fi
 	cd $MAKEDIR
 	if ! grep -q '^clean:' Makefile; then
 		bs_error "\"${PKG_NAME}\" does not support make clean"
@@ -309,6 +312,9 @@ pkg_make_clean()
 
 pkg_make_distclean()
 {
+	if [ ! -d $MAKEDIR ]; then
+		return
+	fi
 	cd $MAKEDIR
 	bs_notice "Dist cleaing \"$PKG\"..."
 	if grep -q '^distclean:' Makefile; then
@@ -324,6 +330,9 @@ pkg_make_distclean()
 
 pkg_make_uninstall()
 {
+	if [ ! -d $MAKEDIR ]; then
+		return
+	fi
 	cd $MAKEDIR
 	if ! grep -q '^uninstall' Makefile; then
 		bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
@@ -335,6 +344,9 @@ pkg_make_uninstall()
 
 pkg_make_dest_install()
 {
+	if [ ! -d $MAKEDIR ]; then
+		return
+	fi
 	if [ "$TARGET_INSTALL" = n ]; then
 		bs_notice "Package \"$PKG\" is not required to be installed on target."
 		return
@@ -406,7 +418,7 @@ build_pkgs()
 		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
 		walk_pkg_dir -c pkg_make_uninstall pkg_make_distclean
 		if [ $TARGET_PKGS = all ]; then
-			rm /.first_config
+			rm -vf /.first_config
 		fi
 	else
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
