@@ -2,3 +2,5 @@ VERSION=3.0.3
 PKG_LOCATION="http://libarchive.googlecode.com/files/libarchive-$VERSION.tar.gz"
 # --disable-static: This option prevents building the static archive versions of the libraries.
 CONFIGFLAGS='--disable-static'
+# fix an error when there's no zlib installed
+PATCHES='http://libarchive.googlecode.com/issues/attachment?aid=2420003000&name=nozlib.patch&token=kKAwypFads7HE6SRIz1w1m7Alc8%3A1341934681018'

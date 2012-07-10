@@ -4,4 +4,4 @@ PKG_LOCATION="http://curl.haxx.se/download/curl-$VERSION.tar.bz2"
 # --with-gssapi: This parameter adds Kerberos 5 support to libcurl.
 # --with-libssh2: This parameter adds SSH2 protocol support to libcurl.
 # --without-ssl --with-gnutls: To build with GnuTLS support instead of OpenSSL for SSL/TLS. 
-CONFIGFLAGS='--disable-static --with-ca-path=/etc/ssl/certs'
+CONFIGFLAGS='--disable-static'
