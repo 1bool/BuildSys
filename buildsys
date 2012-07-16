@@ -284,5 +284,5 @@ if [ -r "$SDE/tools/etc/hostname" ]; then
 fi
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' HOSTNAME=$SDENAME \
-    PATH=$SDKPATH ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
+    PATH=$SDKPATH SDKARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
     $CMD
