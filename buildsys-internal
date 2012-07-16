@@ -397,7 +397,7 @@ pkg_make_uninstall()
 
 pkg_make_dest_install()
 {
-	local MAKEFILE=Makefile
+	local FAKEROOT DESTVAR MAKEFILE=Makefile
 	if [ ! -d $MAKEDIR ]; then
 		return
 	fi
@@ -422,12 +422,17 @@ pkg_make_dest_install()
 			MAKEFILE='misc/Makefile'
 			;;
 	esac
-	for FAKEROOT in DESTDIR PREFIX ROOT ""; do
-		if [ -z "$FAKEROOT" ]; then
+	for DESTVAR in DESTDIR PREFIX ROOT ""; do
+		if [ -z "$DESTVAR" ]; then
 			break
-		elif fgrep -q -w "$FAKEROOT" $MAKEFILE; then
-			bs_notice "Executing make $FAKEROOT=${FS_ROOT} install"
-			make $FAKEROOT=${FS_ROOT} install
+		elif fgrep -q -w "$DESTVAR" $MAKEFILE; then
+			if [ $DESTVAR = PREFIX ]; then
+				FAKEROOT=${FS_ROOT}${PREFIX}
+			else
+				FAKEROOT=${FS_ROOT}
+			fi
+			bs_notice "Executing make $DESTVAR=${FAKEROOT} install"
+			make $DESTVAR=${FAKEROOT} install
 			break
 		fi
 	done
@@ -551,7 +556,7 @@ strip_rootfs()
 		echo "$EXE_LIST" | grep -F -e 'application/x-sharedlib; charset=binary' \
 			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	fi
-	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,terminfo,vim} \
+	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,vim} \
 		./${PREFIX}/{doc,info,man,include} .first_config
 	if [ "$LOCALES" != all ]; then
 		pushd ./${PREFIX}/share/locale

@@ -6,3 +6,4 @@ cp -av ${MAKEDIR}/libbz2.so* lib
 rm -vf usr/bin/{bunzip2,bzcat,bzip2}
 ln -sfv bzip2 bin/bunzip2
 ln -sfv bzip2 bin/bzcat
+mv -vf usr/bin/bz{cmp,diff,egrep,fgrep,grep,less,more,ip2recover} bin
