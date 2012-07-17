@@ -666,21 +666,24 @@ iso_pkgs()
 
 	# file system  mount-point  type   options         dump  fsck
 	#                                                        order
-	#/dev/EDITME     /            EDITME  defaults        1     1
+	CDROM     /            iso9660  ro        1     1
 	#/dev/EDITME     swap         swap   pri=1           0     0
 	proc           /proc        proc   nosuid,noexec,nodev        0     0
 	sysfs          /sys         sysfs  nosuid,noexec,nodev        0     0
 	devtmpfs          /dev         devtmpfs  mode=0755,nosuid        0     0
 	devpts         /dev/pts     devpts gid=4,mode=620  0     0
-	tmpfs          /dev/shm     tmpfs  defaults        0     0
 	tmp            /tmp         tmpfs  defaults        0     0
-	run            /run         tmpfs  defaults        0     0
+	tmpfs            /run         tmpfs  rw,noexec,nosuid,size=10%,mode=0755        0     0
+	/dev/ram2		/fake/needwrite		ext2 defaults 	0 	0
 	# End /etc/fstab
 	EOF
 
 	rm -vf etc/rc.d/rcS.d/S30checkfs
-	rm -vf etc/rc.d/rcS.d/S40mountfs
-	#sed -i -e 's/.* remount.*/bash/g' -e 's/.*mount -f \/ *|| failed=1//g' etc/rc.d/init.d/mountfs
+	#rm -vf etc/rc.d/rcS.d/S40mountfs
+	sed -i -e '/remount/d' -e '48a\
+		mount -f /fake/needwrite || failed=1
+	' etc/rc.d/init.d/mountfs
+	#sed -i -e 's/remount,rw/remount,ro/g' etc/rc.d/init.d/mountfs
 	mknod lib/udev/devices/loop0 b 7 0
 	mkdir -pv dev
 	for i in 1 2; do
@@ -693,12 +696,11 @@ iso_pkgs()
 
 	rm -rvf fake
 	mkdir -vp fake/{needwrite,ramdisk}
-	mv -vf etc/ var/ root/ home/ dev/ fake/needwrite/
+	mv -vf etc/ var/ root/ home/ fake/needwrite/
 	ln -vfs fake/needwrite/etc etc
 	ln -vfs fake/needwrite/var var
 	ln -vfs fake/needwrite/root root
 	ln -vfs fake/needwrite/home home
-	ln -vfs fake/needwrite/dev dev
 
 	dd if=/dev/zero of=boot/initrd bs=1k count=1 seek=8191
 	mke2fs -v -m 0 -i 1024 -F boot/initrd
@@ -839,6 +841,7 @@ iso_pkgs()
 		mount -n -o ro -t iso9660 $CDROM_DEVICE $TMP_MOUNT
 	fi
 	cd $TMP_MOUNT
+	#sed -i -e "s/CDROM/$CDROM_DEVICE/g" ./etc/fstab
 	pivot_root . mnt
 	umount -n /mnt/proc
 	exec chroot . sh -c 'umount -n /mnt >/dev/null 2>&1;\
