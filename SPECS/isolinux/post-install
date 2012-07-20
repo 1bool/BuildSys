@@ -7,6 +7,12 @@ install $SRC_DIR/core/isolinux.bin ./isolinux
 mv -v boot/* ./isolinux
 rmdir -v boot
 ln -vsf isolinux boot
+pushd isolinux
+for KERN_FILE in vmlinuz System.map config; do
+    mv ${KERN_FILE}-3.4.3-buildsys-cd $KERN_FILE
+done
+rm *-buildsys
+popd
 
 cat > isolinux/isolinux.cfg <<- "EOF"
 default bootcd

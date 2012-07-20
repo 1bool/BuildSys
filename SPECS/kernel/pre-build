@@ -3,11 +3,4 @@
 # Prepare for compilation:
 make mrproper
 # Use our own config file for kernel
-case $PKG in
-	kernel)
-		cp -v "$SPECS/$PKG/config-$VERSION-buildsys" .config
-		;;
-	kernel-cd)
-		cp -v "$SPECS/$PKG/config-$VERSION-buildsys-cd" .config
-		;;
-esac
+cp -v "$SPECS/$PKG/config-${VERSION}${KERN_SUFFIX}" .config
