@@ -1,6 +1,6 @@
 PKG_LOCATION='http://ftp.gnu.org/gnu/bash/bash-4.2.tar.gz'
 # Patch to fix various bugs that have been addressed upstream
-PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/bash-4.2-fixes-7.patch'
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/bash-4.2-fixes-8.patch'
 CONFIGFLAGS='--prefix=/usr --bindir=/bin --htmldir=/usr/share/doc/bash-4.2 --without-bash-malloc --with-installed-readline'
 #--htmldir
 #    This option designates the directory into which HTML formatted documentation will be installed.
