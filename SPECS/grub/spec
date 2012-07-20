@@ -1,3 +1,2 @@
 PKG_LOCATION='http://ftp.gnu.org/gnu/grub/grub-1.99.tar.xz'
 CONFIGFLAGS='--prefix=/usr --sysconfdir=/etc --disable-grub-emu-usb --disable-efiemu --disable-werror'
-TARGET_INSTALL=n

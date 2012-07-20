@@ -585,9 +585,29 @@ tar_pkgs()
 	bs_notice "File $IMG_NAME.tar.xz generated successfully"
 }
 
+ext4_pkgs()
+{
+	local FS_SIZE
+	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
+	install_pkgs
+	pushd $FS_ROOT
+	FS_SIZE=$(du -sb $FS_ROOT | cut -f1)
+	dd if=/dev/zero of=$IMG_EXT4 bs=1 count=1 seek=$((FS_SIZE + FS_SIZE/5))
+	mkfs.ext4 -F $IMG_EXT4
+	mkdir -pv /tmp/$$
+	mount -o loop -t ext4 $IMG_EXT4 /tmp/$$
+	bs_notice "Copying files into ext4 file system"
+	cp -a . /tmp/$$
+	umount /tmp/$$
+	rmdir -v /tmp/$$
+	e2fsck -yf $IMG_EXT4
+	resize2fs -M $IMG_EXT4
+	popd
+	bs_notice "File $IMG_NAME.ext4 generated successfully"
+}
+
 iso_pkgs()
 {
-	local i
 	ISO_ROOT=$DEV_ROOT/ISOROOT
 	install_pkgs
 	bs_notice "Cleaning $ISO_ROOT"
@@ -686,6 +706,7 @@ iso_pkgs()
 	#sed -i -e 's/remount,rw/remount,ro/g' etc/rc.d/init.d/mountfs
 	mknod lib/udev/devices/loop0 b 7 0
 	mkdir -pv dev
+	local i
 	for i in 1 2; do
 		mknod dev/ram$i b 1 $i
 	done
@@ -882,9 +903,10 @@ print_help_and_exit()
 	echo " unpack			Unpack only, don't build the package"
 	echo " build			Build only, don't make target rootfs"
 	echo "			(This is default if no Command specified)"
-	echo " install			Install packages to rootfs"
-	echo " gentar		Generate root filesystem tarball"
-	echo " geniso		Generate root filesystem installation cd"
+	echo " install		Install packages to rootfs"
+	echo " gentar			Generate root filesystem tarball"
+	echo " genext4		Generate ext4 root filesystem"
+	echo " geniso			Generate root filesystem installation cd"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
@@ -985,6 +1007,9 @@ case "$1" in
 		;;
 	gentar)
 		ACTION=tar_pkgs; shift
+		;;
+	genext4)
+		ACTION=ext4_pkgs; shift
 		;;
 	geniso)
 		ACTION=iso_pkgs; shift

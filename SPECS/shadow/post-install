@@ -3,10 +3,16 @@
 # Move a misplaced program to its proper location:
 mv -v usr/bin/passwd bin
 if [ -z "$BUILDSYS_HOST" ]; then
-	# To enable shadowed passwords, run the following command:
-	chroot . pwconv
-	# To enable shadowed group passwords, run:
-	chroot . grpconv
+    # To enable shadowed passwords, run the following command:
+    chroot . pwconv
+    # To enable shadowed group passwords, run:
+    chroot . grpconv
+    # Input root 3 times because "root" is too short for passwd to set.
+    chroot . passwd root <<-EOF
+    root
+    root
+    root
+    EOF
 fi
 
 # /etc/default/useradd Parameter Explanations
@@ -15,10 +21,3 @@ fi
 # 	CREATE_MAIL_SPOOL=yes
 # 	    This parameter causes useradd to create a mailbox file for the newly created user. useradd will make the group ownership of this file to the mail group with 0660 permissions. If you would prefer that these mailbox files are not created by useradd, issue the following command:
 sed -i 's/yes/no/' etc/default/useradd
-
-# Input root 3 times because "root" is too short for passwd to set.
-chroot . passwd root <<-EOF
-root
-root
-root
-EOF
