@@ -783,8 +783,7 @@ iso_pkgs()
 
 	#1. Create a list of possible cdrom devices.
 
-	CDROM_LIST="/dev/sr0 /dev/sr1 /dev/cdrom /dev/hda /dev/hdb /dev/hdc /dev/hdd
-	/dev/hde /dev/sda /dev/sdb"
+	CDROM_LIST="/dev/sr0 /dev/sr1 /dev/cdrom /dev/hda /dev/hdb /dev/hdc /dev/hdd /dev/hde /dev/sda /dev/sdb"
 
 	#2. now we try to find the boot CD (we use ID as identification)
 
