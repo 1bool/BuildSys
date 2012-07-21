@@ -11,3 +11,4 @@ CONFIGFLAGS="--prefix=/usr --enable-multibyte --with-features=tiny --with-tlib=n
 				ac_cv_sizeof_int=4"
 
 PATCHES="$SPECS/$PKG/vim-7.3-configure-check-uint32_t-error-to-warning.patch"
+DEPS=(eglibc ncurses)

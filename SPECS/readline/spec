@@ -7,4 +7,5 @@ PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/readline-6.2-fi
 
 # This option forces Readline to link against the libncurses (really, libncursesw) library.
 SHLIB_LIBS=-lncurses
-export SHLIB_LIBS
+
+DEPS=glibc

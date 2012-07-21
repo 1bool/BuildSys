@@ -212,7 +212,6 @@ if [ "$MYNAME" = sde ]; then
 						;;
 				esac
 			done
-			echo "$BS_ROOT/LOG/$(basename $CONF)*" "$BS_ROOT/GEN/$(basename $CONF)*"
 			echo -n "Resetting buildsys for $BUILD_ROOT... "
 			rm -rf "$BUILD_ROOT" "$BS_ROOT/LOG/$(basename $CONF)"* "$BS_ROOT/GEN/$(basename $CONF)"*
 			echo done.

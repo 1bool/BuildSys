@@ -196,19 +196,22 @@ toolchain_link()
 
 walk_pkg_dir()
 {
-	SETOPTS='-eET'
+	local SETOPTS='-eET'
 	OPTIND=1
-	while getopts "c" FLAG
+	while getopts "a:c" FLAG
 	do
 		case "$FLAG" in
 			c)
 				SETOPTS=''
 				;;
+			a)
+				ACTS="$OPTARG"
+				;;
 		esac
 	done
 	shift $((OPTIND - 1))
 
-	for PKG in ${BUILD_LIST[@]}; do
+	for PKG in ${@}; do
 		export PKG
 		(
 		local SPECFOUND=0
@@ -236,11 +239,11 @@ walk_pkg_dir()
 		toolchain_link $BUILDSYS_LINK
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		pushd "$PKG_DIR"
-		for ACT in "$@"; do
+		for ACT in $ACTS; do
 			if [ -n "$SETOPTS" ]; then
 				$ACT
 			else
-				$ACT || continue
+				$ACT || bs_notice "Ignoring errors"; continue
 			fi
 		done
 		popd
@@ -495,14 +498,21 @@ build_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c pkg_make_uninstall pkg_make_distclean
+		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${BUILD_LIST[@]}
 		if [ $TARGET_PKGS = all ]; then
 			rm -vf /.first_config
 		fi
 	else
 		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
 	fi
-	walk_pkg_dir pkg_unpack_patch pkg_make_install
+
+	ORDERED_LIST=($(resolve_deps ${BUILD_LIST[@]}))
+	bs_notice "Packages to be built after resolving dependencies:"
+	echo '========================================='
+	printf "%s\n" "${ORDERED_LIST[@]}"
+	echo '========================================='
+
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${ORDERED_LIST[@]}
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" build complete."
 }
 
@@ -510,7 +520,7 @@ install_pkgs()
 {
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
-		walk_pkg_dir -c pkg_make_uninstall
+		walk_pkg_dir -c -a pkg_make_uninstall ${BUILD_LIST[@]}
 		if [ "$TARGET_PKGS" = all ]; then
 			bs_notice "Cleaning packages and ${FS_ROOT}"
 			rm -rf * .[!.]*
@@ -518,13 +528,22 @@ install_pkgs()
 	else
 		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
 	fi
+
+	ORDERED_LIST=($(resolve_deps ${BUILD_LIST[@]}))
+	bs_notice "Packages to be built after resolving dependencies:"
+	echo '========================================='
+	printf "%s\n" " ${ORDERED_LIST[@]}"
+	echo '========================================='
+
 	if [ "$TARGET_PKGS" = all ]; then
 		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
 			configure_system
 			touch .first_config
 		fi
 	fi
-	walk_pkg_dir pkg_unpack_patch pkg_make_install pkg_make_dest_install
+
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${ORDERED_LIST[@]}
+	walk_pkg_dir -a pkg_make_dest_install ${BUILD_LIST[@]}
 	strip_rootfs
 	popd
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" install complete."
@@ -534,11 +553,11 @@ unpack_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c pkg_remove
+		walk_pkg_dir -c -a pkg_remove ${BUILD_LIST[@]}
 	else
 		bs_notice "Continue unpacking package(s) \"${BUILD_LIST[@]}\"..."
 	fi
-	walk_pkg_dir pkg_unpack_patch
+	walk_pkg_dir -a pkg_unpack_patch ${BUILD_LIST[@]}
 	bs_notice "Package(s) \"${BUILD_LIST[@]}\" unpack complete."
 }
 
@@ -591,7 +610,7 @@ ext4_pkgs()
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
 	install_pkgs
 	pushd $FS_ROOT
-	FS_SIZE=$(du -sb $FS_ROOT | cut -f1)
+	FS_SIZE=$(du -sb . | cut -f1)
 	dd if=/dev/zero of=$IMG_EXT4 bs=1 count=1 seek=$((FS_SIZE + FS_SIZE/5))
 	mkfs.ext4 -F $IMG_EXT4
 	mkdir -pv /tmp/$$
@@ -882,9 +901,49 @@ iso_pkgs()
 	bs_notice "Image $IMG_NAME.iso generated successfully"
 }
 
+add_dep_pkgs()
+{
+	local PKG CONF_NAME PKG_DIR_NAME DEP DEPS= DEP_PKGS SPECFILE SPECFOUND=0
+	PROCESSED_LIST=($@ ${PROCESSED_LIST[@]})
+	for PKG in ${@}; do
+		CONF_NAME=$(dirname $PKG)
+		PKG_DIR_NAME=$(basename $PKG)
+		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
+			if [ -f $SPECFILE ]; then
+				source $SPECFILE
+				: $((SPECFOUND |= 1))
+			fi
+		done
+		if [ $SPECFOUND = 0 ]; then
+			bs_error "${PKG}'s spec not found"
+		fi
+		if [ -z "${DEPS[@]}" ]; then
+			continue
+		fi
+		for DEP in ${DEPS[@]}; do
+			if [ "$CONF_NAME" != . ] && [ $(basename $DEP) = . ]; then
+				DEP="$CONF_NAME/$DEP"
+			fi
+			for DEP_PKG in $DEP_PKGS ${PROCESSED_LIST[@]} ""; do
+				if [ "$DEP" = "$DEP_PKG" ]; then
+					break
+				fi
+			done
+			if [ -z "$DEP_PKG" ]; then
+				DEP_PKGS+=($DEP)
+			fi
+		done
+	done
+	if [ ${#DEP_PKGS[@]} != 0 ]; then
+		add_dep_pkgs ${DEP_PKGS[@]}
+	fi
+}
+
 resolve_deps()
 {
-	return
+	local PROCESSED_LIST=
+	add_dep_pkgs $@
+	echo ${PROCESSED_LIST[@]}
 }
 
 print_help_and_exit()
@@ -918,12 +977,11 @@ print_help_and_exit()
 
 main()
 {
-	echo "Executing \"$0 $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
+	echo "Executing \"$(basename $0) $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 
 	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%Y%m%d%H%M)"
 
 	parse_conf_var
-	resolve_deps
 
 	if [ -r /proc/cpuinfo ]; then
 		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}

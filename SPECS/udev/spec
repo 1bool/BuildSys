@@ -28,4 +28,4 @@ CONFIGFLAGS="--prefix=/usr           \
 #KMOD_CFLAGS="-I/usr/include"
 #KMOD_LIBS="-L/lib -lkmod"
 
-DEPS=pkg-config
+DEPS=(glibc kmod pkg-config)

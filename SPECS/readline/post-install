@@ -4,3 +4,5 @@
 mv -v lib/lib{readline,history}.a usr/lib
 
 rm -v lib/lib{readline,history}.so
+ln -sfv ../../lib/libreadline.so.6 usr/lib/libreadline.so
+ln -sfv ../../lib/libhistory.so.6 usr/lib/libhistory.so

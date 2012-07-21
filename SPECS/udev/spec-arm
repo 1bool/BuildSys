@@ -1,1 +1,1 @@
-DEPS=tools.conf/pkg-config
+DEPS=(eglibc kmod tools.conf/pkg-config)

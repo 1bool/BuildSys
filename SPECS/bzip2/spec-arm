@@ -2,3 +2,4 @@ VERSION=1.0.6
 PKG_LOCATION='http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz'
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/bzip2-1.0.6-install_docs-1.patch'
 PATCHES[1]=$SPECS/$PKG/bzip2-1.0.6-remove-make-test.patch
+DEPS=eglibc
