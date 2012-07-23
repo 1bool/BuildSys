@@ -463,13 +463,13 @@ pkg_remove()
 
 clean_pkgs()
 {
-	walk_pkg_dir pkg_make_clean
+	walk_pkg_dir -a pkg_make_clean ${PKG_LIST[@]}
 	bs_notice "Package ${PKG_LIST[@]} clean complete."
 }
 
 distclean_pkgs()
 {
-	walk_pkg_dir -c pkg_make_distclean
+	walk_pkg_dir -c -a pkg_make_distclean ${PKG_LIST[@]}
 	bs_notice "Package ${PKG_LIST[@]} dist clean complete."
 }
 
@@ -491,7 +491,7 @@ uninstall_pkgs()
 				;;
 		esac
 	done
-	walk_pkg_dir -c pkg_make_uninstall
+	walk_pkg_dir -c -a pkg_make_uninstall ${PKG_LIST[@]}
 	bs_notice "Package ${PKG_LIST[@]} uninstall complete."
 }
 
@@ -686,7 +686,7 @@ iso_pkgs()
 	cp -a $FS_ROOT $ISO_ROOT
 	FS_ROOT=$ISO_ROOT
 	CONTINUE=1
-	PKG_LIST=(isolinux)
+	PKG_LIST=(kernel-cd isolinux)
 	unset TARGET_PKGS
 	install_pkgs
 
