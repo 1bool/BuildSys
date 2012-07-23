@@ -3,4 +3,5 @@ PKG_LOCATION='http://ftp.gnu.org/gnu/patch/patch-2.6.1.tar.bz2'
 # Prevent the test suite from running a test that requires ed:
 PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/patch-2.6.1-test_fix-1.patch'
 DEPS=glibc
+TOOL_DEPS=(binutils gcc sed coreutils bash grep make)
 TARGET_INSTALL=n

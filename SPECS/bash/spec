@@ -8,4 +8,4 @@ CONFIGFLAGS='--prefix=/usr --bindir=/bin --htmldir=/usr/share/doc/bash-4.2 --wit
 #	 This option tells Bash to use the readline library that is already installed on the system rather than using its own readline version.
 
 DEPS=(glibc ncurses readline)
-TOOL_DEPS=(binutils bison coreutils diffutils gawk gcc grep make patch sed texinfo)
+TOOL_DEPS=(binutils gcc coreutils bison grep)

@@ -1,4 +1,5 @@
 PKG_LOCATION='http://ftp.gnu.org/gnu/texinfo/texinfo-4.13a.tar.gz'
 SRC_DIR=texinfo-4.13
 DEPS=(glibc ncurses)
+TOOL_DEPS=(binutils gcc sed coreutils bash grep gettext make patch)
 TARGET_INSTALL=n

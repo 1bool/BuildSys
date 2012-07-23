@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# This version of Perl now builds the Compress::Raw::Zlib module. By default Perl will use an internal copy of the Zlib source for the build. Issue the following command so that Perl will use the Zlib library installed on the system:
+sed -i -e "s|BUILD_ZLIB\s*= True|BUILD_ZLIB = False|"           \
+	-e "s|INCLUDE\s*= ./zlib-src|INCLUDE    = /usr/include|" \
+	-e "s|LIB\s*= ./zlib-src|LIB        = /usr/lib|"         \
+	cpan/Compress-Raw-Zlib/config.in
+
+ln -sfv configure.gnu configure
+ln -sfv $SRC_DIR $MAKEDIR

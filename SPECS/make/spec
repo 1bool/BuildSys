@@ -1,3 +1,5 @@
 VERSION=3.82
-PKG_LOCATION='http://ftp.gnu.org/gnu/make/make-3.82.tar.bz2'
+PKG_LOCATION="http://ftp.gnu.org/gnu/make/make-$VERSION.tar.bz2"
+DEPS=glibc
+TOOL_DEPS=(binutils gcc sed coreutils bash gettext grep)
 TARGET_INSTALL=n

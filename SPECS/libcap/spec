@@ -2,3 +2,4 @@ PKG_NAME=libcap
 VERSION=2.22
 PKG_LOCATION='ftp://ftp.de.debian.org/debian/pool/main/libc/libcap2/libcap2_2.22.orig.tar.gz'
 MAKEFLAGS='RAISE_SETFCAP=no'
+DEPS=(glibc attr)

@@ -4,3 +4,4 @@ PKG_LOCATION='http://people.freedesktop.org/~dbn/pkg-config-0.26-internal-glib.t
 CONFIGFLAGS='--with-internal-glib --with-installed-popt --docdir=/usr/share/doc/pkg-config-0.26'
 TARGET_INSTALL=n
 DEPS=(glibc popt)
+TOOL_DEPS=(binutils coreutils gcc grep sed bash)

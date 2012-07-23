@@ -4,3 +4,4 @@ CONFIGFLAGS='--prefix=/usr --sysconfdir=/etc'
 #--sysconfdir=/etc
 #    This option tells the programs created by the package to look in /etc for the configuration files.
 DEPS=(glibc ncurses)
+TOOL_DEPS=(binutils gcc sed coreutils diffutils grep bash)

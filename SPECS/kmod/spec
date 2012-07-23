@@ -1,4 +1,5 @@
-PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-8.tar.xz'
+VERSION=9
+PKG_LOCATION="http://www.kernel.org/pub/linux/utils/kernel/kmod/kmod-$VERSION.tar.xz"
 CONFIGFLAGS='--with-rootlibdir=/lib --bindir=/bin --libdir=/lib --sysconfdir=/etc --with-xz --with-zlib'
 
 # lib* and --with-*
@@ -10,4 +11,5 @@ CONFIGFLAGS='--with-rootlibdir=/lib --bindir=/bin --libdir=/lib --sysconfdir=/et
 
 MAKEFLAGS='pkgconfigdir=/usr/lib/pkgconfig'
 
-DEPS=pkg-config
+DEPS=(glibc xz zlib)
+TOOL_DEPS=(binutils gcc sed coreutils bison bash flex gettext gzip pkg-config)

@@ -1,3 +1,4 @@
 VERSION=4.05
 PKG_LOCATION="http://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-$VERSION.tar.xz"
-DEPS='kernel-cd grub'
+TOOL_DEPS=cdrkit
+DEPS='kernel-cd'

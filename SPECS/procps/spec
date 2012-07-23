@@ -4,3 +4,4 @@ PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8
 # Patch to fix a unicode related issue in the watch program
 PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8-watch_unicode-1.patch'
 DEPS=(glibc ncurses)
+TOOL_DEPS=(binutils gcc coreutils)

@@ -1,3 +1,4 @@
 VERSION=2.68
 PKG_LOCATION="http://ftp.gnu.org/gnu/autoconf/autoconf-$VERSION.tar.bz2"
+DEPS=(bash coreutils grep sed m4 perl)
 TARGET_INSTALL=n

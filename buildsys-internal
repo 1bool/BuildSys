@@ -139,12 +139,13 @@ export_cross_tools()
 
 parse_conf_var()
 {
-	if [ "$ARCH" = i686 ]; then
+	if [ "$SDKARCH" = i686 ]; then
 		set +h
 		unset ARCH
 	else
 		set -h
-		export ARCH
+		export ARCH=$SDKARCH
+		source /tools/installed_tools
 	fi
 	: ${PREFIX:=/usr}
 	export PREFIX
@@ -217,7 +218,6 @@ walk_pkg_dir()
 		local SPECFOUND=0
 		set -a $SETOPTS
 		PKG_DIR="${BUILD_DIR}/${PKG}"
-		mkdir -p "$PKG_DIR"
 		SPEC_DIR="$SPECS/$PKG"
 		MAKEDIR="$PKG_DIR/build"
 		if [ $(dirname $PKG) != . ]; then
@@ -238,6 +238,7 @@ walk_pkg_dir()
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
 		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
+		mkdir -p "$PKG_DIR"
 		pushd "$PKG_DIR"
 		for ACT in $ACTS; do
 			if [ -n "$SETOPTS" ]; then
@@ -506,19 +507,21 @@ build_pkgs()
 		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-#	resolve_deps ${PKG_LIST[@]}
-#	return
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
-	bs_notice "Packages to be built as tools:"
-	echo '========================================='
-	printf "%s\n" "${TOOLS_LIST[@]}"
-	echo '========================================='
+	if [ ${#TOOLS_LIST[@]} != 0 ]; then
+		bs_notice "Packages to be built for tools:"
+		echo '========================================='
+		printf "%s\n" "${TOOLS_LIST[@]}"
+		echo '========================================='
+		echo
+	fi
 	bs_notice "Packages to be built after resolving dependencies:"
 	echo '========================================='
 	printf "%s\n" "${BUILD_LIST[@]}"
 	echo '========================================='
+	echo
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
 	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
@@ -537,11 +540,22 @@ install_pkgs()
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	ORDERED_LIST=($(resolve_deps ${PKG_LIST[@]}))
-	bs_notice "Packages to be install after resolving dependencies:"
+	echo PKG_LIST=${PKG_LIST[@]}
+	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	TOOLS_LIST=(${BUILD_LIST%,*})
+	BUILD_LIST=(${BUILD_LIST#*,})
+	if [ ${#TOOLS_LIST[@]} != 0 ]; then
+		bs_notice "Packages to be built for tools:"
+		echo '========================================='
+		printf "%s\n" "${TOOLS_LIST[@]}"
+		echo '========================================='
+		echo
+	fi
+	bs_notice "Packages to be built after resolving dependencies:"
 	echo '========================================='
-	printf "%s\n" " ${ORDERED_LIST[@]}"
+	printf "%s\n" "${BUILD_LIST[@]}"
 	echo '========================================='
+	echo
 
 	if [ "$TARGET_PKGS" = all ]; then
 		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
@@ -550,7 +564,7 @@ install_pkgs()
 		fi
 	fi
 
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${ORDERED_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
 	walk_pkg_dir -a pkg_make_dest_install ${PKG_LIST[@]}
 	strip_rootfs
 	popd
@@ -616,8 +630,37 @@ ext4_pkgs()
 {
 	local FS_SIZE
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
-	install_pkgs
+
 	pushd $FS_ROOT
+	if [ -z "$CONTINUE" ]; then
+		walk_pkg_dir -c -a pkg_make_uninstall ${PKG_LIST[@]}
+		if [ "$TARGET_PKGS" = all ]; then
+			bs_notice "Cleaning packages and ${FS_ROOT}"
+			rm -rf * .[!.]*
+		fi
+	else
+		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
+	fi
+
+	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	TOOLS_LIST=(${BUILD_LIST%,*})
+	INSTALL_LIST=(${BUILD_LIST#*,})
+	bs_notice "Packages to be installed after resolving dependencies:"
+	echo '========================================='
+	printf "%s\n" " ${INSTALL_LIST[@]}"
+	echo '========================================='
+
+	if [ "$TARGET_PKGS" = all ]; then
+		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
+			configure_system
+			touch .first_config
+		fi
+	fi
+
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_make_dest_install" ${INSTALL_LIST[@]}
+	strip_rootfs
+
 	FS_SIZE=$(du -sb . | cut -f1)
 	dd if=/dev/zero of=$IMG_EXT4 bs=1 count=1 seek=$((FS_SIZE + FS_SIZE/5))
 	mkfs.ext4 -F $IMG_EXT4
@@ -643,10 +686,8 @@ iso_pkgs()
 	cp -a $FS_ROOT $ISO_ROOT
 	FS_ROOT=$ISO_ROOT
 	CONTINUE=1
-	PKG_LIST=(tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
-	build_pkgs
-	unset CONTINUE TARGET_PKGS
-	PKG_LIST=(kernel-cd isolinux)
+	PKG_LIST=(isolinux)
+	unset TARGET_PKGS
 	install_pkgs
 
 	pushd $ISO_ROOT
@@ -949,19 +990,23 @@ add_dep_pkgs()
 
 add_tool_dep_pkgs()
 {
-	local PKG CONF_NAME PKG_DIR_NAME TOOL_PKGS= TOOL_DEP= DEPS= TOOL_DEPS= TOOL_DEP_PKG= TOOL_DEP_PKGS SPECFILE SPECFOUND=0
+	local PKG CONF_NAME PKG_DIR_NAME TOOL_PKGS= TOOL_DEP= DEPS= \
+		TOOL_DEPS= TOOL_DEP_PKG= TOOL_DEP_PKGS SPECFILE SPECFOUND=0
+#	echo $LINENO TOOL_PROCESSED_LIST: ${TOOL_PROCESSED_LIST[@]} >&2
 	for PKG in ${@}; do
-		for TOOL_PKG in ${TOOL_PROCESSED_LIST[@]} ""; do
+		for TOOL_PKG in ${TOOL_PROCESSED_LIST[@]} NULL; do
 			if [ "$TOOL_PKG" = "$PKG" ]; then
 				break
 			fi
 		done
-		if [ -z "$TOOL_PKG" ]; then
-			TOOL_PKGS+=($TOOL_PKG)
+		if [ "$TOOL_PKG" = NULL ]; then
+			TOOL_PKGS+=($PKG)
 		fi
 	done
-	TOOL_PROCESSED_LIST=($@ ${TOOL_PKGS[@]})
+	TOOL_PROCESSED_LIST=(${TOOL_PKGS[@]} ${TOOL_PROCESSED_LIST[@]})
+#	echo $LINENO TOOL_PROCESSED_LIST: ${TOOL_PROCESSED_LIST[@]} >&2
 	unset PKG
+#	echo $LINENO TOOL_PKGS: ${TOOL_PKGS[@]} >&2
 	for PKG in ${TOOL_PKGS[@]}; do
 		CONF_NAME=$(dirname $PKG)
 		PKG_DIR_NAME=$(basename $PKG)
@@ -988,9 +1033,9 @@ add_tool_dep_pkgs()
 			fi
 		done
 	done
-	echo INPUT: "${@}" >&2
-	echo TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
-	echo TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
+#	echo $LINENO INPUT: "${@}" >&2
+#	echo $LINENO TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
+#	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
 	if [ ${#TOOL_DEP_PKGS[@]} != 0 ]; then
 		add_tool_dep_pkgs ${TOOL_DEP_PKGS[@]}
 	fi
@@ -998,8 +1043,17 @@ add_tool_dep_pkgs()
 
 resolve_deps()
 {
-	local PROCESSED_LIST= TOOL_PROCESSED_LIST=
+	local PROCESSED_LIST= TOOL_PROCESSED_LIST=(${BSE_TOOLS[@]})
 	add_dep_pkgs $@
+	case $SDKARCH in
+		i?86|x86*)
+			;;
+		*)
+			for (( i = 0; i < ${#TOOL_PROCESSED_LIST[@]}; i++ )); do
+				TOOL_PROCESSED_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
+			done
+			;;
+	esac
 	echo "${TOOL_PROCESSED_LIST[@]},${PROCESSED_LIST[@]}"
 }
 

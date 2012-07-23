@@ -3,3 +3,4 @@ PKG_LOCATION='http://tukaani.org/xz/xz-$VERSION.tar.bz2'
 CONFIGFLAGS='--prefix=/usr --libdir=/lib --docdir=/usr/share/doc/xz-5.0.3'
 MAKEFLAGS='pkgconfigdir=/usr/lib/pkgconfig'
 DEPS=glibc
+TOOL_DEPS=(binutils gcc coreutils diffutils bash)

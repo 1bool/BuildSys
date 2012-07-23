@@ -1,8 +1,8 @@
 VERSION=2.6.1
-PKG_LOCATION='http://download.savannah.gnu.org/releases/man-db/man-db-2.6.1.tar.gz'
-PKG_CONFIG=/tools/bin/true
-libpipeline_CFLAGS=''
-libpipeline_LIBS='-lpipeline'
+PKG_LOCATION="http://download.savannah.gnu.org/releases/man-db/man-db-$VERSION.tar.gz"
+#PKG_CONFIG=/tools/bin/true
+#libpipeline_CFLAGS=''
+#libpipeline_LIBS='-lpipeline'
 CONFIGFLAGS="--prefix=/usr                       \
 			--libexecdir=/usr/lib                \
 			--docdir=/usr/share/doc/man-db-2.6.1 \
@@ -19,6 +19,6 @@ CONFIGFLAGS="--prefix=/usr                       \
 #--with-...
 #    These three parameters are used to set some default programs. lynx is a text-based web browser (see BLFS for installation instructions), vgrind converts program sources to Groff input, and grap is useful for typesetting graphs in Groff documents. The vgrind and grap programs are not normally needed for viewing manual pages. They are not part of LFS or BLFS, but you should be able to install them yourself after finishing LFS if you wish to do so.
 
+DEPS=(glibc gdbm libpipeline gzip bzip2 xz groff less)
+TOOL_DEPS=(binutils gcc sed coreutils bash flex gettext grep pkg-config make)
 TARGET_INSTALL=n
-DEPS=libpipeline
-export PKG_CONFIG libpipeline_CFLAGS libpipeline_LIBS

@@ -2,3 +2,4 @@ PKG_LOCATION='http://download.savannah.gnu.org/releases/sysvinit/sysvinit-2.88ds
 VERSION=2.88dsf
 MAKEFLAGS='-C src'
 DEPS=glibc
+TOOL_DEPS=(binutils gcc sed coreutils make)

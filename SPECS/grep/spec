@@ -2,3 +2,4 @@ VERSION=2.12
 PKG_LOCATION="http://ftp.gnu.org/gnu/grep/grep-$VERSION.tar.xz"
 CONFIGFLAGS='--bindir=/bin'
 DEPS=glibc
+TOOL_DEPS=(binutils gcc coreutils sed)

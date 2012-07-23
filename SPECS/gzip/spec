@@ -2,3 +2,4 @@ VERSION=1.4
 PKG_LOCATION='http://ftp.gnu.org/gnu/gzip/gzip-1.4.tar.gz'
 CONFIGFLAGS='--prefix=/usr --bindir=/bin'
 DEPS=glibc
+TOOL_DEPS=(binutils gcc coreutils grep bash)
