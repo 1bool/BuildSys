@@ -962,8 +962,6 @@ iso_pkgs()
 add_dep_pkgs()
 {
 	local PKG CONF_NAME PKG_DIR_NAME DEP= SPECFILE SPECFOUND=0
-#	echo $LINENO INPUT: "${@}" >&2
-#	echo $LINENO PROCESSED_LIST: "${PROCESSED_LIST[@]}" >&2
 	for (( i = $#; i > 0; i-- )); do
 		local -a PKGS=()
 		for PKG_IN_LIST in ${PROCESSED_LIST[@]} ""; do
@@ -999,7 +997,6 @@ add_tool_dep_pkgs()
 {
 	local PKG CONF_NAME PKG_DIR_NAME DEP SPECFILE SPECFOUND=0
 	echo $LINENO INPUT: "${@}" >&2
-#	echo $LINENO TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
 	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
 	for (( i = $#; i > 0; i-- )); do
 		local -a PKGS=()
@@ -1008,8 +1005,6 @@ add_tool_dep_pkgs()
 				PKGS+=($PKG_IN_LIST)
 			fi
 		done
-#		echo $LINENO PKG: "${PKG[@]}" >&2
-#		echo $LINENO PKGS: "${PKGS[@]}" >&2
 		TOOL_PROCESSED_LIST=(${!i} ${PKGS[@]})
 	done
 	for (( i = $#; i > 0; i-- )); do
@@ -1025,15 +1020,14 @@ add_tool_dep_pkgs()
 		if [ $SPECFOUND = 0 ]; then
 			bs_error "${!i}'s spec not found"
 		fi
-		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
-		echo $LINENO DEPS: "${DEPS[@]}" >&2
+#		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
+#		echo $LINENO DEPS: "${DEPS[@]}" >&2
 		if [ ${#TOOL_DEPS[@]} != 0 ]; then
 			add_tool_dep_pkgs ${TOOL_DEPS[@]}
 		fi
 		if [ ${#DEPS[@]} != 0 ]; then
 			add_tool_dep_pkgs ${DEPS[@]}
 		fi
-#		echo $LINENO REVERSED_PKGS: "${REVERSED_PKGS[@]}" >&2
 	done
 }
 
