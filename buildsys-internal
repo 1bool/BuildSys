@@ -519,10 +519,8 @@ build_pkgs()
 	echo '========================================='
 	printf "%s\n" "${BUILD_LIST[@]}"
 	echo '========================================='
-	return
-	return
 
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${BUILD_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
 	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
 }
 
