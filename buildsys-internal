@@ -463,18 +463,18 @@ pkg_remove()
 clean_pkgs()
 {
 	walk_pkg_dir pkg_make_clean
-	bs_notice "Package ${BUILD_LIST[@]} clean complete."
+	bs_notice "Package ${PKG_LIST[@]} clean complete."
 }
 
 distclean_pkgs()
 {
 	walk_pkg_dir -c pkg_make_distclean
-	bs_notice "Package ${BUILD_LIST[@]} dist clean complete."
+	bs_notice "Package ${PKG_LIST[@]} dist clean complete."
 }
 
 uninstall_pkgs()
 {
-	bs_notice "${BUILD_LIST[@]} are going to be uninstalled."
+	bs_notice "${PKG_LIST[@]} are going to be uninstalled."
 	while true; do
 		echo -n "Proceed uninstall? (y/n) "
 		read ANSWER
@@ -491,46 +491,56 @@ uninstall_pkgs()
 		esac
 	done
 	walk_pkg_dir -c pkg_make_uninstall
-	bs_notice "Package ${BUILD_LIST[@]} uninstall complete."
+	bs_notice "Package ${PKG_LIST[@]} uninstall complete."
 }
 
 build_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
-		bs_notice "Building package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${BUILD_LIST[@]}
+		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
+		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${PKG_LIST[@]}
 		if [ $TARGET_PKGS = all ]; then
 			rm -vf /.first_config
 		fi
 	else
-		bs_notice "Continue building package(s) \"${BUILD_LIST[@]}\"..."
+		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	ORDERED_LIST=($(resolve_deps ${BUILD_LIST[@]}))
+#	resolve_deps ${PKG_LIST[@]}
+#	return
+	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	TOOLS_LIST=(${BUILD_LIST%,*})
+	BUILD_LIST=(${BUILD_LIST#*,})
+	bs_notice "Packages to be built as tools:"
+	echo '========================================='
+	printf "%s\n" "${TOOLS_LIST[@]}"
+	echo '========================================='
 	bs_notice "Packages to be built after resolving dependencies:"
 	echo '========================================='
-	printf "%s\n" "${ORDERED_LIST[@]}"
+	printf "%s\n" "${BUILD_LIST[@]}"
 	echo '========================================='
+	return
+	return
 
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${ORDERED_LIST[@]}
-	bs_notice "Package(s) \"${BUILD_LIST[@]}\" build complete."
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${BUILD_LIST[@]}
+	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
 }
 
 install_pkgs()
 {
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
-		walk_pkg_dir -c -a pkg_make_uninstall ${BUILD_LIST[@]}
+		walk_pkg_dir -c -a pkg_make_uninstall ${PKG_LIST[@]}
 		if [ "$TARGET_PKGS" = all ]; then
 			bs_notice "Cleaning packages and ${FS_ROOT}"
 			rm -rf * .[!.]*
 		fi
 	else
-		bs_notice "Continue installing package(s) \"${BUILD_LIST[@]}\"..."
+		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	ORDERED_LIST=($(resolve_deps ${BUILD_LIST[@]}))
-	bs_notice "Packages to be built after resolving dependencies:"
+	ORDERED_LIST=($(resolve_deps ${PKG_LIST[@]}))
+	bs_notice "Packages to be install after resolving dependencies:"
 	echo '========================================='
 	printf "%s\n" " ${ORDERED_LIST[@]}"
 	echo '========================================='
@@ -543,22 +553,22 @@ install_pkgs()
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${ORDERED_LIST[@]}
-	walk_pkg_dir -a pkg_make_dest_install ${BUILD_LIST[@]}
+	walk_pkg_dir -a pkg_make_dest_install ${PKG_LIST[@]}
 	strip_rootfs
 	popd
-	bs_notice "Package(s) \"${BUILD_LIST[@]}\" install complete."
+	bs_notice "Package(s) \"${PKG_LIST[@]}\" install complete."
 }
 
 unpack_pkgs()
 {
 	if [ -z "$CONTINUE" ]; then
-		bs_notice "Unpacking package(s) \"${BUILD_LIST[@]}\"..."
-		walk_pkg_dir -c -a pkg_remove ${BUILD_LIST[@]}
+		bs_notice "Unpacking package(s) \"${PKG_LIST[@]}\"..."
+		walk_pkg_dir -c -a pkg_remove ${PKG_LIST[@]}
 	else
-		bs_notice "Continue unpacking package(s) \"${BUILD_LIST[@]}\"..."
+		bs_notice "Continue unpacking package(s) \"${PKG_LIST[@]}\"..."
 	fi
-	walk_pkg_dir -a pkg_unpack_patch ${BUILD_LIST[@]}
-	bs_notice "Package(s) \"${BUILD_LIST[@]}\" unpack complete."
+	walk_pkg_dir -a pkg_unpack_patch ${PKG_LIST[@]}
+	bs_notice "Package(s) \"${PKG_LIST[@]}\" unpack complete."
 }
 
 strip_rootfs()
@@ -635,10 +645,10 @@ iso_pkgs()
 	cp -a $FS_ROOT $ISO_ROOT
 	FS_ROOT=$ISO_ROOT
 	CONTINUE=1
-	BUILD_LIST=(tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
+	PKG_LIST=(tools.conf/zlib tools.conf/cmake tools.conf/attr tools.conf/libcap tools.conf/cdrkit)
 	build_pkgs
 	unset CONTINUE TARGET_PKGS
-	BUILD_LIST=(kernel-cd isolinux)
+	PKG_LIST=(kernel-cd isolinux)
 	install_pkgs
 
 	pushd $ISO_ROOT
@@ -917,14 +927,11 @@ add_dep_pkgs()
 		if [ $SPECFOUND = 0 ]; then
 			bs_error "${PKG}'s spec not found"
 		fi
-		if [ -z "${DEPS[@]}" ]; then
-			continue
-		fi
 		for DEP in ${DEPS[@]}; do
 			if [ "$CONF_NAME" != . ] && [ $(basename $DEP) = . ]; then
 				DEP="$CONF_NAME/$DEP"
 			fi
-			for DEP_PKG in $DEP_PKGS ${PROCESSED_LIST[@]} ""; do
+			for DEP_PKG in ${DEP_PKGS[@]} ${PROCESSED_LIST[@]} ""; do
 				if [ "$DEP" = "$DEP_PKG" ]; then
 					break
 				fi
@@ -934,16 +941,68 @@ add_dep_pkgs()
 			fi
 		done
 	done
+	if [ ${#TOOL_DEPS[@]} != 0 ]; then
+		add_tool_dep_pkgs ${TOOL_DEPS[@]}
+	fi
 	if [ ${#DEP_PKGS[@]} != 0 ]; then
 		add_dep_pkgs ${DEP_PKGS[@]}
 	fi
 }
 
+add_tool_dep_pkgs()
+{
+	local PKG CONF_NAME PKG_DIR_NAME TOOL_PKGS= TOOL_DEP= DEPS= TOOL_DEPS= TOOL_DEP_PKG= TOOL_DEP_PKGS SPECFILE SPECFOUND=0
+	for PKG in ${@}; do
+		for TOOL_PKG in ${TOOL_PROCESSED_LIST[@]} ""; do
+			if [ "$TOOL_PKG" = "$PKG" ]; then
+				break
+			fi
+		done
+		if [ -z "$TOOL_PKG" ]; then
+			TOOL_PKGS+=($TOOL_PKG)
+		fi
+	done
+	TOOL_PROCESSED_LIST=($@ ${TOOL_PKGS[@]})
+	unset PKG
+	for PKG in ${TOOL_PKGS[@]}; do
+		CONF_NAME=$(dirname $PKG)
+		PKG_DIR_NAME=$(basename $PKG)
+		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
+			if [ -f $SPECFILE ]; then
+				source $SPECFILE
+				: $((SPECFOUND |= 1))
+			fi
+		done
+		if [ $SPECFOUND = 0 ]; then
+			bs_error "${PKG}'s spec not found"
+		fi
+		for TOOL_DEP in ${DEPS[@]} ${TOOL_DEPS[@]}; do
+			if [ "$CONF_NAME" != . ] && [ $(basename $TOOL_DEP) = . ]; then
+				TOOL_DEP="$CONF_NAME/$TOOL_DEP"
+			fi
+			for TOOL_DEP_PKG in ${TOOL_DEP_PKGS[@]} ${TOOL_PROCESSED_LIST[@]} ""; do
+				if [ "$TOOL_DEP" = "$TOOL_DEP_PKG" ]; then
+					break
+				fi
+			done
+			if [ -z "$TOOL_DEP_PKG" ]; then
+				TOOL_DEP_PKGS+=($TOOL_DEP)
+			fi
+		done
+	done
+	echo INPUT: "${@}" >&2
+	echo TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
+	echo TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
+	if [ ${#TOOL_DEP_PKGS[@]} != 0 ]; then
+		add_tool_dep_pkgs ${TOOL_DEP_PKGS[@]}
+	fi
+}
+
 resolve_deps()
 {
-	local PROCESSED_LIST=
+	local PROCESSED_LIST= TOOL_PROCESSED_LIST=
 	add_dep_pkgs $@
-	echo ${PROCESSED_LIST[@]}
+	echo "${TOOL_PROCESSED_LIST[@]},${PROCESSED_LIST[@]}"
 }
 
 print_help_and_exit()
@@ -1079,9 +1138,9 @@ esac
 TARGET_PKGS="$@"
 : ${TARGET_PKGS:=all}
 if [ "$TARGET_PKGS" != all ]; then
-	BUILD_LIST=("$TARGET_PKGS")
-elif [ "${#BUILD_LIST[@]}" = 0 ]; then
-	bs_error "No package to build. Please define BUILD_LIST in ${BUILD_CONF}"
+	PKG_LIST=("$TARGET_PKGS")
+elif [ "${#PKG_LIST[@]}" = 0 ]; then
+	bs_error "No package to build. Please define PKG_LIST in ${BUILD_CONF}"
 fi
 
 trap quit ERR

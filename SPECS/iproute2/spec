@@ -1,3 +1,3 @@
 VERSION=3.3.0
 PKG_LOCATION='http://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-3.3.0.tar.xz'
-DEPS=(glibc kernel-header)
+DEPS=(glibc kernel-headers)
