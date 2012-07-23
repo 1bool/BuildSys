@@ -1,5 +1,5 @@
 VERSION=4.7.1
 PKG_LOCATION="http://ftp.gnu.org/gnu/gcc/gcc-$VERSION/gcc-$VERSION.tar.bz2"
 CONFIGFLAGS='--libexecdir=/usr/lib --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu --enable-languages=c,c++ --disable-multilib --disable-bootstrap --with-system-zlib'
-DEPS=(kernel-headers binutils gmp mpfr mpc cloog ppl)
+DEPS=(kernel-headers binutils gmp mpfr mpc cloog ppl zlib)
 TARGET_INSTALL=n

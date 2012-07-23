@@ -520,7 +520,7 @@ build_pkgs()
 
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
-		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${BUILD_LIST[@]}
+		walk_pkg_dir -c -a "pkg_remove" ${BUILD_LIST[@]}
 		if [ $TARGET_PKGS = all ]; then
 			rm -vf /.first_config
 		fi
@@ -962,17 +962,16 @@ iso_pkgs()
 add_dep_pkgs()
 {
 	local PKG CONF_NAME PKG_DIR_NAME DEP= SPECFILE SPECFOUND=0
-	local -a REVERSED_PKGS=()
 #	echo $LINENO INPUT: "${@}" >&2
 #	echo $LINENO PROCESSED_LIST: "${PROCESSED_LIST[@]}" >&2
-	for PKG in ${@}; do
+	for (( i = $#; i > 0; i-- )); do
 		local -a PKGS=()
 		for PKG_IN_LIST in ${PROCESSED_LIST[@]} ""; do
-			if [ "$PKG" != "$PKG_IN_LIST" ]; then
+			if [ "${!i}" != "$PKG_IN_LIST" ]; then
 				PKGS+=($PKG_IN_LIST)
 			fi
 		done
-		PROCESSED_LIST=($PKG ${PKGS[@]})
+		PROCESSED_LIST=(${!i} ${PKGS[@]})
 	done
 	for (( i = $#; i > 0; i-- )); do
 		local -a DEPS=()
@@ -999,20 +998,19 @@ add_dep_pkgs()
 add_tool_dep_pkgs()
 {
 	local PKG CONF_NAME PKG_DIR_NAME DEP SPECFILE SPECFOUND=0
-	local -a REVERSED_PKGS=()
-#	echo $LINENO INPUT: "${@}" >&2
+	echo $LINENO INPUT: "${@}" >&2
 #	echo $LINENO TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
-#	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
-	for PKG in ${@}; do
+	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
+	for (( i = $#; i > 0; i-- )); do
 		local -a PKGS=()
 		for PKG_IN_LIST in ${TOOL_PROCESSED_LIST[@]} ""; do
-			if [ "$PKG" != "$PKG_IN_LIST" ]; then
+			if [ "${!i}" != "$PKG_IN_LIST" ]; then
 				PKGS+=($PKG_IN_LIST)
 			fi
 		done
 #		echo $LINENO PKG: "${PKG[@]}" >&2
 #		echo $LINENO PKGS: "${PKGS[@]}" >&2
-		TOOL_PROCESSED_LIST=(${PKG} ${PKGS[@]})
+		TOOL_PROCESSED_LIST=(${!i} ${PKGS[@]})
 	done
 	for (( i = $#; i > 0; i-- )); do
 		local -a DEPS=() TOOL_DEPS=()
@@ -1027,8 +1025,8 @@ add_tool_dep_pkgs()
 		if [ $SPECFOUND = 0 ]; then
 			bs_error "${!i}'s spec not found"
 		fi
-#		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
-#		echo $LINENO DEPS: "${DEPS[@]}" >&2
+		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
+		echo $LINENO DEPS: "${DEPS[@]}" >&2
 		if [ ${#TOOL_DEPS[@]} != 0 ]; then
 			add_tool_dep_pkgs ${TOOL_DEPS[@]}
 		fi
