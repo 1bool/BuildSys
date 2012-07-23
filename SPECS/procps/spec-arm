@@ -5,3 +5,4 @@ PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8
 PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8-watch_unicode-1.patch'
 # Disable ldconfig as it's cross-compiled, not able to run on x86
 MAKEFLAGS='ldconfig='
+DEPS=(eglibc ncurses)

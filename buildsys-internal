@@ -577,7 +577,7 @@ strip_rootfs()
 	fi
 	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,vim} \
 		./${PREFIX}/{doc,info,man,include} .first_config
-	if [ "$LOCALES" != all ]; then
+	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
 		pushd ./${PREFIX}/share/locale
 		for LOCDIR in *; do
 			if [ -d $LOCDIR ]; then

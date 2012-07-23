@@ -14,4 +14,4 @@ export PKG_CONFIG LDFLAGS
 # --disable-*
 # 	This prevents E2fsprogs from building and installing the libuuid and libblkid libraries, the uuidd daemon, and the fsck wrapper, as Util-Linux installed all of them earlier.
 
-DEPS="texinfo"
+DEPS="glibc"

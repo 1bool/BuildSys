@@ -1,5 +1,7 @@
 #!/bin/bash -eE
 
+mkdir -pv etc
+
 cat > "etc/inittab" << "EOF"
 # Begin /etc/inittab
 

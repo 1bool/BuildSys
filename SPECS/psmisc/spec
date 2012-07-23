@@ -1,2 +1,3 @@
 VERSION=22.16
 PKG_LOCATION='http://prdownloads.sourceforge.net/psmisc/psmisc-22.16.tar.gz'
+DEPS=(glibc ncurses)

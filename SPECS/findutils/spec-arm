@@ -3,3 +3,4 @@ CONFIGFLAGS="--libexecdir=/usr/lib/findutils --localstatedir=/var/lib/locate \
 				gl_cv_func_wcwidth_works=yes \
 				gl_cv_header_working_fcntl_h=yes \
 				ac_cv_func_fnmatch_gnu=yes"
+DEPS=eglibc

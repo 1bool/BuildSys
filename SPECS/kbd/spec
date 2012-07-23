@@ -4,6 +4,7 @@ CONFIGFLAGS='--prefix=/usr --datadir=/lib/kbd'
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/kbd-1.15.3-backspace-1.patch'
 # The behaviour of loadkeys when run without a filename was broken in this release.
 PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/kbd-1.15.3-upstream_fixes-1.patch'
+DEPS=glibc
 
 #--datadir=/lib/kbd
 #    This option puts keyboard layout data in a directory that will always be on the root partition instead of the default /usr/share/kbd.

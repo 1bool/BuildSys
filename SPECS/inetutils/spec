@@ -11,3 +11,4 @@ CONFIGFLAGS='--libexecdir=/usr/sbin --localstatedir=/var --disable-ifconfig --di
 #    This option disables the building of the Inetutils whois client, which is out of date. Instructions for a better whois client are in the BLFS book.
 # --disable-servers
 #    This disables the installation of the various network servers included as part of the Inetutils package. These servers are deemed not appropriate in a basic system. Some are insecure by nature and are only considered safe on trusted networks. More information can be found at http://www.linuxfromscratch.org/blfs/view/svn/basicnet/inetutils.html. Note that better replacements are available for many of these servers.
+DEPS=(glibc ncurses zlib)

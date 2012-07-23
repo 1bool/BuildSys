@@ -1,1 +1,1 @@
-DEPS="tools.conf/bison eglibc"
+DEPS=(tools.conf/bison eglibc readline ncurses)
