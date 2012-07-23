@@ -558,10 +558,8 @@ install_pkgs()
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
 		walk_pkg_dir -c -a pkg_make_uninstall ${BUILD_LIST[@]}
-		if [ "$TARGET_PKGS" = all ]; then
-			bs_notice "Cleaning packages and ${FS_ROOT}"
-			rm -rf * .[!.]*
-		fi
+		bs_notice "Cleaning packages and ${FS_ROOT}"
+		rm -rf * .[!.]*
 	else
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
