@@ -497,9 +497,30 @@ uninstall_pkgs()
 
 build_pkgs()
 {
+	bs_notice "Building packages:"
+	echo '========================================='
+	printf "%s\n" "${PKG_LIST[@]}"
+	echo '========================================='
+	echo
+	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	TOOLS_LIST=(${BUILD_LIST%,*})
+	BUILD_LIST=(${BUILD_LIST#*,})
+	if [ ${#TOOLS_LIST[@]} != 0 ]; then
+		bs_notice "Packages to be built for tools:"
+		echo '========================================='
+		printf "%s\n" "${TOOLS_LIST[@]}"
+		echo '========================================='
+		echo
+	fi
+	bs_notice "Packages to be built after resolving dependencies:"
+	echo '========================================='
+	printf "%s\n" "${BUILD_LIST[@]}"
+	echo '========================================='
+	echo
+
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
-		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${PKG_LIST[@]}
+		walk_pkg_dir -c -a "pkg_make_uninstall pkg_make_distclean" ${BUILD_LIST[@]}
 		if [ $TARGET_PKGS = all ]; then
 			rm -vf /.first_config
 		fi
@@ -507,6 +528,17 @@ build_pkgs()
 		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
+	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
+}
+
+install_pkgs()
+{
+	bs_notice "Installing packages:"
+	echo '========================================='
+	printf "%s\n" "${PKG_LIST[@]}"
+	echo '========================================='
+	echo
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
@@ -523,15 +555,9 @@ build_pkgs()
 	echo '========================================='
 	echo
 
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
-	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
-}
-
-install_pkgs()
-{
 	pushd $FS_ROOT
 	if [ -z "$CONTINUE" ]; then
-		walk_pkg_dir -c -a pkg_make_uninstall ${PKG_LIST[@]}
+		walk_pkg_dir -c -a pkg_make_uninstall ${BUILD_LIST[@]}
 		if [ "$TARGET_PKGS" = all ]; then
 			bs_notice "Cleaning packages and ${FS_ROOT}"
 			rm -rf * .[!.]*
@@ -539,23 +565,6 @@ install_pkgs()
 	else
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
-
-	echo PKG_LIST=${PKG_LIST[@]}
-	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
-	TOOLS_LIST=(${BUILD_LIST%,*})
-	BUILD_LIST=(${BUILD_LIST#*,})
-	if [ ${#TOOLS_LIST[@]} != 0 ]; then
-		bs_notice "Packages to be built for tools:"
-		echo '========================================='
-		printf "%s\n" "${TOOLS_LIST[@]}"
-		echo '========================================='
-		echo
-	fi
-	bs_notice "Packages to be built after resolving dependencies:"
-	echo '========================================='
-	printf "%s\n" "${BUILD_LIST[@]}"
-	echo '========================================='
-	echo
 
 	if [ "$TARGET_PKGS" = all ]; then
 		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
@@ -952,11 +961,23 @@ iso_pkgs()
 
 add_dep_pkgs()
 {
-	local PKG CONF_NAME PKG_DIR_NAME DEP DEPS= DEP_PKGS SPECFILE SPECFOUND=0
-	PROCESSED_LIST=($@ ${PROCESSED_LIST[@]})
+	local PKG CONF_NAME PKG_DIR_NAME DEP= SPECFILE SPECFOUND=0
+	local -a REVERSED_PKGS=()
+#	echo $LINENO INPUT: "${@}" >&2
+#	echo $LINENO PROCESSED_LIST: "${PROCESSED_LIST[@]}" >&2
 	for PKG in ${@}; do
-		CONF_NAME=$(dirname $PKG)
-		PKG_DIR_NAME=$(basename $PKG)
+		local -a PKGS=()
+		for PKG_IN_LIST in ${PROCESSED_LIST[@]} ""; do
+			if [ "$PKG" != "$PKG_IN_LIST" ]; then
+				PKGS+=($PKG_IN_LIST)
+			fi
+		done
+		PROCESSED_LIST=($PKG ${PKGS[@]})
+	done
+	for (( i = $#; i > 0; i-- )); do
+		local -a DEPS=()
+		CONF_NAME=$(dirname ${!i})
+		PKG_DIR_NAME=$(basename ${!i})
 		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
 			if [ -f $SPECFILE ]; then
 				source $SPECFILE
@@ -964,52 +985,39 @@ add_dep_pkgs()
 			fi
 		done
 		if [ $SPECFOUND = 0 ]; then
-			bs_error "${PKG}'s spec not found"
+			bs_error "${!i}'s spec not found"
 		fi
-		for DEP in ${DEPS[@]}; do
-			if [ "$CONF_NAME" != . ] && [ $(basename $DEP) = . ]; then
-				DEP="$CONF_NAME/$DEP"
-			fi
-			for DEP_PKG in ${DEP_PKGS[@]} ${PROCESSED_LIST[@]} ""; do
-				if [ "$DEP" = "$DEP_PKG" ]; then
-					break
-				fi
-			done
-			if [ -z "$DEP_PKG" ]; then
-				DEP_PKGS+=($DEP)
-			fi
-		done
+		if [ ${#TOOL_DEPS[@]} != 0 ]; then
+			add_tool_dep_pkgs ${TOOL_DEPS[@]}
+		fi
+		if [ ${#DEPS[@]} != 0 ]; then
+			add_dep_pkgs ${DEPS[@]}
+		fi
 	done
-	if [ ${#TOOL_DEPS[@]} != 0 ]; then
-		add_tool_dep_pkgs ${TOOL_DEPS[@]}
-	fi
-	if [ ${#DEP_PKGS[@]} != 0 ]; then
-		add_dep_pkgs ${DEP_PKGS[@]}
-	fi
 }
 
 add_tool_dep_pkgs()
 {
-	local PKG CONF_NAME PKG_DIR_NAME TOOL_PKGS= TOOL_DEP= DEPS= \
-		TOOL_DEPS= TOOL_DEP_PKG= TOOL_DEP_PKGS SPECFILE SPECFOUND=0
-#	echo $LINENO TOOL_PROCESSED_LIST: ${TOOL_PROCESSED_LIST[@]} >&2
+	local PKG CONF_NAME PKG_DIR_NAME DEP SPECFILE SPECFOUND=0
+	local -a REVERSED_PKGS=()
+#	echo $LINENO INPUT: "${@}" >&2
+#	echo $LINENO TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
+#	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
 	for PKG in ${@}; do
-		for TOOL_PKG in ${TOOL_PROCESSED_LIST[@]} NULL; do
-			if [ "$TOOL_PKG" = "$PKG" ]; then
-				break
+		local -a PKGS=()
+		for PKG_IN_LIST in ${TOOL_PROCESSED_LIST[@]} ""; do
+			if [ "$PKG" != "$PKG_IN_LIST" ]; then
+				PKGS+=($PKG_IN_LIST)
 			fi
 		done
-		if [ "$TOOL_PKG" = NULL ]; then
-			TOOL_PKGS+=($PKG)
-		fi
+#		echo $LINENO PKG: "${PKG[@]}" >&2
+#		echo $LINENO PKGS: "${PKGS[@]}" >&2
+		TOOL_PROCESSED_LIST=(${PKG} ${PKGS[@]})
 	done
-	TOOL_PROCESSED_LIST=(${TOOL_PKGS[@]} ${TOOL_PROCESSED_LIST[@]})
-#	echo $LINENO TOOL_PROCESSED_LIST: ${TOOL_PROCESSED_LIST[@]} >&2
-	unset PKG
-#	echo $LINENO TOOL_PKGS: ${TOOL_PKGS[@]} >&2
-	for PKG in ${TOOL_PKGS[@]}; do
-		CONF_NAME=$(dirname $PKG)
-		PKG_DIR_NAME=$(basename $PKG)
+	for (( i = $#; i > 0; i-- )); do
+		local -a DEPS=() TOOL_DEPS=()
+		CONF_NAME=$(dirname ${!i})
+		PKG_DIR_NAME=$(basename ${!i})
 		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
 			if [ -f $SPECFILE ]; then
 				source $SPECFILE
@@ -1017,33 +1025,23 @@ add_tool_dep_pkgs()
 			fi
 		done
 		if [ $SPECFOUND = 0 ]; then
-			bs_error "${PKG}'s spec not found"
+			bs_error "${!i}'s spec not found"
 		fi
-		for TOOL_DEP in ${DEPS[@]} ${TOOL_DEPS[@]}; do
-			if [ "$CONF_NAME" != . ] && [ $(basename $TOOL_DEP) = . ]; then
-				TOOL_DEP="$CONF_NAME/$TOOL_DEP"
-			fi
-			for TOOL_DEP_PKG in ${TOOL_DEP_PKGS[@]} ${TOOL_PROCESSED_LIST[@]} ""; do
-				if [ "$TOOL_DEP" = "$TOOL_DEP_PKG" ]; then
-					break
-				fi
-			done
-			if [ -z "$TOOL_DEP_PKG" ]; then
-				TOOL_DEP_PKGS+=($TOOL_DEP)
-			fi
-		done
+#		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
+#		echo $LINENO DEPS: "${DEPS[@]}" >&2
+		if [ ${#TOOL_DEPS[@]} != 0 ]; then
+			add_tool_dep_pkgs ${TOOL_DEPS[@]}
+		fi
+		if [ ${#DEPS[@]} != 0 ]; then
+			add_tool_dep_pkgs ${DEPS[@]}
+		fi
+#		echo $LINENO REVERSED_PKGS: "${REVERSED_PKGS[@]}" >&2
 	done
-#	echo $LINENO INPUT: "${@}" >&2
-#	echo $LINENO TOOL_DEP_PKGS: "${TOOL_DEP_PKGS[@]}" >&2
-#	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
-	if [ ${#TOOL_DEP_PKGS[@]} != 0 ]; then
-		add_tool_dep_pkgs ${TOOL_DEP_PKGS[@]}
-	fi
 }
 
 resolve_deps()
 {
-	local PROCESSED_LIST= TOOL_PROCESSED_LIST=(${BSE_TOOLS[@]})
+	local -a PROCESSED_LIST= TOOL_PROCESSED_LIST=(${BSE_TOOLS[@]})
 	add_dep_pkgs $@
 	case $SDKARCH in
 		i?86|x86*)
