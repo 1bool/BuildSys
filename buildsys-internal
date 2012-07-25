@@ -520,7 +520,7 @@ build_pkgs()
 
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
-		walk_pkg_dir -c -a "pkg_remove" ${BUILD_LIST[@]}
+		walk_pkg_dir -c -a "pkg_remove" ${PKG_LIST[@]}
 		if [ $TARGET_PKGS = all ]; then
 			rm -vf /.first_config
 		fi

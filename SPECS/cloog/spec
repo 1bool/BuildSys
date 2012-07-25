@@ -1,3 +1,4 @@
-PKG_LOCATION='http://www.bastoul.net/cloog/pages/download/cloog-0.16.3.tar.gz'
-CONFIGFLAGS+='--enable-shared'
+VERSION=0.16.3
+PKG_LOCATION="http://www.bastoul.net/cloog/pages/download/cloog-$VERSION.tar.gz"
+CONFIGFLAGS+='--enable-shared --with-gmp'
 DEPS=(glibc gmp)
