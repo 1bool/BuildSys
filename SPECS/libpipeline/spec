@@ -2,4 +2,3 @@ VERSION=1.2.1
 PKG_LOCATION="http://download.savannah.gnu.org/releases/libpipeline/libpipeline-$VERSION.tar.gz"
 DEPS=glibc
 TOOL_DEPS=(binutils gcc sed coreutils bash diffutils gawk grep)
-TARGET_INSTALL=n

@@ -1,5 +1,4 @@
 VERSION=1.4.16
-PKG_LOCATION='http://ftp.gnu.org/gnu/m4/m4-1.4.16.tar.bz2'
+PKG_LOCATION="http://ftp.gnu.org/gnu/m4/m4-$VERSION.tar.bz2"
 DEPS=glibc
 TOOL_DEPS=(binutils gcc coreutils sed)
-TARGET_INSTALL=n

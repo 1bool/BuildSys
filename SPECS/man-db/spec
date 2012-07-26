@@ -5,7 +5,7 @@ PKG_LOCATION="http://download.savannah.gnu.org/releases/man-db/man-db-$VERSION.t
 #libpipeline_LIBS='-lpipeline'
 CONFIGFLAGS="--prefix=/usr                       \
 			--libexecdir=/usr/lib                \
-			--docdir=/usr/share/doc/man-db-2.6.1 \
+			--docdir=/usr/share/doc/man-db-$VERSION \
 			--sysconfdir=/etc                    \
 			--disable-setuid                     \
 			--with-browser=/usr/bin/lynx         \
@@ -21,4 +21,3 @@ CONFIGFLAGS="--prefix=/usr                       \
 
 DEPS=(glibc gdbm libpipeline gzip bzip2 xz groff less)
 TOOL_DEPS=(binutils gcc sed coreutils bash flex gettext grep pkg-config make)
-TARGET_INSTALL=n

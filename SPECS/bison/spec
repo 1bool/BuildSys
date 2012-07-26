@@ -1,5 +1,5 @@
+VERSION=2.5.1
 CONFIGFLAGS='--enable-nls'
-PKG_LOCATION='ftp://ftp.gnu.org/gnu/bison/bison-2.5.1.tar.xz'
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/bison/bison-$VERSION.tar.xz"
 DEPS=(glibc m4)
 TOOL_DEPS=(binutils gcc coreutils sed)
-TARGET_INSTALL=n

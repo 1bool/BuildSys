@@ -521,7 +521,7 @@ build_pkgs()
 	if [ -z "$CONTINUE" ]; then
 		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
 		walk_pkg_dir -c -a "pkg_remove" ${PKG_LIST[@]}
-		if [ $TARGET_PKGS = all ]; then
+		if [ "$TARGET_PKGS" = all ]; then
 			rm -vf /.first_config
 		fi
 	else
@@ -638,17 +638,6 @@ ext4_pkgs()
 	local FS_SIZE
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
 
-	pushd $FS_ROOT
-	if [ -z "$CONTINUE" ]; then
-		walk_pkg_dir -c -a pkg_make_uninstall ${PKG_LIST[@]}
-		if [ "$TARGET_PKGS" = all ]; then
-			bs_notice "Cleaning packages and ${FS_ROOT}"
-			rm -rf * .[!.]*
-		fi
-	else
-		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
-	fi
-
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
@@ -656,6 +645,15 @@ ext4_pkgs()
 	echo '========================================='
 	printf "%s\n" " ${INSTALL_LIST[@]}"
 	echo '========================================='
+
+	pushd $FS_ROOT
+	if [ -z "$CONTINUE" ]; then
+		walk_pkg_dir -c -a pkg_make_uninstall ${INSTALL_LIST[@]}
+		bs_notice "Cleaning packages and ${FS_ROOT}"
+		rm -rf * .[!.]*
+	else
+		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
+	fi
 
 	if [ "$TARGET_PKGS" = all ]; then
 		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
