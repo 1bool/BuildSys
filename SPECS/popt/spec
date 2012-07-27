@@ -1,4 +1,4 @@
-VERSION=1.6
-PKG_LOCATION="http://rpm5.org/files/popt/popt-1.16.tar.gz"
+VERSION=1.16
+PKG_LOCATION="http://rpm5.org/files/popt/popt-$VERSION.tar.gz"
 DEPS=glibc
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)
