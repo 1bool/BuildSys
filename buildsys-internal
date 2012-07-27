@@ -114,13 +114,16 @@ precede_conf_opts()
 		cmake)
 			CONFIGURE=bootstrap
 			;;
+		freetype)
+			CONFIGURE=builds/unix/configure
+			;;
 		*)
 			CONFIGURE=configure
 			;;
 	esac
 	for ARG in $@; do
 		if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
-			bs_notice "${PKG}'s configure does not support ${ARG%=*} directive"
+			bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
 		else
 			CONFIGFLAGS="$ARG $CONFIGFLAGS"
 		fi
@@ -955,92 +958,131 @@ iso_pkgs()
 	bs_notice "Image $IMG_NAME.iso generated successfully"
 }
 
-add_dep_pkgs()
+in_list()
 {
-	local PKG CONF_NAME PKG_DIR_NAME DEP= SPECFILE SPECFOUND=0
-	for (( i = $#; i > 0; i-- )); do
-		local -a PKGS=()
-		for PKG_IN_LIST in ${PROCESSED_LIST[@]} ""; do
-			if [ "${!i}" != "$PKG_IN_LIST" ]; then
-				PKGS+=($PKG_IN_LIST)
-			fi
-		done
-		PROCESSED_LIST=(${!i} ${PKGS[@]})
-	done
-	for (( i = $#; i > 0; i-- )); do
-		local -a DEPS=()
-		CONF_NAME=$(dirname ${!i})
-		PKG_DIR_NAME=$(basename ${!i})
-		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
-			if [ -f $SPECFILE ]; then
-				source $SPECFILE
-				: $((SPECFOUND |= 1))
-			fi
-		done
-		if [ $SPECFOUND = 0 ]; then
-			bs_error "${!i}'s spec not found"
-		fi
-		if [ ${#TOOL_DEPS[@]} != 0 ]; then
-			add_tool_dep_pkgs ${TOOL_DEPS[@]}
-		fi
-		if [ ${#DEPS[@]} != 0 ]; then
-			add_dep_pkgs ${DEPS[@]}
+	local i j="${1}"
+	shift
+	for i in ${@}; do
+		if [ "$i" = "$j" ]; then
+			return 0
 		fi
 	done
+	return 1
 }
 
-add_tool_dep_pkgs()
+remove_from_unresolved()
 {
-	local PKG CONF_NAME PKG_DIR_NAME DEP SPECFILE SPECFOUND=0
-	echo $LINENO INPUT: "${@}" >&2
-	echo $LINENO TOOL_PROCESSED_LIST: "${TOOL_PROCESSED_LIST[@]}" >&2
-	for (( i = $#; i > 0; i-- )); do
-		local -a PKGS=()
-		for PKG_IN_LIST in ${TOOL_PROCESSED_LIST[@]} ""; do
-			if [ "${!i}" != "$PKG_IN_LIST" ]; then
-				PKGS+=($PKG_IN_LIST)
-			fi
-		done
-		TOOL_PROCESSED_LIST=(${!i} ${PKGS[@]})
-	done
-	for (( i = $#; i > 0; i-- )); do
-		local -a DEPS=() TOOL_DEPS=()
-		CONF_NAME=$(dirname ${!i})
-		PKG_DIR_NAME=$(basename ${!i})
-		for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
-			if [ -f $SPECFILE ]; then
-				source $SPECFILE
-				: $((SPECFOUND |= 1))
-			fi
-		done
-		if [ $SPECFOUND = 0 ]; then
-			bs_error "${!i}'s spec not found"
-		fi
-#		echo $LINENO TOOL_DEPS: "${TOOL_DEPS[@]}" >&2
-#		echo $LINENO DEPS: "${DEPS[@]}" >&2
-		if [ ${#TOOL_DEPS[@]} != 0 ]; then
-			add_tool_dep_pkgs ${TOOL_DEPS[@]}
-		fi
-		if [ ${#DEPS[@]} != 0 ]; then
-			add_tool_dep_pkgs ${DEPS[@]}
+	local i
+	local -a LIST=
+	for i in ${UNRESOLVED_LIST[@]}; do
+		if [ "$i" != "$1" ]; then
+			LIST+=($i)
 		fi
 	done
+	UNRESOLVED_LIST=(${LIST[@]})
+}
+
+remove_from_unresolved_tool()
+{
+	local i
+	local -a LIST=
+	for i in ${UNRESOLVED_TOOL_LIST[@]}; do
+		if [ "$i" != "$1" ]; then
+			LIST+=($i)
+		fi
+	done
+	UNRESOLVED_TOOL_LIST=(${LIST[@]})
+}
+
+source_pkg_info()
+{
+	local CONF_NAME=$(dirname ${1}) PKG_DIR_NAME=$(basename ${1})
+	for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
+		if [ -f $SPECFILE ]; then
+			source $SPECFILE
+			: $((SPECFOUND |= 1))
+		fi
+	done
+	if [ $SPECFOUND = 0 ]; then
+		bs_error "${PKG}'s spec not found"
+	fi
+}
+
+deps_of()
+{
+	(
+	source_pkg_info ${1}
+	echo -n ${DEPS[@]}
+	)
+}
+
+tool_deps_of()
+{
+	(
+	source_pkg_info ${1}
+	echo -n ${TOOL_DEPS[@]}
+	)
+}
+
+add_dep_pkg()
+{
+	local DEP
+	echo $FUNCNAME $LINENO PKG: "${1}" >&2
+	UNRESOLVED_LIST+=(${1})
+	for DEP in $(deps_of ${1}); do
+		if ! in_list "$DEP" ${RESOLVED_LIST[@]}; then
+			if in_list "$DEP" ${UNRESOLVED_LIST[@]}; then
+				bs_error "Circular reference detected: $1 -> $DEP"
+			fi
+			add_dep_pkg "$DEP"
+		fi
+	done
+	for DEP in $(tool_deps_of ${1}); do
+		if ! in_list "$DEP" ${RESOLVED_TOOL_LIST[@]}; then
+			if in_list "$DEP" ${UNRESOLVED_TOOL_LIST[@]}; then
+				bs_error "Circular reference detected: $1 -> $DEP"
+			fi
+			add_dep_tool_pkg "$DEP"
+		fi
+	done
+	RESOLVED_LIST+=(${1})
+	remove_from_unresolved "${1}"
+}
+
+add_dep_tool_pkg()
+{
+	local DEP
+	echo $FUNCNAME $LINENO PKG: "${1}" >&2
+	UNRESOLVED_TOOL_LIST+=(${1})
+	for DEP in $(tool_deps_of ${1}) $(deps_of ${1}); do
+		if ! in_list "$DEP" ${RESOLVED_TOOL_LIST[@]}; then
+			if in_list "$DEP" ${UNRESOLVED_TOOL_LIST[@]}; then
+				bs_error "Circular reference detected: $1 -> $DEP"
+			fi
+			add_dep_tool_pkg "$DEP"
+		fi
+	done
+	RESOLVED_TOOL_LIST+=(${1})
+	remove_from_unresolved_tool "${1}"
 }
 
 resolve_deps()
 {
-	local -a PROCESSED_LIST= TOOL_PROCESSED_LIST=(${BSE_TOOLS[@]})
-	add_dep_pkgs $@
+	local -a RESOLVED_LIST= UNRESOLVED_LIST= RESOLVED_TOOL_LIST=(${BSE_TOOLS[@]}) UNRESOLVED_TOOL_LIST=
+	local PKG
+	for PKG in $@; do
+		add_dep_pkg $PKG
+	done
 	case $SDKARCH in
 		i?86|x86*)
 			;;
 		*)
-			for (( i = 0; i < ${#TOOL_PROCESSED_LIST[@]}; i++ )); do
-				TOOL_PROCESSED_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
+			for (( i = 0; i < ${#TOOL_RESOLVED_LIST[@]}; i++ )); do
+				TOOL_RESOLVED_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
 			done
 			;;
 	esac
-	echo "${TOOL_PROCESSED_LIST[@]},${PROCESSED_LIST[@]}"
+	echo "${RESOLVED_TOOL_LIST[@]},${RESOLVED_LIST[@]}"
 }
 
 print_help_and_exit()

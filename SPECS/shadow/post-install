@@ -3,6 +3,7 @@
 # Move a misplaced program to its proper location:
 mv -v usr/bin/passwd bin
 if [ -z "$BUILDSYS_HOST" ]; then
+	echo $(pwd)
     # To enable shadowed passwords, run the following command:
     chroot . pwconv
     # To enable shadowed group passwords, run:

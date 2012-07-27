@@ -4,4 +4,4 @@ CONFIGFLAGS='--enable-shared --with-gmp --with-mpfr --with-mpc --with-ppl --enab
 MAKEFLAGS="tooldir=/usr"
 # Apply a patch to prevent a build failure when using compiler optimizations
 PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/binutils-2.22-build_fix-1.patch'
-DEPS=(glibc zlib gmp mpfr mpc ppl cloog)
+DEPS=(glibc gmp mpc ppl cloog mpfr zlib)
