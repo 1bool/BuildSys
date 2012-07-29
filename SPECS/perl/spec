@@ -1,5 +1,5 @@
 PKG_LOCATION="http://www.cpan.org/src/5.0/perl-5.16.0.tar.bz2"
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/perl-5.16.0-libc-2.patch'
-PATCHES[1]='perl-5.16.0-ignore-other-perl-install-warn.patch'
+PATCHES[1]='ignore-other-perl-error.patch'
 DEPS=(glibc zlib gdbm)
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

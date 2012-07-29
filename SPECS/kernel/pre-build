@@ -4,3 +4,5 @@
 make mrproper
 # Use our own config file for kernel
 cp -v "$SPECS/$PKG/config-${VERSION}${KERN_SUFFIX}" .config
+# Skip kernel configuration by copying the kernel config file, .config, from the host system (assuming it is available) to the unpacked linux directory.
+make oldconfig

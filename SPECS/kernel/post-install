@@ -1,10 +1,10 @@
 #!/bin/bash -eE
 
 # Install the modules, if the kernel configuration uses them:
-export INSTALL_MOD_PATH=$PWD
-cd "$MAKEDIR"
-make DESTDIR=$FS_ROOT modules_install
-cd -
+#export INSTALL_MOD_PATH=$PWD
+#cd "$MAKEDIR"
+#make DESTDIR=$FS_ROOT modules_install
+#cd -
 
 # Make /boot dir for kernel installation
 install -v -m755 -d boot

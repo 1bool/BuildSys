@@ -198,6 +198,57 @@ toolchain_link()
 	PATH="$OPATH"
 }
 
+makefile_of_pkg()
+{
+	case $1 in
+		*glibc)
+			echo -n 'config.make'
+			;;
+		vim | sysvinit)
+			echo -n 'src/Makefile'
+			;;
+		e2fsprogs)
+			echo -n 'misc/Makefile'
+			;;
+		*)
+			echo -n 'Makefile'
+			;;
+	esac
+}
+
+make_fakeroot()
+{
+	local FAKEROOT DESTVAR PKG_NAME=${1} \
+		MAKEFILE=$(makefile_of_pkg $1) MAKE_TARGET MAKE_TARGETS
+	shift
+	local -a MAKE_TARGETS=($@)
+	case $PKG_NAME in
+		linux)
+			DESTVAR=INSTALL_MOD_PATH
+			FAKEROOT=${FS_ROOT}
+			;;
+	esac
+	for MAKE_TARGET in $MAKE_TARGETS; do
+		if ! grep -q "^$MAKE_TARGET" $MAKEFILE; then
+			bs_error "\"${PKG_NAME}\" does not support make $MAKE_TARGET"
+		fi
+	done
+	if [ -z "$DESTVAR" ]; then
+		for DESTVAR in DESTDIR PREFIX ROOT ""; do
+			if fgrep -q -w "$DESTVAR" $MAKEFILE; then
+				if [ $DESTVAR = PREFIX ]; then
+					FAKEROOT=${FS_ROOT}${PREFIX}
+				else
+					FAKEROOT=${FS_ROOT}
+				fi
+				break
+			fi
+		done
+	fi
+	bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS}"
+	make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS}
+}
+
 walk_pkg_dir()
 {
 	local SETOPTS='-eET'
@@ -300,7 +351,7 @@ pkg_make_install()
 			ln -vs "$SRC_DIR" "$MAKEDIR"
 		else
 			if [ -r Makefile ] && [ ! -x configure ]; then
-				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $MAKEFLAGS"
+				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $JOBS $MAKEFLAGS"
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
 				make $MAKEFLAGS $CROSS_MAKEOPTS
 				make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS:-install}
@@ -319,6 +370,7 @@ pkg_make_install()
 					touch ${PKG_DIR}/.configured
 				fi
 				cd $MAKEDIR
+				MAKEFLAGS="$JOBS $MAKEFLAGS"
 				bs_notice "Executing make $MAKEFLAGS"
 				make $MAKEFLAGS
 				make $MAKEFLAGS ${MAKE_TARGETS:-install}
@@ -377,7 +429,7 @@ pkg_make_distclean()
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 	fi
 	cd $PKG_DIR
-	rm -f .done .built .configured
+	rm -rf .done .built .configured build
 }
 
 pkg_make_uninstall()
@@ -387,24 +439,12 @@ pkg_make_uninstall()
 	fi
 	cd $MAKEDIR
 	bs_notice "Uninstalling \"$PKG\"..."
-	case $PKG_NAME in
-		linux)
-			;;
-		*glibc)
-			;;
-		*)
-			if ! grep -q '^uninstall' Makefile; then
-				bs_error "Error: \"${PKG_NAME}\" does not support make uninstall"
-			fi
-			make DESTDIR=$FS_ROOT uninstall
-			;;
-	esac
+	make_fakeroot "$PKG_NAME" uninstall
 	rm -f $PKG_DIR/.installed
 }
 
 pkg_make_dest_install()
 {
-	local FAKEROOT DESTVAR MAKEFILE=Makefile
 	if [ ! -d $MAKEDIR ]; then
 		return
 	fi
@@ -418,31 +458,7 @@ pkg_make_dest_install()
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	cd $MAKEDIR
-	case $PKG_NAME in
-		*glibc)
-			MAKEFILE='config.make'
-			;;
-		vim | sysvinit)
-			MAKEFILE='src/Makefile'
-			;;
-		e2fsprogs)
-			MAKEFILE='misc/Makefile'
-			;;
-	esac
-	for DESTVAR in DESTDIR PREFIX ROOT ""; do
-		if [ -z "$DESTVAR" ]; then
-			break
-		elif fgrep -q -w "$DESTVAR" $MAKEFILE; then
-			if [ $DESTVAR = PREFIX ]; then
-				FAKEROOT=${FS_ROOT}${PREFIX}
-			else
-				FAKEROOT=${FS_ROOT}
-			fi
-			bs_notice "Executing make $DESTVAR=${FAKEROOT} install"
-			make $DESTVAR=${FAKEROOT} install
-			break
-		fi
-	done
+	make_fakeroot "$PKG_NAME" ${MAKE_TARGETS:-install}
 	# post-install can be used to fix target installation problems
 	if [ -x ${SPECS}/${PKG}/post-install ]; then
 		MAKEDIR="$PWD"
@@ -970,28 +986,17 @@ in_list()
 	return 1
 }
 
-remove_from_unresolved()
+remove_from_list()
 {
-	local i
+	local i j="$1"
 	local -a LIST=
-	for i in ${UNRESOLVED_LIST[@]}; do
-		if [ "$i" != "$1" ]; then
+	shift
+	for i in ${@}; do
+		if [ "$i" != "$j" ]; then
 			LIST+=($i)
 		fi
 	done
-	UNRESOLVED_LIST=(${LIST[@]})
-}
-
-remove_from_unresolved_tool()
-{
-	local i
-	local -a LIST=
-	for i in ${UNRESOLVED_TOOL_LIST[@]}; do
-		if [ "$i" != "$1" ]; then
-			LIST+=($i)
-		fi
-	done
-	UNRESOLVED_TOOL_LIST=(${LIST[@]})
+	echo -n ${LIST[@]}
 }
 
 source_pkg_info()
@@ -1027,7 +1032,6 @@ tool_deps_of()
 add_dep_pkg()
 {
 	local DEP
-	echo $FUNCNAME $LINENO PKG: "${1}" >&2
 	UNRESOLVED_LIST+=(${1})
 	for DEP in $(deps_of ${1}); do
 		if ! in_list "$DEP" ${RESOLVED_LIST[@]}; then
@@ -1046,13 +1050,12 @@ add_dep_pkg()
 		fi
 	done
 	RESOLVED_LIST+=(${1})
-	remove_from_unresolved "${1}"
+	UNRESOLVED_LIST=($(remove_from_list "${1}" ${UNRESOLVED_LIST[@]}))
 }
 
 add_dep_tool_pkg()
 {
 	local DEP
-	echo $FUNCNAME $LINENO PKG: "${1}" >&2
 	UNRESOLVED_TOOL_LIST+=(${1})
 	for DEP in $(tool_deps_of ${1}) $(deps_of ${1}); do
 		if ! in_list "$DEP" ${RESOLVED_TOOL_LIST[@]}; then
@@ -1063,7 +1066,7 @@ add_dep_tool_pkg()
 		fi
 	done
 	RESOLVED_TOOL_LIST+=(${1})
-	remove_from_unresolved_tool "${1}"
+	UNRESOLVED_TOOL_LIST=($(remove_from_list "${1}" ${UNRESOLVED_TOOL_LIST[@]}))
 }
 
 resolve_deps()
@@ -1123,9 +1126,10 @@ main()
 	parse_conf_var
 
 	if [ -r /proc/cpuinfo ]; then
-		: ${JOBS:="-j $(grep -F processor /proc/cpuinfo | wc -l)"}
+		CPUS=$(grep -F processor /proc/cpuinfo | wc -l)
+		: ${JOBS:="-j $CPUS"}
 	fi
-	export MAKEFLAGS+=" $JOBS"
+	export JOBS
 
 	pushd /
 	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
