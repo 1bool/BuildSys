@@ -251,13 +251,13 @@ make_fakeroot()
 
 walk_pkg_dir()
 {
-	local SETOPTS='-eET'
+	local CONTINUE=0
 	OPTIND=1
 	while getopts "a:c" FLAG
 	do
 		case "$FLAG" in
 			c)
-				SETOPTS=''
+				CONTINUE=1
 				;;
 			a)
 				ACTS="$OPTARG"
@@ -267,10 +267,10 @@ walk_pkg_dir()
 	shift $((OPTIND - 1))
 
 	for PKG in ${@}; do
-		export PKG
+		export PKG CONTINUE
 		(
 		local SPECFOUND=0
-		set -a $SETOPTS
+		set -aeET
 		PKG_DIR="${BUILD_DIR}/${PKG}"
 		SPEC_DIR="$SPECS/$PKG"
 		MAKEDIR="$PKG_DIR/build"
@@ -295,7 +295,7 @@ walk_pkg_dir()
 		mkdir -p "$PKG_DIR"
 		pushd "$PKG_DIR"
 		for ACT in $ACTS; do
-			if [ -n "$SETOPTS" ]; then
+			if [ "$CONTINUE" = 0 ]; then
 				$ACT
 			else
 				$ACT || bs_notice "Ignoring errors"; continue
