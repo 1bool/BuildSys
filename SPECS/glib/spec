@@ -1,2 +1,2 @@
-PKG_LOCATION='ftp://ftp.gnome.org/pub/gnome/sources/glib/2.32/glib-2.32.3.tar.xz'
+PKG_LOCATION='ftp://ftp.gnome.org/pub/gnome/sources/glib/2.32/glib-2.32.4.tar.xz'
 CONFIGFLAGS='--sysconfdir=/etc'
