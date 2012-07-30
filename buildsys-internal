@@ -198,6 +198,20 @@ toolchain_link()
 	PATH="$OPATH"
 }
 
+set_passwd()
+{
+	local USER="$1" PASS="$2"
+	if [ -z "$PASS" ]; then
+		chroot $FS_ROOT passwd -d $USER
+	else
+		{
+			while true; do
+				echo "$PASS"
+			done
+		} | chroot $FS_ROOT passwd $USER
+	fi
+}
+
 makefile_of_pkg()
 {
 	case $1 in
@@ -221,29 +235,35 @@ make_fakeroot()
 	local FAKEROOT DESTVAR PKG_NAME=${1} \
 		MAKEFILE=$(makefile_of_pkg $1) MAKE_TARGET MAKE_TARGETS
 	shift
+	if [ -x ${SPECS}/${PKG}/build ]; then
+		return
+	fi
 	local -a MAKE_TARGETS=($@)
 	case $PKG_NAME in
 		linux)
 			DESTVAR=INSTALL_MOD_PATH
-			FAKEROOT=${FS_ROOT}
 			;;
 	esac
 	for MAKE_TARGET in $MAKE_TARGETS; do
 		if ! grep -q "^$MAKE_TARGET" $MAKEFILE; then
 			bs_error "\"${PKG_NAME}\" does not support make $MAKE_TARGET"
+			return 1
 		fi
 	done
 	if [ -z "$DESTVAR" ]; then
-		for DESTVAR in DESTDIR PREFIX ROOT ""; do
+		for DESTVAR in DESTDIR PREFIX ROOT prefix ""; do
 			if fgrep -q -w "$DESTVAR" $MAKEFILE; then
-				if [ $DESTVAR = PREFIX ]; then
-					FAKEROOT=${FS_ROOT}${PREFIX}
-				else
-					FAKEROOT=${FS_ROOT}
-				fi
 				break
 			fi
 		done
+	fi
+	if [ -z "$DESTVAR" ]; then
+		bs_error "Don't know how to install $PKG"
+	fi
+	if [ "$DESTVAR" = PREFIX ]; then
+		FAKEROOT=${FS_ROOT}${PREFIX}
+	else
+		FAKEROOT=${FS_ROOT}
 	fi
 	bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS}"
 	make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS}
@@ -541,7 +561,7 @@ build_pkgs()
 		bs_notice "Building package(s) \"${PKG_LIST[@]}\"..."
 		walk_pkg_dir -c -a "pkg_remove" ${PKG_LIST[@]}
 		if [ "$TARGET_PKGS" = all ]; then
-			rm -vf /.first_config
+			rm -vf /.bse_init
 		fi
 	else
 		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
@@ -583,12 +603,12 @@ install_pkgs()
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	if [ "$TARGET_PKGS" = all ]; then
-		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-			configure_system
-			touch .first_config
-		fi
-	fi
+#	if [ "$TARGET_PKGS" = all ]; then
+#		if declare -F configure_system > /dev/null && [ ! -f .bse_init ]; then
+#			configure_system
+#			touch .bse_init
+#		fi
+#	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
 	walk_pkg_dir -a pkg_make_dest_install ${PKG_LIST[@]}
@@ -624,7 +644,7 @@ strip_rootfs()
 			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	fi
 	rm -rvf ./${PREFIX}/share/{awk,doc,getopt,info,man,pkgconfig,readline,vim} \
-		./${PREFIX}/{doc,info,man,include} .first_config
+		./${PREFIX}/{doc,info,man,include} .bse_init
 	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
 		pushd ./${PREFIX}/share/locale
 		for LOCDIR in *; do
@@ -660,6 +680,13 @@ ext4_pkgs()
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
+	if [ ${#TOOLS_LIST[@]} != 0 ]; then
+		bs_notice "Packages to be built for tools:"
+		echo '========================================='
+		printf "%s\n" "${TOOLS_LIST[@]}"
+		echo '========================================='
+		echo
+	fi
 	bs_notice "Packages to be installed after resolving dependencies:"
 	echo '========================================='
 	printf "%s\n" " ${INSTALL_LIST[@]}"
@@ -674,16 +701,20 @@ ext4_pkgs()
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	if [ "$TARGET_PKGS" = all ]; then
-		if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-			configure_system
-			touch .first_config
-		fi
+	if [ ! -f .bse_config ] && declare -F configure_fs > /dev/null; then
+		bs_notice "Creating essential directories and files in ${PWD}"
+		configure_fs
+		touch .bse_config
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_make_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
+	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
+		chroot $FS_ROOT pwconv
+		chroot $FS_ROOT grpconv
+		set_passwd root ""
+	fi
 
 	FS_SIZE=$(du -sb . | cut -f1)
 	dd if=/dev/zero of=$IMG_EXT4 bs=1 count=1 seek=$((FS_SIZE + FS_SIZE/5))
@@ -692,6 +723,7 @@ ext4_pkgs()
 	mount -o loop -t ext4 $IMG_EXT4 /tmp/$$
 	bs_notice "Copying files into ext4 file system"
 	cp -a . /tmp/$$
+	rm -f /tmp/$$/.bse_config
 	umount /tmp/$$
 	rmdir -v /tmp/$$
 	e2fsck -yf $IMG_EXT4
@@ -703,18 +735,47 @@ ext4_pkgs()
 iso_pkgs()
 {
 	ISO_ROOT=$DEV_ROOT/ISOROOT
-	install_pkgs
-	bs_notice "Cleaning $ISO_ROOT"
-	rm -rf $ISO_ROOT
-	bs_notice "Copying $FS_ROOT to $ISO_ROOT"
-	cp -a $FS_ROOT $ISO_ROOT
 	FS_ROOT=$ISO_ROOT
-	CONTINUE=1
-	PKG_LIST=(kernel-cd isolinux)
-	unset TARGET_PKGS
-	install_pkgs
 
-	pushd $ISO_ROOT
+	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
+	TOOLS_LIST=(${BUILD_LIST%,*})
+	INSTALL_LIST=(${BUILD_LIST#*,})
+	if [ ${#TOOLS_LIST[@]} != 0 ]; then
+		bs_notice "Packages to be built for tools:"
+		echo '========================================='
+		printf "%s\n" "${TOOLS_LIST[@]}"
+		echo '========================================='
+		echo
+	fi
+	bs_notice "Packages to be installed after resolving dependencies:"
+	echo '========================================='
+	printf "%s\n" " ${INSTALL_LIST[@]}"
+	echo '========================================='
+
+	pushd $FS_ROOT
+	if [ -z "$CONTINUE" ]; then
+		walk_pkg_dir -c -a pkg_make_uninstall ${INSTALL_LIST[@]}
+		bs_notice "Cleaning packages and ${FS_ROOT}"
+		rm -rf * .[!.]*
+	else
+		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
+	fi
+
+	if [ ! -f .bse_config ] && declare -F configure_fs > /dev/null; then
+		bs_notice "Creating essential directories and files in ${PWD}"
+		configure_fs
+		touch .bse_config
+	fi
+
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_make_dest_install" ${INSTALL_LIST[@]}
+	strip_rootfs
+	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
+		chroot $FS_ROOT pwconv
+		chroot $FS_ROOT grpconv
+		set_passwd root ""
+	fi
+
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh
 	# SET UP SOME VARIABLES FOR DEVICES AND DIRECTORIES
@@ -986,6 +1047,25 @@ in_list()
 	return 1
 }
 
+pkgname_in_list()
+{
+	local i j="${1}"
+	shift
+	for i in ${@}; do
+		export i j
+		(
+		get_pkg_info $i
+		if [ "$PKG_NAME" = "$j" ]; then
+			exit 1
+		fi
+		)
+		if [ $? = 1 ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 remove_from_list()
 {
 	local i j="$1"
@@ -999,7 +1079,7 @@ remove_from_list()
 	echo -n ${LIST[@]}
 }
 
-source_pkg_info()
+get_pkg_info()
 {
 	local CONF_NAME=$(dirname ${1}) PKG_DIR_NAME=$(basename ${1})
 	for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
@@ -1011,12 +1091,13 @@ source_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
+	[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 }
 
 deps_of()
 {
 	(
-	source_pkg_info ${1}
+	get_pkg_info ${1}
 	echo -n ${DEPS[@]}
 	)
 }
@@ -1024,7 +1105,7 @@ deps_of()
 tool_deps_of()
 {
 	(
-	source_pkg_info ${1}
+	get_pkg_info ${1}
 	echo -n ${TOOL_DEPS[@]}
 	)
 }
@@ -1088,6 +1169,18 @@ resolve_deps()
 	echo "${RESOLVED_TOOL_LIST[@]},${RESOLVED_LIST[@]}"
 }
 
+bse_init()
+{
+	[ -x /bin/bash ] || ln -fsv /tools/bin/{bash,cat,echo,pwd,stty} /bin
+	[ -x /usr/bin/perl ] || ln -sv /tools/bin/perl usr/bin
+	[ -f /usr/lib/libgcc_s.so ] || ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib
+	if [ ! -f /usr/lib/libstdc++.so ]; then
+		ln -sv /tools/lib/libstdc++.so{,.6} /usr/lib
+		sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la
+	fi
+	[ -x bin/sh ] || ln -sv bash /bin/sh
+}
+
 print_help_and_exit()
 {
 	exec >&2
@@ -1131,12 +1224,10 @@ main()
 	fi
 	export JOBS
 
-	pushd /
-	if declare -F configure_system > /dev/null && [ ! -f .first_config ]; then
-		configure_system
-		touch .first_config
+	if [ ! -f /.bse_init ]; then
+		bse_init
+		touch /.bse_init
 	fi
-	popd
 
 	cd "$DEV_ROOT"
 	${ACTION:-build_pkgs}

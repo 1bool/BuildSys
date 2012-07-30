@@ -11,7 +11,7 @@ pushd isolinux
 for KERN_FILE in vmlinuz System.map config; do
     mv ${KERN_FILE}-3.4.3-buildsys-cd $KERN_FILE
 done
-rm *-buildsys
+rm -f *-buildsys
 popd
 
 cat > isolinux/isolinux.cfg <<- "EOF"
