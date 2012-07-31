@@ -6,5 +6,5 @@ DEPS=(zlib file nss db libcap gzip bzip2 xz popt)
 TOOL_DEPS=(gcc gettext)
 # Python binding '--enable-python' can be added, also add python in DEPS
 # lua support can be added '--with-lua', also add lua in DEPS
-CONFIGFLAGS=(--enable-nls --without-selinux --with-external-db --with-cap --without-lua --without-dmalloc --without-acl --with-popt)
+CONFIGFLAGS=(--enable-nls --without-selinux --with-external-db --with-cap --without-lua --without-dmalloc --without-acl --with-popt --localstatedir=/var)
 CPPFLAGS="-I/usr/include/nspr -I/usr/include/nss"
