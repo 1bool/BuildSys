@@ -11,7 +11,7 @@ export DEV_ROOT SDKARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
 bs_error()
 {
 	echo -e "!!!!!!!! Error: $@ !!!!!!!!!!" >&2
-	return 1
+	exit 1
 }
 
 bs_notice()
@@ -91,7 +91,7 @@ get_file()
 			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
 			;;
 		*)
-			for FILE in "$SOURCE" "$SPECS/$PKG/$SOURCE" ""; do
+			for FILE in "$SOURCE" "$PKG_SPECDIR/$SOURCE" ""; do
 				if [ -f "$FILE" ]; then
 					ln -vsf "$FILE" "$DEST" || cp -v "$FILE" "$DEST"
 					break
@@ -235,7 +235,7 @@ make_fakeroot()
 	local FAKEROOT DESTVAR PKG_NAME=${1} \
 		MAKEFILE=$(makefile_of_pkg $1) MAKE_TARGET MAKE_TARGETS
 	shift
-	if [ -x ${SPECS}/${PKG}/build ]; then
+	if [ -x ${PKG_SPECDIR}/build ]; then
 		return
 	fi
 	local -a MAKE_TARGETS=($@)
@@ -289,29 +289,10 @@ walk_pkg_dir()
 	for PKG in ${@}; do
 		export PKG CONTINUE
 		(
-		local SPECFOUND=0
 		set -aeET
-		PKG_DIR="${BUILD_DIR}/${PKG}"
-		SPEC_DIR="$SPECS/$PKG"
-		MAKEDIR="$PKG_DIR/build"
-		if [ $(dirname $PKG) != . ]; then
-			source $INCDIR/$(dirname $PKG)
-			parse_conf_var
-			PKG=$(basename $PKG)
-		fi
-		for SPECFILE in "${SPECS}/${PKG}/spec" "${SPECS}/${PKG}/${SPEC_NAME}"; do
-			if [ -f $SPECFILE ]; then
-				bs_notice "Reading $SPECFILE"
-				source $SPECFILE
-				: $((SPECFOUND |= 1))
-			fi
-		done
-		if [ $SPECFOUND = 0 ]; then
-			bs_error "${PKG}'s spec not found"
-		fi
+		get_pkg_info $PKG
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
-		[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 		mkdir -p "$PKG_DIR"
 		pushd "$PKG_DIR"
 		for ACT in $ACTS; do
@@ -355,7 +336,7 @@ pkg_unpack_patch()
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
 		# Only bash and perl supported for scripting as of now
-		[ -x ${SPECS}/${PKG}/pre-build ] && ${SPECS}/${PKG}/pre-build
+		[ -x ${PKG_SPECDIR}/pre-build ] && ${PKG_SPECDIR}/pre-build
 		popd
 		touch .patched
 	fi
@@ -366,8 +347,8 @@ pkg_make_install()
 	if [ ! -f .built ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
-		if [ -x ${SPECS}/${PKG}/build ]; then
-			${SPECS}/${PKG}/build
+		if [ -x ${PKG_SPECDIR}/build ]; then
+			${PKG_SPECDIR}/build
 			ln -vs "$SRC_DIR" "$MAKEDIR"
 		else
 			if [ -r Makefile ] && [ ! -x configure ]; then
@@ -407,9 +388,9 @@ pkg_make_install()
 	fi
 	if [ ! -f .done ]; then
 		# post-install can be used to fix installation problems
-		if [ -x ${SPECS}/${PKG}/post-install ]; then
+		if [ -x ${PKG_SPECDIR}/post-install ]; then
 			pushd /
-			${SPECS}/${PKG}/post-install
+			${PKG_SPECDIR}/post-install
 			popd
 		fi
 		touch .done
@@ -480,10 +461,10 @@ pkg_make_dest_install()
 	cd $MAKEDIR
 	make_fakeroot "$PKG_NAME" ${MAKE_TARGETS:-install}
 	# post-install can be used to fix target installation problems
-	if [ -x ${SPECS}/${PKG}/post-install ]; then
+	if [ -x ${PKG_SPECDIR}/post-install ]; then
 		MAKEDIR="$PWD"
 		pushd "$FS_ROOT"
-		${SPECS}/${PKG}/post-install
+		${PKG_SPECDIR}/post-install
 		popd
 	fi
 	touch $PKG_DIR/.installed
@@ -1054,7 +1035,7 @@ pkgname_in_list()
 	for i in ${@}; do
 		export i j
 		(
-		get_pkg_info $i
+		get_pkg_info $i > /dev/null
 		if [ "$PKG_NAME" = "$j" ]; then
 			exit 1
 		fi
@@ -1081,12 +1062,25 @@ remove_from_list()
 
 get_pkg_info()
 {
-	local CONF_NAME=$(dirname ${1}) PKG_DIR_NAME=$(basename ${1})
-	for SPECFILE in "${SPECS}/${PKG_DIR_NAME}/spec" "${SPECS}/${PKG_DIR_NAME}/${SPEC_NAME}"; do
-		if [ -f $SPECFILE ]; then
-			source $SPECFILE
-			: $((SPECFOUND |= 1))
-		fi
+	local PKG="$1" SPECFOUND=0
+	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
+	PKG_DIR="${BUILD_DIR}/${PKG}"
+	MAKEDIR="$PKG_DIR/build"
+	if [ $(dirname $PKG) != . ]; then
+		source $INCDIR/$(dirname $PKG)
+		parse_conf_var
+		PKG=$(basename $PKG)
+	fi
+	for SPECDIR in SPECS ${SPECDIRS[@]}; do
+		PKG_SPECDIR="$DEV_ROOT/$SPECDIR/$PKG"
+		for SPECFILE in "${PKG_SPECDIR}/spec" "${PKG_SPECDIR}/${SPEC_NAME}"; do
+			if [ -f "$SPECFILE" ]; then
+				bs_notice "Reading $SPECFILE"
+				source $SPECFILE
+				: $((SPECFOUND |= 1))
+			fi
+		done
+		[ $SPECFOUND = 1 ] && break
 	done
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
@@ -1097,7 +1091,7 @@ get_pkg_info()
 deps_of()
 {
 	(
-	get_pkg_info ${1}
+	get_pkg_info ${1} > /dev/null
 	echo -n ${DEPS[@]}
 	)
 }
@@ -1105,7 +1099,7 @@ deps_of()
 tool_deps_of()
 {
 	(
-	get_pkg_info ${1}
+	get_pkg_info ${1} > /dev/null
 	echo -n ${TOOL_DEPS[@]}
 	)
 }

@@ -84,6 +84,14 @@ quit()
 	rmdir $SDE
 }
 
+get_var_from_conf()
+{
+	(
+	source $2
+	eval echo -n \$${1}
+	)
+}
+
 if [ $MYNAME = sde ]; then
 	GETOPTS=$(getopt -o sh --long arm,i686,size,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
@@ -185,6 +193,7 @@ if [ "$ARCH" = 'i686' ]; then
 else
     SDKPATH=/tools/bin
 fi
+SPECDIRS="$(get_var_from_conf SPECDIRS "$BUILD_CONF")"
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -232,7 +241,7 @@ fi
 mkdir $VERBOSE -p $POOL $BS_ROOT/GEN $BS_ROOT/LOG $SDFS_DIR
 install -m 0755 -d "$DEV_ROOT" "$SDE"
 cd $DEV_ROOT
-install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG
+install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG $SPECDIRS
 ln $VERBOSE -f $BS_ROOT/buildsys-internal
 cd -
 
@@ -268,14 +277,14 @@ pushd -n "$SDE/dev" &> /dev/null
 mount $VERBOSE -t devpts devpts "$SDE/dev/pts"
 pushd -n "$SDE/dev/pts" &> /dev/null
 mount $VERBOSE -t tmpfs shm "$SDE/dev/shm"
-pushd -n "/run/shm" &> /dev/null
+pushd -n "shm" &> /dev/null
 mount $VERBOSE -t proc proc "$SDE/proc"
 pushd -n "$SDE/proc" &> /dev/null
 mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount $VERBOSE --bind "$DEV_ROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
-for DIR in SPECS INC POOL GEN LOG; do
+for DIR in SPECS INC POOL GEN LOG $SPECDIRS; do
 	mount $VERBOSE --bind "$BS_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
 	pushd -n "$SDE/$DEVROOT_IN_SDK/$DIR" &> /dev/null
 done
