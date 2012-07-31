@@ -1,0 +1,7 @@
+PKG_LOCATION='http://sqlite.org/sqlite-autoconf-3071300.tar.gz'
+DEPS=glibc
+CONFIGFLAGS='--disable-static'
+CFLAGS="-DSQLITE_SECURE_DELETE=1 -DSQLITE_ENABLE_UNLOCK_NOTIFY=1"
+
+# CFLAGS="-g -O2 -DSQLITE_SECURE_DELETE -DSQLITE_ENABLE_UNLOCK_NOTIFY=1": Applications such as Firefox require secure delete and enable unlock notify to be turned on. The only way to do this is to include them in the CFLAGS. By default, these are set to "-g -O2" so we specify that to preserve those settings. You may, of course, wish to omit the '-g' if you do not wish to create debugging information. For further information on what can be specified see http://www.sqlite.org/compile.html.
+#-DSQLITE_ENABLE_COLUMN_METADATA: Add this to the CFLAGS if you want to use this as a system version for libgda-5.0.3. 

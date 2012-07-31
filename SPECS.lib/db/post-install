@@ -1,0 +1,7 @@
+#!/bin/sh
+
+chown -v -R root:root                        \
+      ./usr/bin/db_*                          \
+      ./usr/include/db{,_185,_cxx}.h          \
+      ./usr/lib/libdb*.{so,la}                \
+      ./usr/share/doc/db-$VERSION
