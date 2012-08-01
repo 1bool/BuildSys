@@ -84,13 +84,17 @@ quit()
 	rmdir $SDE
 }
 
-get_var_from_conf()
+source_var_from_conf()
 {
-	eval $(grep "^$1=.*" $2)
+	local FILE="$1" VARNAME
+	shift
+	for VARNAME in $@; do
+		eval $(grep "^$VARNAME=.*" $FILE 2> /dev/null)
+	done
 }
 
 if [ $MYNAME = sde ]; then
-	GETOPTS=$(getopt -o sh --long arm,i686,size,help -n "$0" -- "$@")
+	GETOPTS=$(getopt -o s:h --long arm,i686,size:,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
 	while true; do
@@ -102,7 +106,7 @@ if [ $MYNAME = sde ]; then
 				export ARCH=i686; shift
 				;;
 			-s | --size)
-				export SDFS_SIZE="$((${2}*1024*1024))"; shift 2
+				export SDFS_SIZE="${2}"; shift 2
 				;;
 			-C | --dir)
 				BS_ROOT="$2"; shift 2
@@ -133,7 +137,7 @@ else
 				export ARCH=i686; shift
 				;;
 			-s | --size)
-				SDFS_SIZE="$((${2}*1024*1024))"; shift 2
+				export SDFS_SIZE="${2}"; shift 2
 				;;
 			-C | --dir)
 				BS_ROOT="$2"; shift 2
@@ -168,7 +172,6 @@ fi
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${POOL:="$BS_ROOT/POOL"}
 : ${SDFS_NAME:="buildsys-$ARCH"}
-: ${SDFS_SIZE:="$((1*1024*1024*1024))"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
 
@@ -190,7 +193,34 @@ if [ "$ARCH" = 'i686' ]; then
 else
     SDKPATH=/tools/bin
 fi
-get_var_from_conf SPECDIRS "$BUILD_CONF"
+source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE
+
+if [ -z "$SDFS_SIZE" ]; then
+	if [ -n "$BSE_FS_SIZE" ]; then
+		SDFS_SIZE=$BSE_FS_SIZE
+	else
+		SDFS_SIZE=1G
+	fi
+fi
+SIZE_UNIT=${SDFS_SIZE: -1}
+case ${SIZE_UNIT} in
+	g|G)
+		SDFS_SIZE=$((${SDFS_SIZE%$SIZE_UNIT}*1024*1024*1024))
+		;;
+	m|M)
+		SDFS_SIZE=$((${SDFS_SIZE%$SIZE_UNIT}*1024*1024))
+		;;
+	k|K)
+		SDFS_SIZE=$((${SDFS_SIZE%$SIZE_UNIT}*1024))
+		;;
+	[0-9])
+		:
+		;;
+	*)
+		echo "Error: Unknown format of filesystem size ${SDFS_SIZE}"
+		exit 1
+		;;
+esac
 
 if [ "$MYNAME" = sde ]; then
 	case "$1" in
@@ -261,7 +291,7 @@ if [ ! -r ${SDFS} ]; then
 	mv ${SDFS_NAME}.ext4 $SDFS
 	cd -
 fi
-if (( $(stat -c%s ${SDFS}) < ${SDFS_SIZE} )); then
+if (( $(stat -c%s ${SDFS}) != ${SDFS_SIZE} )); then
 	e2fsck -f ${SDFS}
 	resize2fs ${SDFS} $((${SDFS_SIZE}/1024))K
 fi
