@@ -414,6 +414,7 @@ pkg_make_install()
 				make
 				make install
 			elif [ -r *.spec ]; then
+				export RPM_BUILD_ROOT="$PKG_DIR"
 				rpmbuild -bb *.spec
 			else
 				bs_error "Don't know how to build package $PKG."
