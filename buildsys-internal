@@ -38,6 +38,11 @@ unpack()
 		*.zip)
 			unzip "$1" -d "$DEST"
 			;;
+		*.src.rpm | *.SRC.RPM)
+			pushd "$DEST"
+			alien -s "$1"
+			popd
+			;;
 		*)
 			bs_error "Unknown package format for \"$1\""
 			;;
@@ -57,6 +62,12 @@ guess_pkg_info()
 		case "$PKG_FILE_NAME" in
 			*.tar.gz | *.tar.bz2 | *.tar.xz)
 				SUFFIX="tar.$SUFFIX"
+				;;
+			*.src.rpm)
+				SUFFIX="src.$SUFFIX"
+				;;
+			*.SRC.RPM)
+				SUFFIX="SRC.$SUFFIX"
 				;;
 		esac
 	fi
@@ -402,6 +413,8 @@ pkg_make_install()
 				perl Makefile.PL
 				make
 				make install
+			elif [ -r *.spec ]; then
+				rpmbuild -bb *.spec
 			else
 				bs_error "Don't know how to build package $PKG."
 			fi
@@ -1124,8 +1137,14 @@ deps_of()
 
 tool_deps_of()
 {
+	local -a ADDITIONAL_TOOLS
 	(
 	get_pkg_info ${1} > /dev/null
+	case "$SUFFIX" in
+		src.rpm|SRC.RPM)
+			TOOL_DEPS+=(rpm alien)
+			;;
+	esac
 	echo -n ${TOOL_DEPS[@]}
 	)
 }
