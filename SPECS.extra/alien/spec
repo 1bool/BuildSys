@@ -1,0 +1,5 @@
+VERSION=8.87
+PKG_NAME=alien
+SRC_DIR=alien
+PKG_LOCATION="http://ftp.de.debian.org/debian/pool/main/a/alien/alien_$VERSION.tar.gz"
+DEPS=(perl rpm make)
