@@ -39,8 +39,10 @@ unpack()
 			unzip "$1" -d "$DEST"
 			;;
 		*.src.rpm | *.SRC.RPM)
-			pushd "$DEST"
-			alien -s "$1"
+			local DIR="$DEST/$(basename $SRC_DIR)"
+			mkdir -pv $DIR
+			pushd "$DIR"
+			rpm2cpio "$1" | cpio -dimuv
 			popd
 			;;
 		*)
@@ -1143,7 +1145,7 @@ tool_deps_of()
 	get_pkg_info ${1} > /dev/null
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
-			TOOL_DEPS+=(rpm alien)
+			TOOL_DEPS+=(rpm cpio)
 			;;
 	esac
 	echo -n ${TOOL_DEPS[@]}
