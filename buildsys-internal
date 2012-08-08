@@ -39,10 +39,8 @@ unpack()
 			unzip "$1" -d "$DEST"
 			;;
 		*.src.rpm | *.SRC.RPM)
-			local DIR="$DEST/$(basename $SRC_DIR)"
-			mkdir -pv $DIR
-			pushd "$DIR"
-			rpm2cpio "$1" | cpio -dimuv
+			pushd "$DEST"
+			alien -s "$1"
 			popd
 			;;
 		*)
@@ -358,6 +356,9 @@ pkg_unpack_patch()
 			get_file "$PATCH" "$PKG_POOL"
 			patch --verbose -Np1 < $PKG_POOL/${PATCH##*/}
 		done
+		if [ -r *.spec ]; then
+			sed -i -e '/rm -rf ${RPM_BUILD_ROOT}/d' *.spec
+		fi
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
 		# Only bash and perl supported for scripting as of now
@@ -416,8 +417,17 @@ pkg_make_install()
 				make
 				make install
 			elif [ -r *.spec ]; then
-				export RPM_BUILD_ROOT="$PKG_DIR"
-				rpmbuild -bb *.spec
+				RPM_SPEC=*.spec
+				rpmbuild -v -bb \
+					--define "_sourcedir $SRC_DIR" \
+					--define "_builddir $MAKEDIR" \
+					--define "_topdir $PKG_DIR" \
+					--define "_rpmdir $GEN_DIR" \
+					--define "_specdir $SRC_DIR" \
+					--define "buildroot %{_buildrootdir}" \
+					$RPM_SPEC
+				cd $PKG_DIR/BUILDROOT
+				cp -a . /
 			else
 				bs_error "Don't know how to build package $PKG."
 			fi
@@ -488,11 +498,25 @@ pkg_make_uninstall()
 
 pkg_make_dest_install()
 {
-	if [ ! -d $MAKEDIR ]; then
-		return
-	fi
 	if [ -f $PKG_DIR/.installed ]; then
 		bs_notice "$PKG has already been installed, skipping..."
+		return
+	fi
+	if [ -r $SRC_DIR/*.spec ]; then
+		RPM_SPEC="$SRC_DIR/*.spec"
+		rpmbuild -v -bb \
+			--define "_sourcedir $SRC_DIR" \
+			--define "_builddir $MAKEDIR" \
+			--define "_buildrootdir $FS_ROOT" \
+			--define "buildroot $FS_ROOT" \
+			--define "_topdir $PKG_DIR" \
+			--define "_rpmdir $GEN_DIR" \
+			--define "_srcrpmdir $GEN_DIR" \
+			--define "_specdir $SRC_DIR" \
+			$RPM_SPEC
+		return
+	fi
+	if [ ! -d $MAKEDIR ]; then
 		return
 	fi
 	if [ "$TARGET_INSTALL" = n ]; then
@@ -1145,7 +1169,7 @@ tool_deps_of()
 	get_pkg_info ${1} > /dev/null
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
-			TOOL_DEPS+=(rpm cpio)
+			TOOL_DEPS+=(alien)
 			;;
 	esac
 	echo -n ${TOOL_DEPS[@]}
@@ -1272,6 +1296,7 @@ main()
 	fi
 
 	cd "$DEV_ROOT"
+	mkdir -pv $FS_ROOT
 	${ACTION:-build_pkgs}
 }
 
