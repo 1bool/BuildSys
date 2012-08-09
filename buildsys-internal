@@ -418,12 +418,13 @@ pkg_make_install()
 				make install
 			elif [ -r *.spec ]; then
 				RPM_SPEC=*.spec
-				rpmbuild -v -bb \
+				rpmbuild -v -bi \
 					--define "_sourcedir $SRC_DIR" \
 					--define "_builddir $MAKEDIR" \
 					--define "_topdir $PKG_DIR" \
 					--define "_rpmdir $GEN_DIR" \
 					--define "_specdir $SRC_DIR" \
+					--define "_sysconfdir /etc" \
 					--define "buildroot %{_buildrootdir}" \
 					$RPM_SPEC
 				cd $PKG_DIR/BUILDROOT
@@ -513,6 +514,7 @@ pkg_make_dest_install()
 			--define "_rpmdir $GEN_DIR" \
 			--define "_srcrpmdir $GEN_DIR" \
 			--define "_specdir $SRC_DIR" \
+			--define "_sysconfdir /etc" \
 			$RPM_SPEC
 		return
 	fi
