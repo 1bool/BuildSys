@@ -49,6 +49,7 @@ buildsys_print_help_and_exit()
 	echo " gentar			Generate root filesystem tarball"
 	echo " genext4		Generate ext4 root filesystem"
 	echo " geniso			Generate root filesystem installation cd"
+	echo " genrpm			Generate rpm package"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
 	echo " uninstall		Uninstall package from root directory in SDE"
