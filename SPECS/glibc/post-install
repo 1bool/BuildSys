@@ -2,10 +2,8 @@
 
 # Fix bug #3 "glibc build loop in NPTL"
 mkdir -p ./$PREFIX/include
-if [ -d ./$PREFIX/tmp-include ]; then
-	cp -av ./$PREFIX/tmp-include/* ./$PREFIX/include
-	rm -vrf ./$PREFIX/tmp-include
-fi
+cp -a ./$PREFIX/libc-include/* ./$PREFIX/include
+rm -rf ./$PREFIX/libc-include
 
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
 cp -v $SRC_DIR/sunrpc/rpc/*.h ./$PREFIX/include/rpc
@@ -18,7 +16,7 @@ if [ $LOCALES != all ]; then
     for LOCALE in $LOCALES; do
 	case $LOCALE in
 	    en_HK|en_PH|en_US|es_MX|fr_FR|it_IT)
-		./$prefix/bin/localedef -i $LOCALE -f ISO-8859-1 $LOCALE --prefix=./
+		./$PREFIX/bin/localedef -i $LOCALE -f ISO-8859-1 $LOCALE --prefix=./
 		;;&
 	    zh_CN|cs_CZ|de_DE|en_US|fr_FR|tr_TR)
 		./$PREFIX/bin/localedef -i $LOCALE -f UTF-8 $LOCALE.UTF-8 --prefix=./

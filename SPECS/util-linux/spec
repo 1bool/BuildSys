@@ -1,4 +1,4 @@
 VERSION=2.21.2
-PKG_LOCATION='http://www.kernel.org/pub/linux/utils/util-linux/v2.21/util-linux-2.21.1.tar.xz'
+PKG_LOCATION="http://www.kernel.org/pub/linux/utils/util-linux/v2.21/util-linux-$VERSION.tar.xz"
 DEPS=(glibc ncurses zlib)
 TOOL_DEPS=(binutils gcc sed)

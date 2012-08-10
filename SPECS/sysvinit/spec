@@ -1,5 +1,7 @@
 VERSION=2.88dsf
 PKG_LOCATION="http://download.savannah.gnu.org/releases/sysvinit/sysvinit-$VERSION.tar.bz2"
-MAKEFLAGS='-C src'
+# Don't make concurrently to prevent premature installation
+MAKEFLAGS='-j1'
+MAKE_TARGETS='all install'
 DEPS=glibc
 TOOL_DEPS=(binutils gcc sed coreutils make)

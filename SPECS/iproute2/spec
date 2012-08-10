@@ -1,4 +1,4 @@
 VERSION=3.5.0
-PKG_LOCATION='http://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-$VERSION.tar.xz'
+PKG_LOCATION="http://www.kernel.org/pub/linux/utils/net/iproute2/iproute2-$VERSION.tar.xz"
 DEPS=(glibc kernel-headers)
 TOOL_DEPS=(binutils gcc coreutils bison bash flex)
