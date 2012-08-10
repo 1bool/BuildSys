@@ -1,5 +1,8 @@
 #!/bin/bash -eE
 
+# Fix a bug that causes the build to fail:
+sed -i 's#<rpc/types.h>#"rpc/types.h"#' sunrpc/rpc_clntout.c
+
 # When running make install, a script called test-installation.pl performs a small sanity test on our newly installed Glibc. However, because our toolchain still points to the /tools directory, the sanity test would be carried out against the wrong Glibc.
 sed -i '/test-installation.pl/d' Makefile
 
