@@ -778,10 +778,10 @@ ext4_pkgs()
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	if [ ! -f .bse_config ] && declare -F configure_fs > /dev/null; then
+	if [ ! -f .bse_init ] && declare -F configure_fs > /dev/null; then
 		bs_notice "Creating essential directories and files in ${PWD}"
 		configure_fs
-		touch .bse_config
+		touch .bse_init
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
@@ -800,7 +800,7 @@ ext4_pkgs()
 	mount -o loop -t ext4 $IMG_EXT4 /tmp/$$
 	bs_notice "Copying files into ext4 file system"
 	cp -a . /tmp/$$
-	rm -f /tmp/$$/.bse_config
+	rm -f /tmp/$$/.bse_init
 	umount /tmp/$$
 	rmdir -v /tmp/$$
 	e2fsck -yf $IMG_EXT4
@@ -838,10 +838,10 @@ iso_pkgs()
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
-	if [ ! -f .bse_config ] && declare -F configure_fs > /dev/null; then
+	if [ ! -f .bse_init ] && declare -F configure_fs > /dev/null; then
 		bs_notice "Creating essential directories and files in ${PWD}"
 		configure_fs
-		touch .bse_config
+		touch .bse_init
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
@@ -1306,6 +1306,10 @@ resolve_deps()
 
 bse_init()
 {
+	if declare -F configure_fs > /dev/null; then
+		bs_notice "Creating essential directories and files in ${PWD}"
+		configure_fs
+	fi
 	[ -x /bin/bash ] || ln -fsv /tools/bin/{bash,cat,echo,pwd,stty} /bin
 	[ -x /usr/bin/perl ] || ln -sv /tools/bin/perl usr/bin
 	[ -f /usr/lib/libgcc_s.so ] || ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib
