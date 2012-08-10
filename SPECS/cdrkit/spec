@@ -1,4 +1,4 @@
 VERSION=1.1.11
 PKG_LOCATION="http://cdrkit.org/releases/cdrkit-$VERSION.tar.gz"
 TOOL_DEPS=cmake
-DEPS=libcap
+DEPS=(libcap bzip2)

@@ -257,6 +257,7 @@ make_fakeroot()
 {
 	local FAKEROOT DESTVAR PKG_NAME=${1} \
 		MAKEFILE="$(makefile_of_pkg $1)" MAKE_TARGET MAKE_TARGETS
+	local -i i
 	shift
 	if [ -x ${PKG_SPECDIR}/build ]; then
 		return
@@ -293,7 +294,9 @@ make_fakeroot()
 		FAKEROOT=${FS_ROOT}
 	fi
 	bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[@]}"
-	make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[@]}
+	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGET[$i]}
+	done
 }
 
 walk_pkg_dir()
@@ -390,6 +393,7 @@ pkg_unpack_patch()
 
 pkg_make_install()
 {
+	local -i i
 	if [ ! -f .built ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
@@ -407,7 +411,9 @@ pkg_make_install()
 #				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
 #				make $MAKEFLAGS $CROSS_MAKEOPTS
 				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[@]}"
-				make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[@]}
+				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
+				done
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/.configured ]; then
 					precede_conf_opts "--prefix=$PREFIX"
@@ -428,7 +434,9 @@ pkg_make_install()
 				bs_notice "Executing make $MAKEFLAGS"
 				make $MAKEFLAGS
 				bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[@]}"
-				make $MAKEFLAGS ${MAKE_TARGETS[@]}
+				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					make $MAKEFLAGS ${MAKE_TARGETS[$i]}
+				done
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make
@@ -818,6 +826,7 @@ iso_pkgs()
 {
 	ISO_ROOT=$DEV_ROOT/ISOROOT
 	FS_ROOT=$ISO_ROOT
+	mkdir -pv $ISO_ROOT
 
 	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
 	TOOLS_LIST=(${BUILD_LIST%,*})
