@@ -1,5 +1,6 @@
 VERSION=2.16.0
 PKG_LOCATION="ftp://ftp.gnu.org/gnu/glibc/glibc-$VERSION.tar.xz"
+ADDITIONS="http://www.iana.org//time-zones/repository/releases/tzdata2012c.tar.gz"
 CONFIGFLAGS='--prefix=/usr --disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc'
 # Fix bug #3 "glibc build loop in NPTL"
 CONFIGFLAGS+=' --includedir=/usr/tmp-include'

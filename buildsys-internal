@@ -1306,6 +1306,7 @@ resolve_deps()
 
 bse_init()
 {
+	rm -rf bin boot etc home lib media mnt opt sbin srv tmp usr
 	if declare -F configure_fs > /dev/null; then
 		bs_notice "Creating essential directories and files in ${PWD}"
 		configure_fs
@@ -1365,6 +1366,7 @@ main()
 	export JOBS
 
 	if [ ! -f /.bse_init ]; then
+		cd /
 		bse_init
 		touch /.bse_init
 	fi

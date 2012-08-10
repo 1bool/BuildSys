@@ -63,6 +63,11 @@ rpc: files
 # End /etc/nsswitch.conf
 EOF
 
+for tz in etcetera southamerica northamerica europe africa antarctica \
+  asia australasia backward pacificnew solar87 solar88 solar89 systemv; do
+    zic -L $SRC_DIR/leapseconds -d ./usr/share/zoneinfo -y "sh yearistype.sh" $SRC_DIR/${tz}
+done
+cp -v $SRC_DIR/*.tab ./usr/share/zoneinfo
 cp -v --remove-destination ./$PREFIX/share/zoneinfo/Asia/Shanghai etc/localtime
 
 # By default, the dynamic loader (/lib/ld-linux.so.2) searches through /lib and /usr/lib for dynamic libraries that are needed by programs as they are run. However, if there are libraries in directories other than /lib and /usr/lib, these need to be added to the /etc/ld.so.conf file in order for the dynamic loader to find them. Two directories that are commonly known to contain additional libraries are /usr/local/lib and /opt/lib, so add those directories to the dynamic loader's search path. 
