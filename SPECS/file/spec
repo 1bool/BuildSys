@@ -1,2 +1,3 @@
-PKG_LOCATION='ftp://ftp.astron.com/pub/file/file-5.11.tar.gz'
+VERSION=5.11
+PKG_LOCATION="ftp://ftp.astron.com/pub/file/file-$VERSION.tar.gz"
 DEPS=(glibc zlib)

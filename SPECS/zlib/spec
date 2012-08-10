@@ -2,5 +2,5 @@
 #PKG_LOCATION='http://www.zlib.net/zlib-1.2.6.tar.bz2'
 VERSION=1.2.7
 PKG_LOCATION='http://sourceforge.net/projects/libpng/files/zlib/$VERSION/zlib-$VERSION.tar.bz2'
-PATCHES="$SPEC_DIR/zlib_uninstall_may_remove_src.patch"
+PATCHES="zlib_uninstall_may_remove_src.patch"
 DEPS=glibc

@@ -1,18 +1,13 @@
-PKG_LOCATION='http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-1.42.2.tar.gz'
+VERSION=1.42.5
+PKG_LOCATION="http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-$VERSION.tar.gz"
 CONFIGFLAGS='--with-root-prefix="" --enable-elf-shlibs --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck'
-PKG_CONFIG=/tools/bin/true
-LDFLAGS="-lblkid -luuid"
+MAKE_TARGETS=(install install-libs)
+DEPS=(glibc util-linux)
+TOOL_DEPS=(binutils gcc sed pkg-config)
 
-export PKG_CONFIG LDFLAGS
-
-# PKG_CONFIG...
-# 	This enables E2fsprogs to be built without requiring Pkg-config to be built and installed first.
 # --with-root-prefix=""
 # 	Certain programs (such as the e2fsck program) are considered essential programs. When, for example, /usr is not mounted, these programs still need to be available. They belong in directories like /lib and /sbin. If this option is not passed to E2fsprogs' configure, the programs are installed into the /usr directory.
 # --enable-elf-shlibs
 # 	This creates the shared libraries which some programs in this package use.
 # --disable-*
 # 	This prevents E2fsprogs from building and installing the libuuid and libblkid libraries, the uuidd daemon, and the fsck wrapper, as Util-Linux installed all of them earlier.
-
-DEPS=(glibc util-linux)
-TOOL_DEPS=(binutils gcc sed)

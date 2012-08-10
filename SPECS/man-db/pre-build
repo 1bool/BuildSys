@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# Fix an incompatibility between this package and Glibc-2.16.0:
+sed -i -e '/gets is a/d' lib/stdio.in.h

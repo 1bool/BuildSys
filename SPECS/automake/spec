@@ -1,4 +1,4 @@
-VERSION=1.11.4
+VERSION=1.12.2
 CONFIGFLAGS="--prefix=/usr --docdir=/usr/share/doc/automake-$VERSION"
 PKG_LOCATION="http://ftp.gnu.org/gnu/automake/automake-$VERSION.tar.xz"
 DEPS=(sed autoconf bash coreutils grep m4 perl gettext)

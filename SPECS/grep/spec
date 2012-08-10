@@ -1,4 +1,4 @@
-VERSION=2.12
+VERSION=2.13
 PKG_LOCATION="http://ftp.gnu.org/gnu/grep/grep-$VERSION.tar.xz"
 CONFIGFLAGS='--bindir=/bin'
 DEPS=glibc
