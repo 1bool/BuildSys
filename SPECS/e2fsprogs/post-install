@@ -1,10 +1,10 @@
 #!/bin/bash -eE
 
 # Install the static libraries and headers
-DESTDIR=$PWD
-cd $MAKEDIR
-make DESTDIR=$DESTDIR install-libs
-cd -
+#DESTDIR=$PWD
+#cd $MAKEDIR
+#make DESTDIR=$DESTDIR install-libs
+#cd -
 
 # Make the installed static libraries writable so debugging symbols can be removed later
 chmod -v u+w usr/lib/{libcom_err,libe2p,libext2fs,libss}.a

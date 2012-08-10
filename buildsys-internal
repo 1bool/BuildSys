@@ -749,9 +749,9 @@ strip_rootfs()
 tar_pkgs()
 {
 	install_pkgs
-	pushd $FS_ROOT
+	strip_rootfs
+	cd $FS_ROOT
 	tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
-	popd
 	bs_notice "File $IMG_NAME.tar.xz generated successfully"
 }
 

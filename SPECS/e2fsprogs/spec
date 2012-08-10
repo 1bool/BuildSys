@@ -1,7 +1,7 @@
 VERSION=1.42.5
 PKG_LOCATION="http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-$VERSION.tar.gz"
 CONFIGFLAGS='--with-root-prefix="" --enable-elf-shlibs --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck'
-MAKE_TARGETS=(install install-libs)
+MAKE_TARGETS=(uninstall install install-libs)
 DEPS=(glibc util-linux)
 TOOL_DEPS=(binutils gcc sed pkg-config)
 
