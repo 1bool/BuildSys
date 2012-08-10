@@ -354,7 +354,23 @@ pkg_unpack_patch()
 		pushd "$SRC_DIR"
 		for PATCH in ${PATCHES[@]}; do
 			get_file "$PATCH" "$PKG_POOL"
-			patch --verbose -Np1 < $PKG_POOL/${PATCH##*/}
+			case $PATCH in
+				*.patch.gz)
+					gzip -d --stdout $PKG_POOL/${PATCH##*/} | patch --verbose -Np1
+					;;
+				*.patch.bz2)
+					bzip2 -d --stdout $PKG_POOL/${PATCH##*/} | patch --verbose -Np1
+					;;
+				*.patch.xz)
+					xz -d --stdout $PKG_POOL/${PATCH##*/} | patch --verbose -Np1
+					;;
+				*.patch)
+					patch --verbose -Np1 < $PKG_POOL/${PATCH##*/}
+					;;
+				*)
+					bs_error "Unknown patch format"
+					;;
+			esac
 		done
 		if [ -r *.spec ]; then
 			sed -i -e '/rm -rf ${RPM_BUILD_ROOT}/d' *.spec
