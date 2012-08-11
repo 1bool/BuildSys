@@ -1,0 +1,3 @@
+VERSION=3.0.21
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/gnutls/gnutls-$VERSION.tar.xz"
+DEPS=(nettle libtasn1 libidn p11-kit)

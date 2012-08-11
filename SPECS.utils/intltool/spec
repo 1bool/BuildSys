@@ -1,0 +1,5 @@
+VERSION=0.50.2
+PKG_LOCATION="http://launchpad.net/intltool/trunk/$VERSION/+download/intltool-$VERSION.tar.gz"
+# The url redirect to https, thus need wget
+TOOL_DEPS=wget
+DEPS=(gettext patch automake expat perl file)

@@ -5,4 +5,4 @@ CONFIGFLAGS='--libdir=/lib --libexecdir=/usr/lib'
 DEPS=glibc
 INSTALL_USER=root
 INSTALL_GROUP=root
-MAKE_TARGETS=(install install-dev install-lib)
+MAKE_TARGETS=('' install install-dev install-lib)

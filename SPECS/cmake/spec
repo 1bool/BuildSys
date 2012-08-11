@@ -1,5 +1,0 @@
-PKG_LOCATION='http://www.cmake.org/files/v2.8/cmake-2.8.7.tar.gz'
-# --system-libs: This option forces the build system to link against Zlib, Bzip2, cURL and Expat installed on the system.
-# --qt-gui: This option builds a Qt-based GUI for CMake. 
-CONFIGFLAGS='--mandir=/share/man --docdir=/share/doc/cmake-2.8.7'
-DEPS=curl

@@ -1,5 +1,5 @@
 #!/bin/sh
 # This command removes Makefiles and man files from the documentation directory that would otherwise be installed by the commands that follow.
 find docs \( -name "Makefile*" -o -name "*.1" -o -name "*.3" \) -exec rm {} 
-install -v -d -m755 usr/share/doc/curl-7.25.0
-cp -v -R $MAKEDIR/docs/*     usr/share/doc/curl-7.25.0
+install -v -d -m755 usr/share/doc/curl-$VERSION
+cp -v -R $MAKEDIR/docs/*     usr/share/doc/curl-$VERSION

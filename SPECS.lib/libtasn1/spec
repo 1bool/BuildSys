@@ -1,0 +1,3 @@
+VERSION=2.13
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/libtasn1/libtasn1-$VERSION.tar.gz"
+DEPS=glibc

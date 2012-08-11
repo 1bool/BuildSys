@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ln -svf Makefile.lfs Makefile
+#ln -svf . $(basename $PWD)

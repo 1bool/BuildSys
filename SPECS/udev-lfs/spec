@@ -1,0 +1,6 @@
+VERSION=187-2
+PKG_NAME=udev-lfs
+SRC_DIR=udev-lfs-187
+#MAKEDIR=.
+#MAKEFLAGS="-f $SRC_DIR/Makefile.lfs"
+PKG_LOCATION="http://anduin.linuxfromscratch.org/sources/other/udev-lfs-$VERSION.tar.bz2"
