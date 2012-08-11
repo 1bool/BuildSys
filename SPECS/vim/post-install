@@ -17,7 +17,7 @@ cat > etc/vimrc << "EOF"
 
 set nocompatible
 set backspace=2
-syntax on
+#syntax on
 if (&term == "iterm") || (&term == "putty")
 	set background=dark
 endif
