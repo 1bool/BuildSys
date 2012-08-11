@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/lib/libICE-1.0.8.tar.bz2"
+CONFIGFLAGS="--disable-static"
