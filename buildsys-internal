@@ -85,6 +85,7 @@ guess_pkg_info()
 	else
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
+	: ${RPM_SPEC:="$SRC_DIR/*.spec"}
 	MAKEDIR="$PKG_DIR/$MAKEDIR"
 }
 
@@ -446,21 +447,8 @@ pkg_make_install()
 				perl Makefile.PL
 				make
 				make install
-			elif [ -r *.spec ]; then
-				RPM_SPEC=*.spec
-				if [ ! -d $PKG_DIR/BUILDROOT ]; then
-					rpmbuild -v -bi \
-						--define "_sourcedir $SRC_DIR" \
-						--define "_builddir $MAKEDIR" \
-						--define "_topdir $PKG_DIR" \
-						--define "_rpmdir $GEN_DIR" \
-						--define "_specdir $SRC_DIR" \
-						--define "_sysconfdir /etc" \
-						--define "buildroot %{_buildrootdir}" \
-						$RPM_SPEC
-				fi
-				cd $PKG_DIR/BUILDROOT
-				cp -a . /
+			elif [ -r "$RPM_SPEC" ]; then
+				pkg_rpm_install
 			else
 				bs_error "Don't know how to build package $PKG."
 			fi
@@ -575,10 +563,27 @@ pkg_remove()
 	fi
 }
 
+pkg_rpm_install()
+{
+	if [ ! -d $PKG_DIR/BUILDROOT ]; then
+		bs_notice "Executing rpmbuild -v -bi"
+		rpmbuild -v -bi \
+			--define "_sourcedir $SRC_DIR" \
+			--define "_builddir $MAKEDIR" \
+			--define "_topdir $PKG_DIR" \
+			--define "_rpmdir $GEN_DIR" \
+			--define "_specdir $SRC_DIR" \
+			--define "_sysconfdir /etc" \
+			--define "buildroot %{_buildrootdir}" \
+			$RPM_SPEC
+	fi
+	cd $PKG_DIR/BUILDROOT
+	cp -a . /
+}
+
 pkg_rpm_dest_install()
 {
-	RPM_SPEC="$SRC_DIR/*.spec"
-	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
+	bs_notice "Executing rpmbuild -v -bb --short-circuit"
 	rpmbuild -v -bb --short-circuit \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
@@ -593,15 +598,39 @@ pkg_rpm_dest_install()
 	cp -a . $FS_ROOT
 }
 
-pkg_gen_rpm()
+pkg_rpmbuild()
 {
-	pkg_unpack_patch
-	RPM_SPEC="${SRC_DIR}/*.spec"
-	if [ ! -r $RPM_SPEC ]; then
-		bs_error "No .spec file found to build rpm package for $PKG"
-	fi
-	pkg_make_install
-	pkg_rpm_dest_install
+	case $SUFFIX in
+		src.rpm|SRC.RPM)
+			bs_notice "Executing rpmbuild -v --rebuild"
+			rpmbuild -v --rebuild \
+				--define "_sourcedir $SRC_DIR" \
+				--define "_builddir $MAKEDIR" \
+				--define "_topdir $PKG_DIR" \
+				--define "_rpmdir $GEN_DIR" \
+				--define "_srcrpmdir $GEN_DIR" \
+				--define "_specdir $SRC_DIR" \
+				--define "buildroot %{_buildrootdir}" \
+				--define "_sysconfdir /etc" \
+				$PKG_POOL/$PKG_FILE_NAME
+			;;
+		tar.*)
+			bs_notice "Executing rpmbuild -v -ta"
+			rpmbuild -v -ta \
+				--define "_sourcedir $SRC_DIR" \
+				--define "_builddir $MAKEDIR" \
+				--define "_topdir $PKG_DIR" \
+				--define "_rpmdir $GEN_DIR" \
+				--define "_srcrpmdir $GEN_DIR" \
+				--define "_specdir $SRC_DIR" \
+				--define "buildroot %{_buildrootdir}" \
+				--define "_sysconfdir /etc" \
+				$PKG_POOL/$PKG_FILE_NAME
+			;;
+		*)
+			bs_error "$PKG does not support rpmbuild"
+			;;
+	esac
 }
 
 clean_pkgs()
@@ -1130,12 +1159,13 @@ iso_pkgs()
 
 rpm_pkgs()
 {
+	local PKG
 	bs_notice "Generating rpm packages:"
 	echo '========================================='
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
-	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	BUILD_LIST="$(resolve_deps rpm ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
@@ -1158,8 +1188,11 @@ rpm_pkgs()
 		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
+	for PKG in ${PKG_LIST[@]}; do
+		BUILD_LIST=($(remove_from_list $PKG $BUILD_LIST))
+	done
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
-	walk_pkg_dir -a "pkg_gen_rpm" ${PKG_LIST[@]}
+	walk_pkg_dir -a "pkg_rpmbuild" ${PKG_LIST[@]}
 	bs_notice "RPM package(s) \"${PKG_LIST[@]}\" generated successfully in GEN directory."
 }
 
