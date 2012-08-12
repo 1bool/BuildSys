@@ -296,9 +296,12 @@ make_fakeroot()
 	else
 		FAKEROOT=${FS_ROOT}
 	fi
-	bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[@]}"
 	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
-		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGET[$i]}
+		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
+			continue
+		fi
+		bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}"
+		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}
 	done
 }
 
@@ -411,8 +414,8 @@ pkg_make_install()
 			fi
 			if [ -r Makefile ] && [ ! -x configure ]; then
 				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $JOBS $MAKEFLAGS"
-				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[@]}"
 				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					bs_notice "Executing make $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}"
 					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
 				done
 			elif [ -x configure ]; then
@@ -432,8 +435,8 @@ pkg_make_install()
 				fi
 				cd $MAKEDIR
 				MAKEFLAGS="$JOBS $MAKEFLAGS"
-				bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[@]}"
 				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[$i]}"
 					make $MAKEFLAGS ${MAKE_TARGETS[$i]}
 				done
 			elif [ -r ${PKG_NAME}.pro ]; then
