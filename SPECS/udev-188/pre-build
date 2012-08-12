@@ -1,3 +1,0 @@
-#!/bin/sh
-
-echo -e "Name: dbus-1\nDescription: stub\nVersion: 999" > dbus-1.pc

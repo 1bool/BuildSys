@@ -1,4 +1,4 @@
 #!/bin/sh
-
-ln -svf Makefile.lfs Makefile
+mv configure configure.bak
+ln -svf udev-lfs-$VERSION/Makefile.lfs Makefile
 #ln -svf . $(basename $PWD)
