@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/x11perf-1.5.4.tar.bz2"
+CONFIGFLAGS="--disable-static"

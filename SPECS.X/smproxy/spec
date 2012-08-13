@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/smproxy-1.0.5.tar.bz2"
+CONFIGFLAGS="--disable-static"

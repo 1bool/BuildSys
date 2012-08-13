@@ -1,0 +1,6 @@
+#!/bin/sh
+
+sed 's@FLAGS=\"-g@FLAGS=\"@' -i configure
+# cp ../../../POOL/MesaLib-8.0.4-* ../
+patch -Np1 -i ../MesaLib-8.0.4-add_xdemos-2.patch
+patch -Np1 -i ../MesaLib-8.0.4-llvm-3.1-fixes-1.patch
