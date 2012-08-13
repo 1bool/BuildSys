@@ -1,0 +1,3 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/data/xkeyboard-config/xkeyboard-config-2.6.tar.bz2"
+CONFIGFLAGS="--with-xkb-rules-symlink=xorg --disable-static"
+DEPS=(intltool)

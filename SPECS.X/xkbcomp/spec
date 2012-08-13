@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xkbcomp-1.2.4.tar.bz2"
+CONFIGFLAGS="--disable-static"

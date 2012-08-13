@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xbacklight-1.1.2.tar.bz2"
+CONFIGFLAGS="--disable-static"
