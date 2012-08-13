@@ -176,8 +176,6 @@ fi
 : ${BS_ROOT:="$PWD"}
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${POOL:="$BS_ROOT/POOL"}
-: ${SDFS_NAME:="buildsys-$ARCH"}
-: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
 : ${CONF:=$INC_DIR/build-$ARCH.conf}
 
 for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
@@ -198,7 +196,9 @@ if [ "$ARCH" = 'i686' ]; then
 else
     SDKPATH=/tools/bin
 fi
-source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE
+source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE ARCH
+: ${SDFS_NAME:="buildsys-$ARCH"}
+: ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
 
 if [ -z "$SDFS_SIZE" ]; then
 	if [ -n "$BSE_FS_SIZE" ]; then
