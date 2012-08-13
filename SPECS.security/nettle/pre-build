@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -i -e 's/^install-here: install-info/install-here:/' Makefile.in

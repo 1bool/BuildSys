@@ -85,6 +85,7 @@ guess_pkg_info()
 	else
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
+	: ${RPM_SPEC:="$SRC_DIR/*.spec"}
 	MAKEDIR="$PKG_DIR/$MAKEDIR"
 }
 
@@ -128,6 +129,9 @@ precede_conf_opts()
 			;;
 		freetype)
 			CONFIGURE=builds/unix/configure
+			;;
+		openssl)
+			CONFIGURE=Configure
 			;;
 		*)
 			CONFIGURE=configure
@@ -257,6 +261,7 @@ make_fakeroot()
 {
 	local FAKEROOT DESTVAR PKG_NAME=${1} \
 		MAKEFILE="$(makefile_of_pkg $1)" MAKE_TARGET MAKE_TARGETS
+	local -i i
 	shift
 	if [ -x ${PKG_SPECDIR}/build ]; then
 		return
@@ -292,8 +297,13 @@ make_fakeroot()
 	else
 		FAKEROOT=${FS_ROOT}
 	fi
-	bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[@]}"
-	make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[@]}
+	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
+			continue
+		fi
+		bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}"
+		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}
+	done
 }
 
 walk_pkg_dir()
@@ -382,7 +392,7 @@ pkg_unpack_patch()
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
 		# Only bash and perl supported for scripting as of now
-		[ -x ${PKG_SPECDIR}/pre-build ] && ${PKG_SPECDIR}/pre-build
+		[ -f ${PKG_SPECDIR}/pre-build ] && ${PKG_SPECDIR}/pre-build
 		popd
 		touch .patched
 	fi
@@ -390,6 +400,7 @@ pkg_unpack_patch()
 
 pkg_make_install()
 {
+	local -i i
 	if [ ! -f .built ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
@@ -404,10 +415,10 @@ pkg_make_install()
 			fi
 			if [ -r Makefile ] && [ ! -x configure ]; then
 				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $JOBS $MAKEFLAGS"
-#				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS"
-#				make $MAKEFLAGS $CROSS_MAKEOPTS
-				bs_notice "Executing make with $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[@]}"
-				make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[@]}
+				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					bs_notice "Executing make $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}"
+					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
+				done
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/.configured ]; then
 					precede_conf_opts "--prefix=$PREFIX"
@@ -425,10 +436,10 @@ pkg_make_install()
 				fi
 				cd $MAKEDIR
 				MAKEFLAGS="$JOBS $MAKEFLAGS"
-				bs_notice "Executing make $MAKEFLAGS"
-				make $MAKEFLAGS
-				bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[@]}"
-				make $MAKEFLAGS ${MAKE_TARGETS[@]}
+				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+					bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[$i]}"
+					make $MAKEFLAGS ${MAKE_TARGETS[$i]}
+				done
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make
@@ -436,21 +447,8 @@ pkg_make_install()
 				perl Makefile.PL
 				make
 				make install
-			elif [ -r *.spec ]; then
-				RPM_SPEC=*.spec
-				if [ ! -d $PKG_DIR/BUILDROOT ]; then
-					rpmbuild -v -bi \
-						--define "_sourcedir $SRC_DIR" \
-						--define "_builddir $MAKEDIR" \
-						--define "_topdir $PKG_DIR" \
-						--define "_rpmdir $GEN_DIR" \
-						--define "_specdir $SRC_DIR" \
-						--define "_sysconfdir /etc" \
-						--define "buildroot %{_buildrootdir}" \
-						$RPM_SPEC
-				fi
-				cd $PKG_DIR/BUILDROOT
-				cp -a . /
+			elif [ -r "$RPM_SPEC" ]; then
+				pkg_rpm_install
 			else
 				bs_error "Don't know how to build package $PKG."
 			fi
@@ -463,7 +461,7 @@ pkg_make_install()
 	fi
 	if [ ! -f .done ]; then
 		# post-install can be used to fix installation problems
-		if [ -x ${PKG_SPECDIR}/post-install ]; then
+		if [ -f ${PKG_SPECDIR}/post-install ]; then
 			pushd /
 			${PKG_SPECDIR}/post-install
 			popd
@@ -544,7 +542,7 @@ pkg_make_dest_install()
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	cd $MAKEDIR
-	make_fakeroot "$PKG_NAME" "${MAKE_TARGETS[@]}"
+	make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
 	# post-install can be used to fix target installation problems
 	if [ -x ${PKG_SPECDIR}/post-install ]; then
 		pushd "$FS_ROOT"
@@ -565,10 +563,27 @@ pkg_remove()
 	fi
 }
 
+pkg_rpm_install()
+{
+	if [ ! -d $PKG_DIR/BUILDROOT ]; then
+		bs_notice "Executing rpmbuild -v -bi"
+		rpmbuild -v -bi \
+			--define "_sourcedir $SRC_DIR" \
+			--define "_builddir $MAKEDIR" \
+			--define "_topdir $PKG_DIR" \
+			--define "_rpmdir $GEN_DIR" \
+			--define "_specdir $SRC_DIR" \
+			--define "_sysconfdir /etc" \
+			--define "buildroot %{_buildrootdir}" \
+			$RPM_SPEC
+	fi
+	cd $PKG_DIR/BUILDROOT
+	cp -a . /
+}
+
 pkg_rpm_dest_install()
 {
-	RPM_SPEC="$SRC_DIR/*.spec"
-	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
+	bs_notice "Executing rpmbuild -v -bb --short-circuit"
 	rpmbuild -v -bb --short-circuit \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
@@ -583,15 +598,39 @@ pkg_rpm_dest_install()
 	cp -a . $FS_ROOT
 }
 
-pkg_gen_rpm()
+pkg_rpmbuild()
 {
-	pkg_unpack_patch
-	RPM_SPEC="${SRC_DIR}/*.spec"
-	if [ ! -r $RPM_SPEC ]; then
-		bs_error "No .spec file found to build rpm package for $PKG"
-	fi
-	pkg_make_install
-	pkg_rpm_dest_install
+	case $SUFFIX in
+		src.rpm|SRC.RPM)
+			bs_notice "Executing rpmbuild -v --rebuild"
+			rpmbuild -v --rebuild \
+				--define "_sourcedir $SRC_DIR" \
+				--define "_builddir $MAKEDIR" \
+				--define "_topdir $PKG_DIR" \
+				--define "_rpmdir $GEN_DIR" \
+				--define "_srcrpmdir $GEN_DIR" \
+				--define "_specdir $SRC_DIR" \
+				--define "buildroot %{_buildrootdir}" \
+				--define "_sysconfdir /etc" \
+				$PKG_POOL/$PKG_FILE_NAME
+			;;
+		tar.*)
+			bs_notice "Executing rpmbuild -v -ta"
+			rpmbuild -v -ta \
+				--define "_sourcedir $SRC_DIR" \
+				--define "_builddir $MAKEDIR" \
+				--define "_topdir $PKG_DIR" \
+				--define "_rpmdir $GEN_DIR" \
+				--define "_srcrpmdir $GEN_DIR" \
+				--define "_specdir $SRC_DIR" \
+				--define "buildroot %{_buildrootdir}" \
+				--define "_sysconfdir /etc" \
+				$PKG_POOL/$PKG_FILE_NAME
+			;;
+		*)
+			bs_error "$PKG does not support rpmbuild"
+			;;
+	esac
 }
 
 clean_pkgs()
@@ -818,6 +857,7 @@ iso_pkgs()
 {
 	ISO_ROOT=$DEV_ROOT/ISOROOT
 	FS_ROOT=$ISO_ROOT
+	mkdir -pv $ISO_ROOT
 
 	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
 	TOOLS_LIST=(${BUILD_LIST%,*})
@@ -1119,12 +1159,13 @@ iso_pkgs()
 
 rpm_pkgs()
 {
+	local PKG
 	bs_notice "Generating rpm packages:"
 	echo '========================================='
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
-	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	BUILD_LIST="$(resolve_deps rpm ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
@@ -1147,8 +1188,11 @@ rpm_pkgs()
 		bs_notice "Continue building package(s) \"${PKG_LIST[@]}\"..."
 	fi
 
+	for PKG in ${PKG_LIST[@]}; do
+		BUILD_LIST=($(remove_from_list $PKG $BUILD_LIST))
+	done
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
-	walk_pkg_dir -a "pkg_gen_rpm" ${PKG_LIST[@]}
+	walk_pkg_dir -a "pkg_rpmbuild" ${PKG_LIST[@]}
 	bs_notice "RPM package(s) \"${PKG_LIST[@]}\" generated successfully in GEN directory."
 }
 
@@ -1202,7 +1246,7 @@ get_pkg_info()
 	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
 	PKG_DIR="${BUILD_DIR}/${PKG}"
 	MAKEDIR="build"
-	MAKE_TARGETS='install'
+	MAKE_TARGETS=('' install)
 	if [ $(dirname $PKG) != . ]; then
 		source $INCDIR/$(dirname $PKG)
 		parse_conf_var

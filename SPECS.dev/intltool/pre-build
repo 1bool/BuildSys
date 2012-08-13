@@ -1,0 +1,2 @@
+#!/bin/sh
+yes | cpan -f -i XML::Parser

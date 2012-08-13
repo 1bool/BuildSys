@@ -1,0 +1,3 @@
+VERSION=3.0.4
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/gperf/gperf-$VERSION.tar.gz"
+CONFIGFLAGS="--docdir=/usr/share/doc/gperf-$VERSION"

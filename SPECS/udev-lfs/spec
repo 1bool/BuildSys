@@ -1,0 +1,5 @@
+VERSION=187
+PKG_NAME=udev-lfs
+SRC_DIR=systemd-$VERSION
+PKG_LOCATION="http://www.freedesktop.org/software/systemd/systemd-$VERSION.tar.xz"
+ADDITIONS="http://anduin.linuxfromscratch.org/sources/other/udev-lfs-$VERSION-2.tar.bz2"

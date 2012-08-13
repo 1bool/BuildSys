@@ -1,7 +1,0 @@
-VERSION=4.9.1
-PKG_LOCATION="ftp://ftp.mozilla.org/pub/mozilla.org/nspr/releases/v$VERSION/src/nspr-$VERSION.tar.gz"
-CONFIGFLAGS=(--with-mozilla --with-pthreads)
-# --with-mozilla: This parameter adds Mozilla support to the libraries (required if you want to build any other Mozilla products and link them to these libraries).
-# --with-pthreads: This parameter forces use of the system pthreads library.
-DEPS=(glibc)
-SRC_DIR="nspr-$VERSION/mozilla/nsprpub"

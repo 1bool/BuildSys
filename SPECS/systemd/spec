@@ -1,2 +1,5 @@
-VERSION=44
-PKG_LOCATION='http://www.freedesktop.org/software/systemd/systemd-44.tar.xz'
+VERSION=188
+PKG_LOCATION="http://www.freedesktop.org/software/systemd/systemd-$VERSION.tar.xz"
+DEPS=(dbus libcap util-linux)
+# Optional DEPS:
+# PAM >= 1.1.2 libcryptsetup libaudit libacl libselinux liblzma tcpwrappers
