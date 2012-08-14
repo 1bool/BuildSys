@@ -352,7 +352,7 @@ walk_pkg_dir()
 
 pkg_unpack_patch()
 {
-	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
+	if [ ! -f .unpacked-$N_LOC ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
 		fi
@@ -369,7 +369,7 @@ pkg_unpack_patch()
 			bs_notice "Unpacking file ${ADDITION}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
 		done
-		touch .unpacked
+		touch .unpacked-$N_LOC
 	fi
 	if [ ! -f .patched ]; then
 		pushd "$SRC_DIR"
