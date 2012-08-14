@@ -6,5 +6,4 @@ echo '#define SYS_VIMRC_FILE "/etc/vimrc"' >> src/feature.h
 # Make configure work in build directory
 ln -sfv "$SRC_DIR" $MAKEDIR
 # Force link to prevent make error
-cd build
 sed -i 's/ln -s/ln -sf/g' $SRC_DIR/src/Makefile
