@@ -95,7 +95,7 @@ source_var_from_conf()
 }
 
 if [ $MYNAME = sde ]; then
-	GETOPTS=$(getopt -o s:h --long arm,i686,size:,help -n "$0" -- "$@")
+	GETOPTS=$(getopt -o s:f:h --long arm,i686,size:,config:,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
 	while true; do
@@ -111,6 +111,10 @@ if [ $MYNAME = sde ]; then
 				;;
 			-C | --dir)
 				BS_ROOT="$2"; shift 2
+				;;
+			-f | --config)
+				CONF="$2"
+				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF} "; shift 2
 				;;
 			-h | --help)
 				${MYNAME}_print_help_and_exit; shift
@@ -323,4 +327,5 @@ fi
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' HOSTNAME=$SDENAME \
     PATH=$SDKPATH SDKARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
+	BUILD_CONF="$DEVROOT_IN_SDK/INC/${CONF}" \
     $CMD

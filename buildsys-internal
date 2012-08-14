@@ -39,8 +39,10 @@ unpack()
 			unzip "$1" -d "$DEST"
 			;;
 		*.src.rpm | *.SRC.RPM)
+			DEST="$DEST/$(basename $SRC_DIR)"
+			mkdir -pv $DEST
 			pushd "$DEST"
-			alien -s "$1"
+			rpm2cpio "$1" | cpio -diumv
 			popd
 			;;
 		*)
@@ -50,7 +52,7 @@ unpack()
 	return 0
 }
 
-guess_pkg_info()
+guess_pkg_info_from_location()
 {
 	[ -z "$1" ] && return 1
 
@@ -63,21 +65,21 @@ guess_pkg_info()
 			*.tar.gz | *.tar.bz2 | *.tar.xz)
 				SUFFIX="tar.$SUFFIX"
 				;;
-			*.src.rpm)
-				SUFFIX="src.$SUFFIX"
-				;;
-			*.SRC.RPM)
-				SUFFIX="SRC.$SUFFIX"
+			*.src.rpm | *.SRC.RPM)
+				SUFFIX="${PKG_FILE_NAME: -7}"
 				;;
 		esac
 	fi
 	if [ -z "$VERSION" ]; then
 		VERSION="${PKG_FILE_NAME%.$SUFFIX}"
+		if [ "$SUFFIX" = src.rpm ]; then
+			: ${RPM_RELEASE:=${VERSION##*-}}
+			VERSION=${VERSION%-$RPM_RELEASE}
+		fi
 		VERSION="${VERSION##*-}"
 	fi
 	if [ -z "$PKG_NAME" ]; then
-		PKG_NAME="${PKG_FILE_NAME%.$SUFFIX}"
-		PKG_NAME="${PKG_NAME%-*}"
+		PKG_NAME="${PKG_FILE_NAME%-${VERSION}*}"
 		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
 	fi
 	if [ -z "$SRC_DIR" ]; then
@@ -85,7 +87,7 @@ guess_pkg_info()
 	else
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
-	: ${RPM_SPEC:="$SRC_DIR/*.spec"}
+	: ${RPM_SPEC:="$SRC_DIR/$PKG_NAME.spec"}
 	MAKEDIR="$PKG_DIR/$MAKEDIR"
 }
 
@@ -266,9 +268,6 @@ make_fakeroot()
 	if [ -x ${PKG_SPECDIR}/build ]; then
 		return
 	fi
-	if [[ ! -r $MAKEFILE && -r $SRC_DIR/*.spec ]]; then
-		pkg_rpm_dest_install
-	fi
 	local -a MAKE_TARGETS=($@)
 	case $PKG_NAME in
 		linux)
@@ -277,7 +276,6 @@ make_fakeroot()
 	esac
 	for MAKE_TARGET in ${MAKE_TARGETS[@]}; do
 		if ! grep -q "^$MAKE_TARGET" $MAKEFILE; then
-			echo $LINENO $MAKEFILE $MAKE_TARGET
 			bs_error "\"${PKG_NAME}\" does not support make $MAKE_TARGET"
 			return 1
 		fi
@@ -308,7 +306,7 @@ make_fakeroot()
 
 walk_pkg_dir()
 {
-	local CONTINUE=0
+	local -i CONTINUE=0 N_LOC
 	OPTIND=1
 	while getopts "a:c" FLAG
 	do
@@ -332,12 +330,16 @@ walk_pkg_dir()
 		toolchain_link $BUILDSYS_LINK
 		mkdir -p "$PKG_DIR"
 		pushd "$PKG_DIR"
-		for ACT in $ACTS; do
-			if [ "$CONTINUE" = 0 ]; then
-				$ACT
-			else
-				$ACT || bs_notice "Ignoring errors"; continue
-			fi
+		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
+			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
+			for ACT in $ACTS; do
+				if [ "$CONTINUE" = 0 ]; then
+					$ACT
+				else
+					$ACT || bs_notice "Ignoring errors"; continue
+				fi
+			done
+			get_pkg_info $PKG
 		done
 		popd
 		)
@@ -347,19 +349,19 @@ walk_pkg_dir()
 pkg_unpack_patch()
 {
 	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
-		if [ -z "$PKG_LOCATION" ]; then
+		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
 		fi
-		if [ -d "$PKG_LOCATION" ]; then
-			ln -sv "$PKG_LOCATION" "$PKG_DIR"
+		if [ -d "${PKG_LOCATION[$N_LOC]}" ]; then
+			ln -sv "${PKG_LOCATION[$N_LOC]}" "$PKG_DIR"
 		else
-			get_file "$PKG_LOCATION" "$PKG_POOL"
+			get_file "${PKG_LOCATION[$N_LOC]}" "$PKG_POOL"
 			bs_notice "Unpacking file ${PKG_FILE_NAME}"
 			unpack "${PKG_POOL}/${PKG_FILE_NAME}"
 		fi
 		for ADDITION in ${ADDITIONS[@]}; do
 			get_file "$ADDITION" "$PKG_POOL"
-			bs_notice "Unpacking file ${PKG_FILE_NAME}"
+			bs_notice "Unpacking file ${ADDITION}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
 		done
 		touch .unpacked
@@ -386,8 +388,9 @@ pkg_unpack_patch()
 					;;
 			esac
 		done
-		if [ -r *.spec ]; then
-			sed -i -e '/rm -rf ${RPM_BUILD_ROOT}/d' *.spec
+		if [ -r "$RPM_SPEC" ]; then
+			sed -i -e '/rm -rf ${RPM_BUILD_ROOT}/d' "$RPM_SPEC"
+			sed -i -e '/rm -rf $RPM_BUILD_ROOT/d' "$RPM_SPEC"
 		fi
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
@@ -527,7 +530,7 @@ pkg_make_uninstall()
 	rm -f $PKG_DIR/.installed
 }
 
-pkg_make_dest_install()
+pkg_dest_install()
 {
 	if [ -f $PKG_DIR/.installed ]; then
 		bs_notice "$PKG has already been installed, skipping..."
@@ -541,8 +544,12 @@ pkg_make_dest_install()
 		return
 	fi
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
-	cd $MAKEDIR
-	make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
+	if [ $SUFFIX = 'src.rpm' ]; then
+		pkg_rpm_dest_install
+	else
+		cd $MAKEDIR
+		make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
+	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${PKG_SPECDIR}/post-install ]; then
 		pushd "$FS_ROOT"
@@ -554,7 +561,7 @@ pkg_make_dest_install()
 
 pkg_remove()
 {
-	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_LOCATION" ]; then
+	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "${PKG_LOCATION[$N_LOC]}" ]; then
 		cd $BUILD_DIR
 		bs_notice "Removing $PKG_DIR"
 		rm -rf "$PKG_DIR"
@@ -567,7 +574,7 @@ pkg_rpm_install()
 {
 	if [ ! -d $PKG_DIR/BUILDROOT ]; then
 		bs_notice "Executing rpmbuild -v -bi"
-		rpmbuild -v -bi \
+		rpmbuild -v -bi --nodeps \
 			--define "_sourcedir $SRC_DIR" \
 			--define "_builddir $MAKEDIR" \
 			--define "_topdir $PKG_DIR" \
@@ -575,7 +582,7 @@ pkg_rpm_install()
 			--define "_specdir $SRC_DIR" \
 			--define "_sysconfdir /etc" \
 			--define "buildroot %{_buildrootdir}" \
-			$RPM_SPEC
+			"$RPM_SPEC"
 	fi
 	cd $PKG_DIR/BUILDROOT
 	cp -a . /
@@ -584,7 +591,7 @@ pkg_rpm_install()
 pkg_rpm_dest_install()
 {
 	bs_notice "Executing rpmbuild -v -bb --short-circuit"
-	rpmbuild -v -bb --short-circuit \
+	rpmbuild -v -bb --short-circuit --nodeps \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -593,7 +600,7 @@ pkg_rpm_dest_install()
 		--define "_specdir $SRC_DIR" \
 		--define "buildroot %{_buildrootdir}" \
 		--define "_sysconfdir /etc" \
-		$RPM_SPEC
+		"$RPM_SPEC"
 	cd $PKG_DIR/BUILDROOT
 	cp -a . $FS_ROOT
 }
@@ -734,7 +741,7 @@ install_pkgs()
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${BUILD_LIST[@]}
-	walk_pkg_dir -a pkg_make_dest_install ${PKG_LIST[@]}
+	walk_pkg_dir -a pkg_dest_install ${PKG_LIST[@]}
 	popd
 	bs_notice "Package(s) \"${PKG_LIST[@]}\" install complete."
 }
@@ -830,7 +837,7 @@ ext4_pkgs()
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_make_dest_install" ${INSTALL_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
 	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
 		chroot $FS_ROOT pwconv
@@ -890,7 +897,7 @@ iso_pkgs()
 	fi
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
-	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_make_dest_install" ${INSTALL_LIST[@]}
+	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
 	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
 		chroot $FS_ROOT pwconv
@@ -1243,6 +1250,7 @@ remove_from_list()
 get_pkg_info()
 {
 	local PKG="$1" SPECFOUND=0
+	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC
 	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
 	PKG_DIR="${BUILD_DIR}/${PKG}"
 	MAKEDIR="build"
@@ -1266,7 +1274,6 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
-	[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 }
 
 deps_of()
@@ -1284,7 +1291,7 @@ tool_deps_of()
 	get_pkg_info ${1} > /dev/null
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
-			TOOL_DEPS+=(alien)
+			TOOL_DEPS+=(rpm cpio)
 			;;
 	esac
 	echo -n ${TOOL_DEPS[@]}
