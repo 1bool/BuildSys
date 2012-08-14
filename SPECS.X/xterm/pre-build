@@ -1,0 +1,4 @@
+#!/bin/sh
+
+sed -i '/v0/,+1s/new:/new:kb=^?:/' termcap &&
+echo -e '\tkbs=\\177,' >>terminfo

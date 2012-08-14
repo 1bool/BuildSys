@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/font/font-adobe-100dpi-1.0.3.tar.bz2"
+CONFIGFLAGS="--disable-static"

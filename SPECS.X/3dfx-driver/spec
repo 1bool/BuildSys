@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/driver/xf86-video-tdfx-1.4.4.tar.bz2"
+CONFIGFLAGS="--disable-static"
