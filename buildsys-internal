@@ -510,7 +510,7 @@ pkg_make_distclean()
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 	fi
 	cd $PKG_DIR
-	rm -rf ".done-$N_LOC" ".built-$N_LOC" ".configured-$N_LOC" "build-$N_LOC"
+	rm -rf ".done-$N_LOC" ".built-$N_LOC" ".configured-$N_LOC" $MAKEDIR
 }
 
 pkg_make_uninstall()
