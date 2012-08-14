@@ -52,7 +52,7 @@ unpack()
 	return 0
 }
 
-guess_pkg_info()
+guess_pkg_info_from_location()
 {
 	[ -z "$1" ] && return 1
 
@@ -306,7 +306,7 @@ make_fakeroot()
 
 walk_pkg_dir()
 {
-	local CONTINUE=0
+	local -i CONTINUE=0 N_LOC
 	OPTIND=1
 	while getopts "a:c" FLAG
 	do
@@ -330,12 +330,16 @@ walk_pkg_dir()
 		toolchain_link $BUILDSYS_LINK
 		mkdir -p "$PKG_DIR"
 		pushd "$PKG_DIR"
-		for ACT in $ACTS; do
-			if [ "$CONTINUE" = 0 ]; then
-				$ACT
-			else
-				$ACT || bs_notice "Ignoring errors"; continue
-			fi
+		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
+			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
+			for ACT in $ACTS; do
+				if [ "$CONTINUE" = 0 ]; then
+					$ACT
+				else
+					$ACT || bs_notice "Ignoring errors"; continue
+				fi
+			done
+			get_pkg_info $PKG
 		done
 		popd
 		)
@@ -345,19 +349,19 @@ walk_pkg_dir()
 pkg_unpack_patch()
 {
 	if [ ! -f .unpacked ] && [ ! -d "${SRC_DIR}" ]; then
-		if [ -z "$PKG_LOCATION" ]; then
+		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
 		fi
-		if [ -d "$PKG_LOCATION" ]; then
-			ln -sv "$PKG_LOCATION" "$PKG_DIR"
+		if [ -d "${PKG_LOCATION[$N_LOC]}" ]; then
+			ln -sv "${PKG_LOCATION[$N_LOC]}" "$PKG_DIR"
 		else
-			get_file "$PKG_LOCATION" "$PKG_POOL"
+			get_file "${PKG_LOCATION[$N_LOC]}" "$PKG_POOL"
 			bs_notice "Unpacking file ${PKG_FILE_NAME}"
 			unpack "${PKG_POOL}/${PKG_FILE_NAME}"
 		fi
 		for ADDITION in ${ADDITIONS[@]}; do
 			get_file "$ADDITION" "$PKG_POOL"
-			bs_notice "Unpacking file ${PKG_FILE_NAME}"
+			bs_notice "Unpacking file ${ADDITION}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
 		done
 		touch .unpacked
@@ -557,7 +561,7 @@ pkg_dest_install()
 
 pkg_remove()
 {
-	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "$PKG_LOCATION" ]; then
+	if [ -r "$PKG_POOL/$PKG_FILE_NAME" ] || [ -n "${PKG_LOCATION[$N_LOC]}" ]; then
 		cd $BUILD_DIR
 		bs_notice "Removing $PKG_DIR"
 		rm -rf "$PKG_DIR"
@@ -1246,6 +1250,7 @@ remove_from_list()
 get_pkg_info()
 {
 	local PKG="$1" SPECFOUND=0
+	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC
 	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
 	PKG_DIR="${BUILD_DIR}/${PKG}"
 	MAKEDIR="build"
@@ -1269,7 +1274,6 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
-	[ -n "$PKG_LOCATION" ] && guess_pkg_info "$PKG_LOCATION"
 }
 
 deps_of()
