@@ -88,7 +88,7 @@ guess_pkg_info_from_location()
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
 	if [ -z "$MAKEDIR" ]; then
-		MAKEDIR="$PKG_DIR/build-$N_LOC"
+		MAKEDIR="$PKG_DIR/build-$PKG_NAME"
 	else
 		MAKEDIR="$PKG_DIR/$MAKEDIR"
 	fi
@@ -352,7 +352,7 @@ walk_pkg_dir()
 
 pkg_unpack_patch()
 {
-	if [ ! -f .unpacked-$N_LOC ] && [ ! -d "${SRC_DIR}" ]; then
+	if [ ! -f .unpacked-$PKG_NAME ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
 		fi
@@ -369,7 +369,7 @@ pkg_unpack_patch()
 			bs_notice "Unpacking file ${ADDITION}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
 		done
-		touch .unpacked-$N_LOC
+		touch .unpacked-$PKG_NAME
 	fi
 	if [ ! -f .patched ]; then
 		pushd "$SRC_DIR"
@@ -409,7 +409,7 @@ pkg_unpack_patch()
 pkg_make_install()
 {
 	local -i i
-	if [ ! -f ".built-$N_LOC" ]; then
+	if [ ! -f ".built-$PKG_NAME" ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
 		if [ -x ${PKG_SPECDIR}/build ]; then
@@ -418,7 +418,7 @@ pkg_make_install()
 				ln -vs "$SRC_DIR" "$MAKEDIR"
 			fi
 		else
-			if [ "$MAKEDIR" != "$PKG_DIR/build-$N_LOC" ]; then
+			if [ "$MAKEDIR" != "$PKG_DIR/build-$PKG_NAME" ]; then
 				cd $MAKEDIR
 			fi
 			if [ -r Makefile ] && [ ! -x configure ]; then
@@ -428,7 +428,7 @@ pkg_make_install()
 					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
 				done
 			elif [ -x configure ]; then
-				if [ ! -f ${PKG_DIR}/".configured-$N_LOC" ]; then
+				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME" ]; then
 					precede_conf_opts "--prefix=$PREFIX"
 					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
 						precede_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
@@ -440,7 +440,7 @@ pkg_make_install()
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
 					$SRC_DIR/configure ${CONFIGFLAGS[@]}
 					popd
-					touch ${PKG_DIR}/".configured-$N_LOC"
+					touch ${PKG_DIR}/".configured-$PKG_NAME"
 				fi
 				cd $MAKEDIR
 				MAKEFLAGS="$JOBS $MAKEFLAGS"
@@ -465,16 +465,16 @@ pkg_make_install()
 			fi
 		fi
 		popd
-		touch ".built-$N_LOC"
+		touch ".built-$PKG_NAME"
 	fi
-	if [ ! -f ".done-$N_LOC" ]; then
+	if [ ! -f ".done-$PKG_NAME" ]; then
 		# post-install can be used to fix installation problems
 		if [ -f ${PKG_SPECDIR}/post-install ]; then
 			pushd /
 			${PKG_SPECDIR}/post-install
 			popd
 		fi
-		touch ".done-$N_LOC"
+		touch ".done-$PKG_NAME"
 	else
 		bs_notice "${PKG} has already been built. Skip."
 		return
@@ -493,7 +493,7 @@ pkg_make_clean()
 	bs_notice "Cleaing \"$PKG\"..."
 	make clean
 	cd $PKG_DIR
-	rm -f ".done-$N_LOC" ".built-$N_LOC"
+	rm -f ".done-$PKG_NAME" ".built-$PKG_NAME"
 }
 
 pkg_make_distclean()
@@ -511,13 +511,13 @@ pkg_make_distclean()
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 	fi
 	cd $PKG_DIR
-	rm -rf ".done-$N_LOC" ".built-$N_LOC" ".configured-$N_LOC" $MAKEDIR
+	rm -rf ".done-$PKG_NAME" ".built-$PKG_NAME" ".configured-$PKG_NAME" $MAKEDIR
 }
 
 pkg_make_uninstall()
 {
 	local LINE=
-	if [ ! -f ".installed-$N_LOC" ]; then
+	if [ ! -f ".installed-$PKG_NAME" ]; then
 		bs_notice "$PKG not installed, skipping..."
 		return
 	fi
@@ -532,12 +532,12 @@ pkg_make_uninstall()
 		bs_notice "Uninstalling \"$PKG\"..."
 		make_fakeroot "$PKG_NAME" uninstall
 	fi
-	rm -f $PKG_DIR/".installed-$N_LOC"
+	rm -f $PKG_DIR/".installed-$PKG_NAME"
 }
 
 pkg_dest_install()
 {
-	if [ -f $PKG_DIR/".installed-$N_LOC" ]; then
+	if [ -f $PKG_DIR/".installed-$PKG_NAME" ]; then
 		bs_notice "$PKG has already been installed, skipping..."
 		return
 	fi
@@ -561,7 +561,7 @@ pkg_dest_install()
 		${PKG_SPECDIR}/post-install
 		popd
 	fi
-	touch $PKG_DIR/".installed-$N_LOC"
+	touch $PKG_DIR/".installed-$PKG_NAME"
 }
 
 pkg_remove()
@@ -1290,9 +1290,9 @@ deps_of()
 
 tool_deps_of()
 {
-	local -a ADDITIONAL_TOOLS
 	(
 	get_pkg_info ${1} > /dev/null
+	guess_pkg_info_from_location "${PKG_LOCATION}"
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
 			TOOL_DEPS+=(rpm cpio)
