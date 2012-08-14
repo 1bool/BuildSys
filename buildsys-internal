@@ -87,8 +87,12 @@ guess_pkg_info_from_location()
 	else
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
+	if [ -z "$MAKEDIR" ]; then
+		MAKEDIR="$PKG_DIR/build-$N_LOC"
+	else
+		MAKEDIR="$PKG_DIR/$MAKEDIR"
+	fi
 	: ${RPM_SPEC:="$SRC_DIR/$PKG_NAME.spec"}
-	MAKEDIR="$PKG_DIR/$MAKEDIR"
 }
 
 get_file()
@@ -404,7 +408,7 @@ pkg_unpack_patch()
 pkg_make_install()
 {
 	local -i i
-	if [ ! -f .built ]; then
+	if [ ! -f ".built-$N_LOC" ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
 		if [ -x ${PKG_SPECDIR}/build ]; then
@@ -413,7 +417,7 @@ pkg_make_install()
 				ln -vs "$SRC_DIR" "$MAKEDIR"
 			fi
 		else
-			if [ "$MAKEDIR" != "$PKG_DIR/build" ]; then
+			if [ "$MAKEDIR" != "$PKG_DIR/build-$N_LOC" ]; then
 				cd $MAKEDIR
 			fi
 			if [ -r Makefile ] && [ ! -x configure ]; then
@@ -423,7 +427,7 @@ pkg_make_install()
 					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
 				done
 			elif [ -x configure ]; then
-				if [ ! -f ${PKG_DIR}/.configured ]; then
+				if [ ! -f ${PKG_DIR}/".configured-$N_LOC" ]; then
 					precede_conf_opts "--prefix=$PREFIX"
 					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
 						precede_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
@@ -435,7 +439,7 @@ pkg_make_install()
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
 					$SRC_DIR/configure ${CONFIGFLAGS[@]}
 					popd
-					touch ${PKG_DIR}/.configured
+					touch ${PKG_DIR}/".configured-$N_LOC"
 				fi
 				cd $MAKEDIR
 				MAKEFLAGS="$JOBS $MAKEFLAGS"
@@ -460,16 +464,16 @@ pkg_make_install()
 			fi
 		fi
 		popd
-		touch .built
+		touch ".built-$N_LOC"
 	fi
-	if [ ! -f .done ]; then
+	if [ ! -f ".done-$N_LOC" ]; then
 		# post-install can be used to fix installation problems
 		if [ -f ${PKG_SPECDIR}/post-install ]; then
 			pushd /
 			${PKG_SPECDIR}/post-install
 			popd
 		fi
-		touch .done
+		touch ".done-$N_LOC"
 	else
 		bs_notice "${PKG} has already been built. Skip."
 		return
@@ -488,7 +492,7 @@ pkg_make_clean()
 	bs_notice "Cleaing \"$PKG\"..."
 	make clean
 	cd $PKG_DIR
-	rm -f .done .built
+	rm -f ".done-$N_LOC" ".built-$N_LOC"
 }
 
 pkg_make_distclean()
@@ -506,13 +510,13 @@ pkg_make_distclean()
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 	fi
 	cd $PKG_DIR
-	rm -rf .done .built .configured build
+	rm -rf ".done-$N_LOC" ".built-$N_LOC" ".configured-$N_LOC" "build-$N_LOC"
 }
 
 pkg_make_uninstall()
 {
 	local LINE=
-	if [ ! -f .installed ]; then
+	if [ ! -f ".installed-$N_LOC" ]; then
 		bs_notice "$PKG not installed, skipping..."
 		return
 	fi
@@ -527,12 +531,12 @@ pkg_make_uninstall()
 		bs_notice "Uninstalling \"$PKG\"..."
 		make_fakeroot "$PKG_NAME" uninstall
 	fi
-	rm -f $PKG_DIR/.installed
+	rm -f $PKG_DIR/".installed-$N_LOC"
 }
 
 pkg_dest_install()
 {
-	if [ -f $PKG_DIR/.installed ]; then
+	if [ -f $PKG_DIR/".installed-$N_LOC" ]; then
 		bs_notice "$PKG has already been installed, skipping..."
 		return
 	fi
@@ -556,7 +560,7 @@ pkg_dest_install()
 		${PKG_SPECDIR}/post-install
 		popd
 	fi
-	touch $PKG_DIR/.installed
+	touch $PKG_DIR/".installed-$N_LOC"
 }
 
 pkg_remove()
@@ -1253,7 +1257,6 @@ get_pkg_info()
 	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC
 	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
 	PKG_DIR="${BUILD_DIR}/${PKG}"
-	MAKEDIR="build"
 	MAKE_TARGETS=('' install)
 	if [ $(dirname $PKG) != . ]; then
 		source $INCDIR/$(dirname $PKG)
