@@ -357,7 +357,8 @@ pkg_unpack_patch()
 			bs_error "No source file defined for \"$PKG\""
 		fi
 		if [ -d "${PKG_LOCATION[$N_LOC]}" ]; then
-			ln -sv "${PKG_LOCATION[$N_LOC]}" "$PKG_DIR"
+			bs_notice "Copying directory ${PKG_LOCATION[$N_LOC]}"
+			cp -a "${PKG_LOCATION[$N_LOC]}" "$PKG_DIR"
 		else
 			get_file "${PKG_LOCATION[$N_LOC]}" "$PKG_POOL"
 			bs_notice "Unpacking file ${PKG_FILE_NAME}"
@@ -1295,6 +1296,11 @@ tool_deps_of()
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
 			TOOL_DEPS+=(rpm cpio)
+			;;
+	esac
+	case "${PKG_LOCATION[$N_LOC]}" in
+		https://* | ftps://*)
+			TOOL_DEPS+=(wget)
 			;;
 	esac
 	echo -n ${TOOL_DEPS[@]}

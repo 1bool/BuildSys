@@ -188,8 +188,6 @@ fi
 
 BUILD_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
 SDE="$BUILD_ROOT/SDE"
-LOCKFILE="$BUILD_ROOT/.$SDFS_NAME.lock"
-SDFS="$BUILD_ROOT/$SDFS_NAME.ext4"
 DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
 if [ "$ARCH" = 'i686' ]; then
     SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
@@ -199,6 +197,8 @@ fi
 source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE ARCH
 : ${SDFS_NAME:="buildsys-$ARCH"}
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
+SDFS="$BUILD_ROOT/$SDFS_NAME.ext4"
+LOCKFILE="$BUILD_ROOT/.$SDFS_NAME.lock"
 
 if [ -z "$SDFS_SIZE" ]; then
 	if [ -n "$BSE_FS_SIZE" ]; then
