@@ -1,7 +1,8 @@
 PKG_LOCATION=(
+http://xorg.freedesktop.org/releases/individual/font/font-util-1.3.0.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/encodings-1.0.4.tar.bz2
-http://xorg.freedesktop.org/releases/individual/font/font-adobe-75dpi-1.0.3.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-adobe-100dpi-1.0.3.tar.bz2
+http://xorg.freedesktop.org/releases/individual/font/font-adobe-75dpi-1.0.3.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-adobe-utopia-75dpi-1.0.4.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-adobe-utopia-100dpi-1.0.4.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-adobe-utopia-type1-1.0.4.tar.bz2
@@ -34,7 +35,6 @@ http://xorg.freedesktop.org/releases/individual/font/font-schumacher-misc-1.1.2.
 http://xorg.freedesktop.org/releases/individual/font/font-screen-cyrillic-1.0.4.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-sony-misc-1.0.3.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-sun-misc-1.0.3.tar.bz2
-http://xorg.freedesktop.org/releases/individual/font/font-util-1.3.0.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-winitzki-cyrillic-1.0.3.tar.bz2
 http://xorg.freedesktop.org/releases/individual/font/font-xfree86-type1-1.0.4.tar.bz2
 )
