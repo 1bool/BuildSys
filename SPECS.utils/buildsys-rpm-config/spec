@@ -1,0 +1,2 @@
+PKG_LOCATION="$PKG_POOL/buildsys-rpm-config"
+DEPS=rpm
