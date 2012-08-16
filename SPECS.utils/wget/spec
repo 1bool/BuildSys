@@ -1,4 +1,4 @@
 VERSION=1.13.4
 PKG_LOCATION="ftp://ftp.gnu.org/gnu/wget/wget-$VERSION.tar.xz"
-CONFIGFLAGS='--sysconfdir=/etc --with-ssl=gnutls'
+CONFIGFLAGS='--sysconfdir=/etc --with-ssl=openssl'
 DEPS=(openssl libidn)
