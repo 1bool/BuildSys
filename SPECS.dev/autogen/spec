@@ -1,0 +1,5 @@
+VERSION=5.16.2
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/autogen/rel$VERSION/autogen-$VERSION.tar.xz"
+CONFIGFLAGS="--disable-static"
+DEPS=(guile libxml2)
+TOOL_DEPS=(which)

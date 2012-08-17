@@ -1,0 +1,3 @@
+VERSION=0.9.3
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/libunistring/libunistring-$VERSION.tar.gz"
+DEPS=glibc

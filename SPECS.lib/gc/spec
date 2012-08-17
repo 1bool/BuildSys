@@ -1,0 +1,5 @@
+VERSION=7.2d
+PKG_LOCATION="http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/gc-$VERSION.tar.gz"
+CONFIGFLAGS="--enable-cplusplus --disable-static --docdir=/usr/share/doc/gc-$VERSION"
+SRC_DIR="gc-${VERSION%[a-z]*}"
+#TOOL_DEPS=autogen
