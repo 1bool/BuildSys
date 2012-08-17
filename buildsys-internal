@@ -1255,7 +1255,7 @@ remove_from_list()
 get_pkg_info()
 {
 	local PKG="$1" SPECFOUND=0
-	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC
+	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC MAKEDIR
 	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
 	PKG_DIR="${BUILD_DIR}/${PKG}"
 	MAKE_TARGETS=('' install)
