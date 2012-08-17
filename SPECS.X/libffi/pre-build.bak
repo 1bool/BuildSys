@@ -1,0 +1,3 @@
+#!/bin/sh
+
+patch -Np1 -i ../libffi-3.0.11-includedir-1.patch

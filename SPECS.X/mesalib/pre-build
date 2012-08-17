@@ -1,0 +1,4 @@
+#!/bin/sh
+
+sed 's@FLAGS=\"-g@FLAGS=\"@' -i configure
+ln -svf $SRC_DIR $MAKEDIR
