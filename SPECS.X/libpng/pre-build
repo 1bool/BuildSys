@@ -1,0 +1,3 @@
+#!/bin/sh
+
+gzip -cd ../libpng-1.5.12-apng.patch.gz | patch -p1

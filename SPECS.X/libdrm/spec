@@ -1,0 +1,2 @@
+PKG_LOCATION="http://dri.freedesktop.org/libdrm/libdrm-2.4.33.tar.bz2"
+CONFIGFLAGS="--enable-udev --enable-vmwgfx-experimental-api --enable-nouveau-experimental-api --disable-static"

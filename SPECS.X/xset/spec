@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xset-1.2.2.tar.bz2"
+CONFIGFLAGS="--disable-static"

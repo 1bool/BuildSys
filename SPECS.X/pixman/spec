@@ -1,0 +1,2 @@
+PKG_LOCATION="http://cairographics.org/releases/pixman-0.26.2.tar.gz"
+CONFIGFLAGS="--disable-static"

@@ -1,0 +1,2 @@
+PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xrdb-1.0.9.tar.bz2"
+CONFIGFLAGS="--disable-static"

@@ -1,0 +1,3 @@
+PKG_LOCATION="http://xcb.freedesktop.org/dist/libxcb-1.8.1.tar.bz2"
+CONFIGFLAGS="--disable-static"
+DEPS=(libxslt libXau libXdmcp libpthread-stubs xcb-proto)

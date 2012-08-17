@@ -1,0 +1,7 @@
+VERSION="8.0.4"
+PKG_LOCATION="ftp://ftp.freedesktop.org/pub/mesa/$VERSION/MesaLib-$VERSION.tar.bz2"
+PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
+#PATCHES[1]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-add_xdemos-2.patch"
+SRC_DIR="Mesa-$VERSION"
+CONFIGFLAGS="--enable-texture-float --enable-gles1 --enable-gles2 --enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --disable-static"
+DEPS=(libdrm expat libxml2 makedepend llvm)
