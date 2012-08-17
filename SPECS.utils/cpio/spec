@@ -1,0 +1,9 @@
+VERSION=2.11
+PKG_LOCATION="ftp://ftp.gnu.org/pub/gnu/cpio/cpio-$VERSION.tar.bz2"
+CONFIGFLAGS='--bindir=/bin --libexecdir=/tmp --enable-mt --with-rmt=/usr/sbin/rmt'
+DEPS=tar
+
+# --bindir=/bin: This parameter installs cpio to /bin instead of /usr/bin as recommended by the FHS guidelines.
+# --libexecdir=/tmp: This parameter is used so that /usr/libexec is not created.
+# --enable-mt: This parameter forces the building and installation of the mt program.
+# --with-rmt=/usr/sbin/rmt: This parameter inhibits building the rmt program as it is already installed by the Tar package in LFS. 

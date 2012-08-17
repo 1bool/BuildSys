@@ -1,0 +1,3 @@
+VERSION=3.0.11
+PKG_LOCATION="ftp://sourceware.org/pub/libffi/libffi-$VERSION.tar.gz"
+PATCHES="http://www.linuxfromscratch.org/patches/blfs/svn/libffi-$VERSION-includedir-1.patch"
