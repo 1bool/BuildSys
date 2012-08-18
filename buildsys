@@ -274,7 +274,7 @@ mkdir $VERBOSE -p $POOL $BS_ROOT/GEN $BS_ROOT/LOG $SDFS_DIR
 install -m 0755 -d "$DEV_ROOT" "$SDE"
 cd $DEV_ROOT
 install -m 0755 -d INC SPECS BUILD ROOT POOL GEN LOG ${SPECDIRS[@]}
-ln $VERBOSE -f $BS_ROOT/buildsys-internal
+ln $VERBOSE -f $BS_ROOT/buildsys-internal 2> /dev/null || cp -a $BS_ROOT/buildsys-internal .
 cd -
 
 if [ -f $LOCKFILE ]; then
@@ -293,7 +293,7 @@ if [ ! -r ${SDFS} ]; then
 		mv ${SDFS_NAME}.ext4.xz.partial ${SDFS_NAME}.ext4.xz
 	fi
 	xz -dkv ${SDFS_NAME}.ext4.xz
-	mv ${SDFS_NAME}.ext4 $SDFS
+	mv -v ${SDFS_NAME}.ext4 $SDFS
 	cd -
 fi
 if (( $(stat -c%s ${SDFS}) != ${SDFS_SIZE} )); then
