@@ -1,0 +1,34 @@
+diff -Naur kernel-3.0.0.orig/kernel.spec kernel-3.0.0/kernel.spec
+--- kernel-3.0.0.orig/kernel.spec	2012-05-08 13:25:39.000000000 +0800
++++ kernel-3.0.0/kernel.spec	2012-08-19 00:41:28.422661447 +0800
+@@ -7,6 +7,7 @@
+ Vendor: The Linux Community
+ URL: http://www.kernel.org
+ Source: kernel-3.0.0.tar.gz
++Patch0: suppress-uninitialized-warning.patch
+ BuildRoot: %{_tmppath}/%{name}-%{PACKAGE_VERSION}-root
+ Provides:  kernel-3.0.0
+ %define __spec_install_post /usr/lib/rpm/brp-compress || :
+@@ -29,6 +30,7 @@
+ 
+ %prep
+ %setup -q
++%patch0 -p1
+ 
+ %build
+ make clean && make %{?_smp_mflags}
+diff -Naur kernel-3.0.0.orig/suppress-uninitialized-warning.patch kernel-3.0.0/suppress-uninitialized-warning.patch
+--- kernel-3.0.0.orig/suppress-uninitialized-warning.patch	1970-01-01 08:00:00.000000000 +0800
++++ kernel-3.0.0/suppress-uninitialized-warning.patch	2012-08-19 00:18:24.403798465 +0800
+@@ -0,0 +1,11 @@
++diff -Naur kernel-3.0.0.orig/Makefile kernel-3.0.0/Makefile
++--- kernel-3.0.0.orig/Makefile	2011-07-22 10:16:59.000000000 +0800
+++++ kernel-3.0.0/Makefile	2012-08-19 00:04:55.000000000 +0800
++@@ -368,6 +368,7 @@
++ 		   -fno-strict-aliasing -fno-common \
++ 		   -Werror-implicit-function-declaration \
++ 		   -Wno-format-security \
+++		   -Wno-error=maybe-uninitialized \
++ 		   -fno-delete-null-pointer-checks
++ KBUILD_AFLAGS_KERNEL :=
++ KBUILD_CFLAGS_KERNEL :=
