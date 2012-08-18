@@ -1,2 +1,4 @@
 PKG_LOCATION='http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.4.3.tar.xz'
 BUILDSYS_LINK=tools
+MAKE_TARGETS=(mrproper headers_install)
+MAKEFLAGS="INSTALL_HDR_PATH=dest"

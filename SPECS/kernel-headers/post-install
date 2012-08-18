@@ -1,0 +1,10 @@
+#!/bin/sh
+
+find $MAKEDIR/dest/include \( -name .install -o -name ..install.cmd \) -delete
+
+# Fix bug #3 "glibc build loop in NPTL"
+rm -rf $PREFIX/kernel-headers
+mkdir -pv $PREFIX/kernel-headers
+cp -rv $MAKEDIR/dest/include/* $PREFIX/{include,kernel-headers}
+
+rm -rvf $MAKEDIR/dest
