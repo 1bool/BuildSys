@@ -1,5 +1,5 @@
 VERSION=4.0.1
-CONFIGFLAGS='--prefix=/usr --libexecdir=/usr/lib'
+CONFIGFLAGS="--prefix=$PREFIX --libexecdir=$PREFIX/lib"
 PKG_LOCATION="http://ftp.gnu.org/gnu/gawk/gawk-$VERSION.tar.xz"
 DEPS=glibc
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

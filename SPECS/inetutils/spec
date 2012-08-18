@@ -1,6 +1,6 @@
 VERSION=1.9.1
 PKG_LOCATION="ftp://ftp.gnu.org/gnu/inetutils/inetutils-$VERSION.tar.gz"
-CONFIGFLAGS='--libexecdir=/usr/sbin --localstatedir=/var --disable-ifconfig --disable-logger --disable-syslogd --disable-whois --disable-servers'
+CONFIGFLAGS="--libexecdir=$PREFIX/sbin --localstatedir=/var --disable-ifconfig --disable-logger --disable-syslogd --disable-whois --disable-servers"
 # --disable-ifconfig
 #    This option prevents Inetutils from installing the ifconfig program, which can be used to configure network interfaces. BuildSys uses ip from IPRoute2 to perform this task.
 # --disable-logger

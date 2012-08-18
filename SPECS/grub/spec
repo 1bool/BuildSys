@@ -1,5 +1,5 @@
 VERSION=2.00
 PKG_LOCATION="http://ftp.gnu.org/gnu/grub/grub-$VERSION.tar.xz"
-CONFIGFLAGS='--prefix=/usr --sysconfdir=/etc --disable-grub-emu-usb --disable-efiemu --disable-werror'
+CONFIGFLAGS='--sysconfdir=/etc --disable-grub-emu-usb --disable-efiemu --disable-werror'
 DEPS=(glibc ncurses)
 TOOL_DEPS=(binutils gcc sed coreutils grep bash gawk gettext xz)

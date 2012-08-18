@@ -1,7 +1,7 @@
 PKG_NAME=attr
 VERSION=2.4.46
 PKG_LOCATION="http://download.savannah.gnu.org/releases/attr/attr-$VERSION.src.tar.gz"
-CONFIGFLAGS='--libdir=/lib --libexecdir=/usr/lib'
+CONFIGFLAGS="--libdir=/lib --libexecdir=$PREFIX/lib"
 DEPS=glibc
 INSTALL_USER=root
 INSTALL_GROUP=root

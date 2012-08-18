@@ -190,9 +190,9 @@ BUILD_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
 SDE="$BUILD_ROOT/SDE"
 DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
 if [ "$ARCH" = 'i686' ]; then
-    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin
+    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin:/tools/sbin
 else
-    SDKPATH=/tools/bin
+    SDKPATH=/tools/bin:/tools/sbin
 fi
 source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE ARCH
 : ${SDFS_NAME:="buildsys-$ARCH"}

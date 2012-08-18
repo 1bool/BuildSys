@@ -1,6 +1,6 @@
 VERSION=1.10
 PKG_LOCATION="http://ftp.gnu.org/gnu/gdbm/gdbm-$VERSION.tar.gz"
-CONFIGFLAGS='--prefix=/usr --enable-libgdbm-compat'
+CONFIGFLAGS="--enable-libgdbm-compat"
 #--enable-libgdbm-compat
 #    This switch enables the libgdbm compatibility library to be built, as some packages outside of our build may require the older DBM routines it provides.
 DEPS=glibc

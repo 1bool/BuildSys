@@ -211,6 +211,7 @@ toolchain_link()
 		tools)
 			ln -vf ld-old ld
 			rm -vf `dirname $(gcc --print-libgcc-file-name)`/specs
+			export SYSROOT=/tools
 			;;
 		root)
 			ln -vf ld-new ld
@@ -218,6 +219,7 @@ toolchain_link()
 				-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
 				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
 				`dirname $(gcc --print-libgcc-file-name)`/specs
+			export SYSROOT=/
 			;;
 		*)
 			return 1
@@ -470,7 +472,7 @@ pkg_make_install()
 	if [ ! -f ".done-$PKG_NAME" ]; then
 		# post-install can be used to fix installation problems
 		if [ -f ${PKG_SPECDIR}/post-install ]; then
-			pushd /
+			pushd $SYSROOT
 			${PKG_SPECDIR}/post-install
 			popd
 		fi
@@ -586,6 +588,7 @@ pkg_rpm_install()
 			--define "_rpmdir $GEN_DIR" \
 			--define "_specdir $SRC_DIR" \
 			--define "_prefix $PREFIX" \
+			--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 			--define "_sysconfdir /etc" \
 			--define "buildroot %{_buildrootdir}" \
 			"$RPM_SPEC"
@@ -605,6 +608,7 @@ pkg_rpm_dest_install()
 		--define "_srcrpmdir $GEN_DIR" \
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
+		--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 		--define "buildroot %{_buildrootdir}" \
 		--define "_sysconfdir /etc" \
 		"$RPM_SPEC"
@@ -625,6 +629,7 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
+				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 				--define "buildroot %{_buildrootdir}" \
 				--define "_sysconfdir /etc" \
 				$PKG_POOL/$PKG_FILE_NAME
@@ -639,6 +644,7 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
+				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 				--define "buildroot %{_buildrootdir}" \
 				--define "_sysconfdir /etc" \
 				$PKG_POOL/$PKG_FILE_NAME
@@ -1288,7 +1294,9 @@ deps_of()
 {
 	(
 	get_pkg_info ${1} > /dev/null
-	echo -n ${DEPS[@]}
+	for DEP in ${DEPS[@]}; do
+		echo -n "tools.conf/${DEP#*/} "
+	done
 	)
 }
 
@@ -1307,7 +1315,9 @@ tool_deps_of()
 			TOOL_DEPS+=(wget)
 			;;
 	esac
-	echo -n ${TOOL_DEPS[@]}
+	for DEP in ${TOOL_DEPS[@]}; do
+		echo -n "tools.conf/${DEP#*/} "
+	done
 	)
 }
 
@@ -1353,8 +1363,9 @@ add_dep_tool_pkg()
 
 resolve_deps()
 {
-	local -a RESOLVED_LIST= UNRESOLVED_LIST= RESOLVED_TOOL_LIST=(${BSE_TOOLS[@]}) UNRESOLVED_TOOL_LIST=
+	local -a RESOLVED_LIST=(${BSE_TOOLS[@]}) UNRESOLVED_LIST= RESOLVED_TOOL_LIST=(${BSE_TOOLS[@]}) UNRESOLVED_TOOL_LIST=
 	local PKG
+
 	for PKG in $@; do
 		add_dep_pkg $PKG
 	done
@@ -1362,12 +1373,12 @@ resolve_deps()
 		i?86|x86*)
 			;;
 		*)
-			for (( i = 0; i < ${#TOOL_RESOLVED_LIST[@]}; i++ )); do
-				TOOL_RESOLVED_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
+			for (( i = 0; i < ${#RESOLVED_TOOL_LIST[@]}; i++ )); do
+				RESOLVED_TOOL_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
 			done
 			;;
 	esac
-	echo "${RESOLVED_TOOL_LIST[@]},${RESOLVED_LIST[@]}"
+	echo "${RESOLVED_TOOL_LIST[@]:${#BSE_TOOLS[@]}},${RESOLVED_LIST[@]:${#BSE_TOOLS[@]}}"
 }
 
 bse_init()
@@ -1481,6 +1492,12 @@ done
 if [ ! -d "$INCDIR" ]; then
 	bs_error "Directory \"$INCDIR\" for global configuration not found"
 fi
+
+BSE_TOOLS=($(cat /tools/bsetools))
+for (( i = 0; i < ${#BSE_TOOLS[@]}; i++ )); do
+	BSE_TOOLS[i]="tools.conf/${BSE_TOOLS[i]}"
+done
+export BSE_TOOLS
 
 set -a
 source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}

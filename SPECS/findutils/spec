@@ -1,4 +1,4 @@
-CONFIGFLAGS='--libexecdir=/usr/lib/findutils --localstatedir=/var/lib/locate'
+CONFIGFLAGS="--libexecdir=$PREFIX/lib/findutils --localstatedir=/var/lib/locate"
 PKG_LOCATION='http://ftp.gnu.org/gnu/findutils/findutils-4.4.2.tar.gz'
 DEPS=glibc
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

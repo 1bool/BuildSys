@@ -1,5 +1,5 @@
 PKG_LOCATION='http://ftp.altlinux.org/pub/people/legion/kbd/kbd-1.15.3.tar.gz'
-CONFIGFLAGS='--prefix=/usr --datadir=/lib/kbd'
+CONFIGFLAGS="--prefix=$PREFIX --datadir=/lib/kbd"
 # The behaviour of the Backspace and Delete keys is not consistent across the keymaps in the Kbd package. The following patch fixes this issue for i386 keymaps:
 PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/kbd-1.15.3-backspace-1.patch'
 # The behaviour of loadkeys when run without a filename was broken in this release.
@@ -8,4 +8,4 @@ DEPS=glibc
 TOOL_DEPS=(binutils gcc sed coreutils bison bash flex gettext gzip)
 
 #--datadir=/lib/kbd
-#    This option puts keyboard layout data in a directory that will always be on the root partition instead of the default /usr/share/kbd.
+#    This option puts keyboard layout data in a directory that will always be on the root partition instead of the default $PREFIX/share/kbd.

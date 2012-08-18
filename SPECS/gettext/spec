@@ -1,5 +1,5 @@
 VERSION=0.18.1.1
-CONFIGFLAGS="--prefix=/usr --docdir=/usr/share/doc/gettext-$VERSION"
+CONFIGFLAGS="--prefix=$PREFIX --docdir=$PREFIX/share/doc/gettext-$VERSION"
 PKG_LOCATION="http://ftp.gnu.org/gnu/gettext/gettext-$VERSION.tar.gz"
 DEPS=glibc
 TOOL_DEPS=(binutils gcc sed coreutils grep bash gawk)

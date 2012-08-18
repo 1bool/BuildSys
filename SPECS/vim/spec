@@ -1,5 +1,5 @@
 PKG_LOCATION='ftp://ftp.vim.org/pub/vim/unix/vim-7.3.tar.bz2'
-CONFIGFLAGS='--prefix=/usr --enable-multibyte --srcdir=../src --with-features=small'
+CONFIGFLAGS='--enable-multibyte --srcdir=../src --with-features=small'
 SRC_DIR=vim73
 DEPS=(glibc ncurses)
 TOOL_DEPS=(binutils gcc sed coreutils diffutils bash grep make)

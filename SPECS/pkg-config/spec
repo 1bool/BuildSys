@@ -1,6 +1,6 @@
 PKG_NAME=pkg-config
 VERSION=0.27
 PKG_LOCATION="http://pkgconfig.freedesktop.org/releases/pkg-config-$VERSION.tar.gz"
-CONFIGFLAGS="--with-internal-glib --with-installed-popt --with-internal-glib --docdir=/usr/share/doc/pkg-config-$VERSION"
+CONFIGFLAGS="--with-internal-glib --with-installed-popt --with-internal-glib --docdir=$PREFIX/share/doc/pkg-config-$VERSION"
 DEPS=(glibc popt)
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

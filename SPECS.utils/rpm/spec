@@ -8,4 +8,4 @@ TOOL_DEPS=(gcc gettext)
 # lua support can be added '--with-lua', also add lua in DEPS
 CONFIGFLAGS=(--enable-nls --without-selinux --with-external-db --with-cap --without-lua --without-dmalloc --without-acl --with-popt --localstatedir=/var)
 PATCHES=add_vendor.patch
-CPPFLAGS="-I/usr/include/nspr -I/usr/include/nss"
+CPPFLAGS="-I$PREFIX/include/nspr -I$PREFIX/include/nss"

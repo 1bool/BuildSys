@@ -3,14 +3,14 @@ PKG_LOCATION="http://download.savannah.gnu.org/releases/man-db/man-db-$VERSION.t
 #PKG_CONFIG=/tools/bin/true
 #libpipeline_CFLAGS=''
 #libpipeline_LIBS='-lpipeline'
-CONFIGFLAGS="--prefix=/usr                       \
-			--libexecdir=/usr/lib                \
-			--docdir=/usr/share/doc/man-db-$VERSION \
+CONFIGFLAGS="--prefix=$PREFIX                       \
+			--libexecdir=$PREFIX/lib                \
+			--docdir=$PREFIX/share/doc/man-db-$VERSION \
 			--sysconfdir=/etc                    \
 			--disable-setuid                     \
-			--with-browser=/usr/bin/lynx         \
-			--with-vgrind=/usr/bin/vgrind        \
-			--with-grap=/usr/bin/grap"
+			--with-browser=$PREFIX/bin/lynx         \
+			--with-vgrind=$PREFIX/bin/vgrind        \
+			--with-grap=$PREFIX/bin/grap"
 
 #PKG_CONFIG=, libpipeline_ ...
 #    These environment variables allow the configuration process to complete without the external pkg-config program.

@@ -4,12 +4,12 @@ CONFIGFLAGS='--with-rootlibdir=/lib --bindir=/bin --libdir=/lib --sysconfdir=/et
 
 # lib* and --with-*
 #    These options enable Kmod to handle compressed kernel modules. The shell variables are required in order for the xz and zlib headers and libraries to be found in the absence of pkg-config.
-#liblzma_CFLAGS="-I/usr/include"
+#liblzma_CFLAGS="-I$PREFIX/include"
 #liblzma_LIBS="-L/lib -llzma"
-#zlib_CFLAGS="-I/usr/include"
+#zlib_CFLAGS="-I$PREFIX/include"
 #zlib_LIBS="-L/lib -lz"
 
-MAKEFLAGS='pkgconfigdir=/usr/lib/pkgconfig'
+MAKEFLAGS="pkgconfigdir=$PREFIX/lib/pkgconfig"
 
 DEPS=(glibc xz zlib)
 TOOL_DEPS=(binutils gcc sed coreutils bison bash flex gettext gzip pkg-config)

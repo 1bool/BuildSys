@@ -5,7 +5,7 @@ DEPS=(nspr zlib sqlite)
 MAKEDIR="nss-3.13.5/mozilla/security/nss"
 MAKEFLAGS="BUILD_OPT=1 NSPR_INCLUDE_DIR=$PREFIX/include/nspr USE_SYSTEM_ZLIB=1 ZLIB_LIBS=-lz NSS_USE_SYSTEM_SQLITE=1 -j1"
 # BUILD_OPT=1: This option is passed to make so that the build is performed with no debugging symbols built into the binaries and the default compiler optimizations are used.
-# NSPR_INCLUDE_DIR=/usr/include/nspr: This option sets the location of the nspr headers.
+# NSPR_INCLUDE_DIR=$PREFIX/include/nspr: This option sets the location of the nspr headers.
 # USE_SYSTEM_ZLIB=1: This option is passed to make to ensure that the libssl3.so library is linked to the system installed zlib instead of the in-tree version.
 # ZLIB_LIBS=-lz: This option provides the linker flags needed to link to the system zlib.
 MAKE_TARGETS=(nss_build_all)

@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -ie "s|PREFIX = /usr|PREFIX = $PREFIX|" mozilla/security/nss/config/Makefile
