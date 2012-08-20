@@ -1,7 +1,0 @@
-#!/bin/sh
-cd /tmp/elfutils/bin
-# remove duplicates with binutils
-rm addr2line ar ld nm objdump ranlib readelf size strings strip
-cd ../..
-cp -av elfutils/* $PREFIX/
-rm -rfv elfutils
