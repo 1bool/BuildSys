@@ -1,0 +1,2 @@
+#!/bin/sh
+[ -h /usr/lib/rpm ] && rm -v /usr/lib/rpm

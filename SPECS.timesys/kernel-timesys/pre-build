@@ -1,0 +1,2 @@
+#!/bin/sh
+[ ! -e /usr/lib/rpm ] && ln -sv /tools/lib/rpm /usr/lib

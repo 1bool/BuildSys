@@ -316,7 +316,7 @@ mount $VERBOSE -t sysfs sysfs "$SDE/sys"
 pushd -n "$SDE/sys" &> /dev/null
 mount $VERBOSE --bind "$DEV_ROOT" "$SDE/$DEVROOT_IN_SDK"
 pushd -n "$SDE/$DEVROOT_IN_SDK" &> /dev/null
-for DIR in SPECS INC POOL GEN LOG ${SPECDIRS[@]}; do
+for DIR in INC POOL GEN LOG ${SPECDIRS[@]}; do
 	mount $VERBOSE --bind "$BS_ROOT/$DIR" "$SDE/$DEVROOT_IN_SDK/$DIR"
 	pushd -n "$SDE/$DEVROOT_IN_SDK/$DIR" &> /dev/null
 done
