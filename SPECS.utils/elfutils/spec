@@ -1,3 +1,4 @@
 PKG_LOCATION="https://fedorahosted.org/releases/e/l/elfutils/0.154/elfutils-0.154.tar.bz2"
 CONFIGFLAGS="--program-prefix=eu-"
-MAKEFLAGS=-j1
+#MAKEFLAGS=-j1
+PATCHES="fix_build_error.patch"

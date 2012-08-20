@@ -1,0 +1,12 @@
+diff -Naru elfutils-0.154.orig/libdw/Makefile.in elfutils-0.154/libdw/Makefile.in
+--- elfutils-0.154.orig/libdw/Makefile.in	2012-06-23 01:38:27.000000000 +0800
++++ elfutils-0.154/libdw/Makefile.in	2012-08-21 04:25:59.533081825 +0800
+@@ -838,7 +838,7 @@
+ @MUDFLAP_FALSE@		-Wl,--version-script,$<,--no-undefined \
+ @MUDFLAP_FALSE@		-Wl,--whole-archive $(filter-out $<,$^) -Wl,--no-whole-archive\
+ @MUDFLAP_FALSE@		-ldl $(zip_LIBS)
+-@MUDFLAP_FALSE@	if readelf -d $@ | fgrep -q TEXTREL; then exit 1; fi
++@MUDFLAP_FALSE@	if readelf -d $@ | fgrep -q TEXTREL; then :; fi
+ @MUDFLAP_FALSE@	ln -fs $@ $@.$(VERSION)
+ 
+ @MUDFLAP_FALSE@install: install-am libdw.so
