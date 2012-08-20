@@ -1,4 +1,5 @@
 PKG_LOCATION="http://repository.timesys.com/buildsources/fedora/14-CT/source/SRPMS/kernel-3.0.0-13.src.rpm"
 #PATCHES="0-suppress-compile-warning.patch"
+PATCHES="fix-install-error.patch"
 TOOL_DEPS=(tools.conf/rpm tools.conf/buildsys-rpm-config tools.conf/cpio)
 BUILDSYS_LINK=tools

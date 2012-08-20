@@ -1,0 +1,1 @@
+CONFIGFLAGS="--enable-udev --enable-intel --disable-radeon --disable-static"

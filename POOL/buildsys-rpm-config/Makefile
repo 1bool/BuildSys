@@ -14,11 +14,11 @@ clean:
 	rm -f *~ 
 
 install:
-	mkdir -p $(DESTDIR)/usr/lib/rpm/buildsys
-	cp -pr * $(DESTDIR)/usr/lib/rpm/buildsys/
-	rm -f $(DESTDIR)/usr/lib/rpm/buildsys/Makefile
-	rm -f $(DESTDIR)/usr/lib/rpm/buildsys/buildsys-rpm-config.spec
-	chown -R root:root $(DESTDIR)/usr/lib/rpm/buildsys/
+	mkdir -p $(DESTDIR)/$(PREFIX)/lib/rpm/buildsys
+	cp -pr * $(DESTDIR)/$(PREFIX)/lib/rpm/buildsys/
+	rm -f $(DESTDIR)/$(PREFIX)/lib/rpm/buildsys/Makefile
+	rm -f $(DESTDIR)/$(PREFIX)/lib/rpm/buildsys/buildsys-rpm-config.spec
+	chown -R root:root $(DESTDIR)/$(PREFIX)/lib/rpm/buildsys/
 
 tag-archive:
 	git tag -a $(VERSION)

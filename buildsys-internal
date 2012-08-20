@@ -211,7 +211,6 @@ toolchain_link()
 		tools)
 			ln -vf ld-old ld
 			rm -vf `dirname $(gcc --print-libgcc-file-name)`/specs
-			export SYSROOT=/tools
 			;;
 		root)
 			ln -vf ld-new ld
@@ -219,7 +218,6 @@ toolchain_link()
 				-e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
 				-e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' > \
 				`dirname $(gcc --print-libgcc-file-name)`/specs
-			export SYSROOT=/
 			;;
 		*)
 			return 1
@@ -354,6 +352,8 @@ walk_pkg_dir()
 
 pkg_unpack_patch()
 {
+	[ "$PKG_LOCATION" = "dummy-file" ] && return
+
 	if [ ! -f .unpacked-$PKG_NAME ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
@@ -411,6 +411,7 @@ pkg_unpack_patch()
 pkg_make_install()
 {
 	local -i i
+
 	if [ ! -f ".built-$PKG_NAME" ]; then
 		pushd "$SRC_DIR"
 		bs_notice "Building package ${PKG} in $SRC_DIR"
@@ -472,7 +473,7 @@ pkg_make_install()
 	if [ ! -f ".done-$PKG_NAME" ]; then
 		# post-install can be used to fix installation problems
 		if [ -f ${PKG_SPECDIR}/post-install ]; then
-			pushd $SYSROOT
+			pushd /
 			${PKG_SPECDIR}/post-install
 			popd
 		fi
@@ -1274,7 +1275,7 @@ get_pkg_info()
 		parse_conf_var
 		PKG=$(basename $PKG)
 	fi
-	for SPECDIR in SPECS ${SPECDIRS[@]}; do
+	for SPECDIR in ${SPECDIRS[@]} SPECS; do
 		PKG_SPECDIR="$DEV_ROOT/$SPECDIR/$PKG"
 		for SPECFILE in "${PKG_SPECDIR}/spec" "${PKG_SPECDIR}/${SPEC_NAME}"; do
 			if [ -f "$SPECFILE" ]; then
@@ -1295,7 +1296,11 @@ deps_of()
 	(
 	get_pkg_info ${1} > /dev/null
 	for DEP in ${DEPS[@]}; do
-		echo -n "tools.conf/${DEP#*/} "
+		if [ "$CONF_NAME" = . ]; then
+			echo -n "${DEP} "
+		else
+			echo -n "$CONF_NAME/${DEP#*/} "
+		fi
 	done
 	)
 }
@@ -1307,7 +1312,14 @@ tool_deps_of()
 	guess_pkg_info_from_location "${PKG_LOCATION}"
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
-			TOOL_DEPS+=(rpm buildsys-rpm-config cpio)
+			RPM_TOOLS=(rpm buildsys-rpm-config cpio) 
+			for TOOL in ${RPM_TOOLS[@]}; do
+				if ! in_list "$TOOL" ${TOOL_DEPS[@]}; then
+					if ! in_list "tools.conf/$TOOL" ${TOOL_DEPS[@]}; then
+						TOOL_DEPS+=($TOOL)
+					fi
+				fi
+			done
 			;;
 	esac
 	case "${PKG_LOCATION[$N_LOC]}" in
@@ -1316,7 +1328,11 @@ tool_deps_of()
 			;;
 	esac
 	for DEP in ${TOOL_DEPS[@]}; do
-		echo -n "tools.conf/${DEP#*/} "
+		if [ "$CONF_NAME" = . ]; then
+			echo -n "${DEP} "
+		else
+			echo -n "$CONF_NAME/${DEP#*/} "
+		fi
 	done
 	)
 }

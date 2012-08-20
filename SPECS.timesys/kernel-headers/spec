@@ -1,0 +1,2 @@
+PKG_LOCATION="dummy-file"
+DEPS=kernel-timesys

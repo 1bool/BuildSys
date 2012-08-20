@@ -1,0 +1,3 @@
+PKG_LOCATION="http://repository.timesys.com/buildsources/fedora/14-CT/source/SRPMS/psb-video-cdv-0.12-1.1.src.rpm"
+SRC_DIR=psb-video-cdv-0.12
+DEPS=pvr-bin-cdv
