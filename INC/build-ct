@@ -2,8 +2,8 @@ PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:$HOME/bin:/tools/bin
 SPECNAME=spec-ct
 SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPECS.X)
 PREFIX=/usr
-CFLAGS='-O3 -pipe -mcpu=atom -mtune=atom'
-CXXFLAGS='-O3 -pipe -mcpu=atom -mtune=atom'
+CFLAGS='-O3 -pipe -march=atom -mtune=atom'
+CXXFLAGS='-O3 -pipe -march=atom -mtune=atom'
 ARCH=i686
 ABI=32
 LOCALES=zh_CN
