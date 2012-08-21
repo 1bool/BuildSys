@@ -2,3 +2,4 @@
 #[ -h /usr/lib/rpm ] && rm -v /usr/lib/rpm
 cp -a $PKG_DIR/BUILDROOT/usr/include /usr/kernel-headers
 cp -av $MAKEDIR/$PKG_NAME-$VERSION/drivers/staging/cdv/imgv/*.h ./$PREFIX/include
+cp -av $MAKEDIR/$PKG_NAME-$VERSION/ttm/* ./$PREFIX/include
