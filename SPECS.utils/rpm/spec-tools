@@ -1,0 +1,1 @@
+CONFIGFLAGS=(--enable-nls --without-selinux --with-external-db --with-cap --without-lua --without-dmalloc --without-acl --with-popt --localstatedir=/tools/var)

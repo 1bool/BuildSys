@@ -27,13 +27,24 @@ quit()
 
 unpack()
 {
-	local DEST='.'
+	local DEST='.' PROG
 	if [ -n "$2" ]; then
 		DEST="$2"
 	fi
 	case "$1" in
 		*.tar.gz | *.tar.bz2 | *.tar.xz | *.tgz | *.tbz | *.txz)
-			tar -xf "$1" -C "$DEST"
+			case "$SUFFIX" in
+				*gz)
+					PROG=gzip
+					;;
+				*bz*)
+					PROG=bzip2
+					;;
+				*xz)
+					PROG=xz
+					;;
+			esac
+			tar --use-compress-program /tools/bin/$PROG -xf "$1" -C "$DEST"
 			;;
 		*.zip)
 			unzip "$1" -d "$DEST"
@@ -164,11 +175,10 @@ export_cross_tools()
 
 parse_conf_var()
 {
+	set -h
 	if [ "$SDKARCH" = i686 ]; then
-		set +h
 		unset ARCH
 	else
-		set -h
 		export ARCH=$SDKARCH
 		source /tools/installed_tools
 	fi
@@ -178,13 +188,14 @@ parse_conf_var()
 		export BUILDSYS_LINK=tools PKG_CONFIG_PATH=/tools/lib/pkg-config
 		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP
 	else
+		export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 		case $SDKARCH in
 			i?86 | x86*)
 				export ${BUILDSYS_LINK:=root}
 				;;
 			arm)
 				export BUILDSYS_LINK=tools BUILDSYS_HOST="arm-buildsys-linux-gnueabi" \
-					BUILDSYS_BUILD="i686-pc-linux-gnu" PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+					BUILDSYS_BUILD="i686-pc-linux-gnu"
 				export_cross_tools $BUILDSYS_HOST
 				CROSS_MAKEOPTS="CC=$CC CXX=$CXX AR=$AR AS=$AS RANLIB=$RANLIB LD=$LD STRIP=$STRIP"
 				if [ ! -x "/tools/bin/${BUILDSYS_HOST}-cc" ]; then
@@ -310,13 +321,13 @@ make_fakeroot()
 
 walk_pkg_dir()
 {
-	local -i CONTINUE=0 N_LOC
+	local -i IGNERR=0 N_LOC
 	OPTIND=1
 	while getopts "a:c" FLAG
 	do
 		case "$FLAG" in
 			c)
-				CONTINUE=1
+				IGNERR=1
 				;;
 			a)
 				ACTS="$OPTARG"
@@ -326,7 +337,7 @@ walk_pkg_dir()
 	shift $((OPTIND - 1))
 
 	for PKG in ${@}; do
-		export PKG CONTINUE LAST_TOOLCHAIN_LINK
+		export PKG IGNERR LAST_TOOLCHAIN_LINK
 		(
 		set -aeET
 		get_pkg_info $PKG
@@ -336,11 +347,18 @@ walk_pkg_dir()
 		pushd "$PKG_DIR"
 		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
 			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
+			if [ "$SUFFIX" = 'src.rpm' ]; then
+				# prevent build failure by rpm bug
+				# https://bugzilla.redhat.com/show_bug.cgi?id=433795
+				IGNERR=1
+			fi
 			for ACT in $ACTS; do
-				if [ "$CONTINUE" = 0 ]; then
+				if [ "$IGNERR" = 0 ]; then
 					$ACT
 				else
+					set +eET
 					$ACT || bs_notice "Ignoring errors"; continue
+					set -eET
 				fi
 			done
 			get_pkg_info $PKG
@@ -352,7 +370,10 @@ walk_pkg_dir()
 
 pkg_unpack_patch()
 {
-	[ "$PKG_LOCATION" = "dummy-file" ] && return
+	if [ "$PKG_LOCATION" = "dummy-file" ]; then
+		mkdir -pv $SRC_DIR
+		return
+	fi
 
 	if [ ! -f .unpacked-$PKG_NAME ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
@@ -396,8 +417,7 @@ pkg_unpack_patch()
 			esac
 		done
 		if [ -r "$RPM_SPEC" ]; then
-			sed -i -e '/rm -rf ${RPM_BUILD_ROOT}/d' "$RPM_SPEC"
-			sed -i -e '/rm -rf $RPM_BUILD_ROOT/d' "$RPM_SPEC"
+			sed -i -e '/^%clean/,/^$/d' "$RPM_SPEC"
 		fi
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
@@ -581,8 +601,8 @@ pkg_remove()
 pkg_rpm_install()
 {
 	if [ ! -d $PKG_DIR/BUILDROOT ]; then
-		bs_notice "Executing rpmbuild -v -bi"
-		rpmbuild -v -bi --nodeps \
+		bs_notice "Executing rpmbuild -vv -bi"
+		rpmbuild -vv -bi --nodeps \
 			--define "_sourcedir $SRC_DIR" \
 			--define "_builddir $MAKEDIR" \
 			--define "_topdir $PKG_DIR" \
@@ -592,6 +612,7 @@ pkg_rpm_install()
 			--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 			--define "_sysconfdir /etc" \
 			--define "buildroot %{_buildrootdir}" \
+			--define "debug_package %{nil}" \
 			"$RPM_SPEC"
 	fi
 	cd $PKG_DIR/BUILDROOT
@@ -600,8 +621,8 @@ pkg_rpm_install()
 
 pkg_rpm_dest_install()
 {
-	bs_notice "Executing rpmbuild -v -bb --short-circuit"
-	rpmbuild -v -bb --short-circuit --nodeps \
+	bs_notice "Executing rpmbuild -vv -bb --short-circuit"
+	rpmbuild -vv -bb --short-circuit --nodeps \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -612,6 +633,7 @@ pkg_rpm_dest_install()
 		--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 		--define "buildroot %{_buildrootdir}" \
 		--define "_sysconfdir /etc" \
+		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
 	cd $PKG_DIR/BUILDROOT
 	cp -a . $FS_ROOT
@@ -621,8 +643,8 @@ pkg_rpmbuild()
 {
 	case $SUFFIX in
 		src.rpm|SRC.RPM)
-			bs_notice "Executing rpmbuild -v --rebuild"
-			rpmbuild -v --rebuild \
+			bs_notice "Executing rpmbuild -vv --rebuild"
+			rpmbuild -vv --rebuild \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \
 				--define "_topdir $PKG_DIR" \
@@ -633,11 +655,12 @@ pkg_rpmbuild()
 				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 				--define "buildroot %{_buildrootdir}" \
 				--define "_sysconfdir /etc" \
+				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
 		tar.*)
-			bs_notice "Executing rpmbuild -v -ta"
-			rpmbuild -v -ta \
+			bs_notice "Executing rpmbuild -vv -ta"
+			rpmbuild -vv -ta \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \
 				--define "_topdir $PKG_DIR" \
@@ -648,6 +671,7 @@ pkg_rpmbuild()
 				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
 				--define "buildroot %{_buildrootdir}" \
 				--define "_sysconfdir /etc" \
+				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
 		*)
@@ -697,6 +721,8 @@ build_pkgs()
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
+	bs_notice "Calculating dependencies..."
+	echo
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
@@ -730,6 +756,8 @@ install_pkgs()
 	echo '========================================='
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
+	echo
+	bs_notice "Calculating dependencies..."
 	echo
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
@@ -780,6 +808,7 @@ strip_rootfs()
 	OPATH=$PATH
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
+	[ -h ./$PREFIX/lib/rpm ] && rm -v ./$PREFIX/lib/rpm
 	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
 	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
 	if [ -n "$EXE_LIST" ]; then
@@ -822,6 +851,8 @@ ext4_pkgs()
 	local FS_SIZE
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
 
+	bs_notice "Calculating dependencies..."
+	echo
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
@@ -882,6 +913,8 @@ iso_pkgs()
 	FS_ROOT=$ISO_ROOT
 	mkdir -pv $ISO_ROOT
 
+	bs_notice "Calculating dependencies..."
+	echo
 	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
@@ -1188,6 +1221,8 @@ rpm_pkgs()
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
+	bs_notice "Calculating dependencies..."
+	echo
 	BUILD_LIST="$(resolve_deps rpm ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
@@ -1322,14 +1357,14 @@ tool_deps_of()
 			done
 			;;
 	esac
-	case "${PKG_LOCATION[$N_LOC]}" in
-		https://* | ftps://*)
-			TOOL_DEPS+=(wget)
-			;;
-	esac
+#	case "${PKG_LOCATION[$N_LOC]}" in
+#		https://* | ftps://*)
+#			TOOL_DEPS+=(wget)
+#			;;
+#	esac
 	for DEP in ${TOOL_DEPS[@]}; do
 		if [ "$CONF_NAME" = . ]; then
-			echo -n "${DEP} "
+			echo -n "tools.conf/${DEP#*/} "
 		else
 			echo -n "$CONF_NAME/${DEP#*/} "
 		fi
@@ -1385,15 +1420,15 @@ resolve_deps()
 	for PKG in $@; do
 		add_dep_pkg $PKG
 	done
-	case $SDKARCH in
-		i?86|x86*)
-			;;
-		*)
+#	case $SDKARCH in
+#		i?86|x86*)
+#			;;
+#		*)
 			for (( i = 0; i < ${#RESOLVED_TOOL_LIST[@]}; i++ )); do
-				RESOLVED_TOOL_LIST[i]="tools.conf/${TOOLS_LIST[i]#tools.conf/}"
+				RESOLVED_TOOL_LIST[i]="tools.conf/${RESOLVED_TOOL_LIST[i]#tools.conf/}"
 			done
-			;;
-	esac
+#			;;
+#	esac
 	echo "${RESOLVED_TOOL_LIST[@]:${#BSE_TOOLS[@]}},${RESOLVED_LIST[@]:${#BSE_TOOLS[@]}}"
 }
 

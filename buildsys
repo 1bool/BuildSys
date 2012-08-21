@@ -190,7 +190,7 @@ BUILD_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
 SDE="$BUILD_ROOT/SDE"
 DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
 if [ "$ARCH" = 'i686' ]; then
-    SDKPATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin:/tools/sbin
+    SDKPATH=/tools/bin:/tools/sbin:/bin:/usr/bin:/sbin:/usr/sbin
 else
     SDKPATH=/tools/bin:/tools/sbin
 fi
