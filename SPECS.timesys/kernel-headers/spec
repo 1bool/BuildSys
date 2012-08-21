@@ -1,2 +1,3 @@
 PKG_LOCATION="dummy-file"
+PKG_NAME=kernel-headers
 DEPS=kernel-timesys
