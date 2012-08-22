@@ -1,0 +1,3 @@
+PKG_LOCATION="http://repository.timesys.com/buildsources/fedora/14-CT/source/SRPMS/libva-1.0.15-1.1.src.rpm"
+DEPS=(libXv libXrandr xorg-server libdrm libX11 libXext libXdamage libXfixes dri2proto damageproto kbproto xextproto fixesproto xproto)
+TOOL_DEPS=libtool

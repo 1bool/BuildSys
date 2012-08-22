@@ -721,11 +721,12 @@ build_pkgs()
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
-	bs_notice "Calculating dependencies..."
-	echo
+	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
+	echo
+	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
 		bs_notice "Packages to be built for tools:"
 		echo '========================================='
@@ -757,11 +758,12 @@ install_pkgs()
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
-	bs_notice "Calculating dependencies..."
-	echo
+	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
+	echo
+	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
 		bs_notice "Packages to be built for tools:"
 		echo '========================================='
@@ -851,11 +853,12 @@ ext4_pkgs()
 	local FS_SIZE
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
 
-	bs_notice "Calculating dependencies..."
-	echo
+	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
+	echo
+	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
 		bs_notice "Packages to be built for tools:"
 		echo '========================================='
@@ -913,11 +916,12 @@ iso_pkgs()
 	FS_ROOT=$ISO_ROOT
 	mkdir -pv $ISO_ROOT
 
-	bs_notice "Calculating dependencies..."
-	echo
+	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
+	echo
+	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
 		bs_notice "Packages to be built for tools:"
 		echo '========================================='
@@ -1221,11 +1225,12 @@ rpm_pkgs()
 	printf "%s\n" "${PKG_LIST[@]}"
 	echo '========================================='
 	echo
-	bs_notice "Calculating dependencies..."
-	echo
+	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps rpm ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	BUILD_LIST=(${BUILD_LIST#*,})
+	echo
+	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
 		bs_notice "Packages to be built for tools:"
 		echo '========================================='
@@ -1447,6 +1452,7 @@ bse_init()
 		sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la
 	fi
 	[ -x bin/sh ] || ln -sv bash /bin/sh
+	[ -x /usr/bin/env ] || ln -sv /tools/bin/env /usr/bin/env
 }
 
 print_help_and_exit()
