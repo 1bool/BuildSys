@@ -239,8 +239,8 @@ unset DISPLAY\
 LANG=C\
 export LANG\
 unset DISPLAY\
-CFLAGS="%optflags" ; export CFLAGS ; \
-CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ; \
+CFLAGS="%optflags $CFLAGS" ; export CFLAGS ; \
+CXXFLAGS="%optflags $CXXFLAGS" ; export CXXFLAGS ; \
 FFLAGS="${FFLAGS:-%optflags -I%_fmoddir}" ; export FFLAGS ; \
 LD_AS_NEEDED=1; export LD_AS_NEEDED ; \
 %{nil}

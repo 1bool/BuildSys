@@ -4,6 +4,7 @@ Optflags: i386 %{__global_cflags} -m32 -march=i386 -mtune=generic -fasynchronous
 Optflags: i486 %{__global_cflags} -m32 -march=i486 -fasynchronous-unwind-tables
 Optflags: i586 %{__global_cflags} -m32 -march=core2 -mssse3  -mtune=atom -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
 Optflags: i686 %{__global_cflags} -m32 -march=core2 -mssse3  -mtune=atom  -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
+Optflags: atom %{__global_cflags} -m32 -march=atom -mssse3  -mtune=atom  -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
 optflags: athlon %{__global_cflags} -m32 -march=athlon -fasynchronous-unwind-tables
 optflags: ia64 %{__global_cflags}
 optflags: x86_64 %{__global_cflags} -m64 -mtune=generic
