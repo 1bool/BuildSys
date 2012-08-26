@@ -1,5 +1,5 @@
 VERSION=5.16.1
 PKG_LOCATION="http://www.cpan.org/src/5.0/perl-$VERSION.tar.bz2"
 #PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/perl-$VERSION-libc-2.patch'
-DEPS=(glibc zlib gdbm)
+DEPS=(glibc zlib gdbm inetutils)
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

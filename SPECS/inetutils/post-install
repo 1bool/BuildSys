@@ -1,4 +1,6 @@
 #!/bin/sh
 
-mv -v usr/bin/{hostname,ping,ping6} bin
-mv -v usr/bin/traceroute sbin
+if [ $PREFIX != /tools ]; then
+	mv -v ./$PREFIX/bin/{hostname,ping,ping6} bin
+	mv -v ./$PREFIX/bin/traceroute sbin
+fi
