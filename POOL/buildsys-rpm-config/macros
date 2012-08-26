@@ -11,14 +11,16 @@
 # ---- configure macros.  note that most of these are inherited
 #      from the defaults.
 #
-%_prefix		/usr
+%buildroot      %{_buildrootdir}
+%debug_package  %{nil}
+%_prefix		%{_usr}
 %_sysconfdir		/etc
-%_localstatedir		/var
+%_localstatedir		%{_var}
 %_infodir		%{_datadir}/info
 %_mandir		%{_datadir}/man
 %_initrddir		%{_sysconfdir}/rc.d/init.d
 %_fmoddir		%{_libdir}/gfortran/modules
-%_enable_debug_packages 1
+%_enable_debug_packages 0
 
 #       Default fuzz level for %patch in spec file.
 %_default_patch_fuzz    2
@@ -119,7 +121,7 @@
   %{!?keepstatic:find %{?buildroot:%{buildroot}} -regex ".*\\.a$" | xargs rm -f --}  
 
 %_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] \\\
-	&& RPM_BUILD_NCPUS="`/usr/bin/getconf _NPROCESSORS_ONLN`"; \\\
+	&& RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; \\\
 	[ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")
 
 

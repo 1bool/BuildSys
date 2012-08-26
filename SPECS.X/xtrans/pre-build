@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -ie 's|pkgconfigdir = $(datadir)/pkgconfig|pkgconfigdir = $(libdir)/pkgconfig|' Makefile.in

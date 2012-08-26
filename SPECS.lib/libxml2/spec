@@ -1,2 +1,3 @@
 PKG_LOCATION="http://xmlsoft.org/sources/libxml2-2.8.0.tar.gz"
 CONFIGFLAGS="--disable-static"
+DEPS=(glibc zlib xz)

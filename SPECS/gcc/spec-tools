@@ -1,0 +1,1 @@
+CONFIGFLAGS+=" --with-local-prefix=/tools --with-native-system-header-dir=/tools/include"

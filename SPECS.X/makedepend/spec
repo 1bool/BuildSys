@@ -1,3 +1,4 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/util/makedepend-1.0.4.tar.bz2"
 CONFIGFLAGS="--disable-static"
-DEPS=(pkg-config)
+TOOL_DEPS=(pkg-config)
+DEPS=xproto

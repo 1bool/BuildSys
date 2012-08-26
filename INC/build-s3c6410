@@ -3,7 +3,7 @@ PREFIX=/usr
 CFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
 CXXFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
 ARCH=arm
-SPEC_NAME=spec-arm
+SPECNAME=spec-arm
 PKG_LIST=(
 	eglibc
 	zlib

@@ -2,12 +2,19 @@
 
 # This version of Perl now builds the Compress::Raw::Zlib module. By default Perl will use an internal copy of the Zlib source for the build. Issue the following command so that Perl will use the Zlib library installed on the system:
 sed -i -e "s|BUILD_ZLIB\s*= True|BUILD_ZLIB = False|"           \
-	-e "s|INCLUDE\s*= ./zlib-src|INCLUDE    = /usr/include|" \
-	-e "s|LIB\s*= ./zlib-src|LIB        = /usr/lib|"         \
+	-e "s|INCLUDE\s*= ./zlib-src|INCLUDE    = $PREFIX/include|" \
+	-e "s|LIB\s*= ./zlib-src|LIB        = $PREFIX/lib|"         \
 	cpan/Compress-Raw-Zlib/config.in
 
 # Skip installing manual because installman script is broken with concurrent build. Also, it needs to be fed with mandir instead of destdir.
-sed -i -e 's/$(MAKE) install.perl install.man/$(MAKE) install.perl/g' Makefile.SH
+#sed -i -e 's/$(MAKE) install.perl install.man/$(MAKE) install.perl/g' Makefile.SH
 
-ln -sfv configure.gnu configure
-ln -sfv $SRC_DIR $MAKEDIR
+#ln -sfv configure.gnu configure
+#ln -sfv $SRC_DIR $MAKEDIR
+
+sh Configure -des -Dprefix=$PREFIX                 \
+                  -Dvendorprefix=$PREFIX           \
+                  -Dman1dir=$PREFIX/share/man/man1 \
+                  -Dman3dir=$PREFIX/share/man/man3 \
+                  -Dpager="$PREFIX/bin/less -isR"  \
+                  -Duseshrplib

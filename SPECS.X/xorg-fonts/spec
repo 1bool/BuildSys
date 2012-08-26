@@ -38,3 +38,4 @@ http://xorg.freedesktop.org/releases/individual/font/font-winitzki-cyrillic-1.0.
 http://xorg.freedesktop.org/releases/individual/font/font-xfree86-type1-1.0.4.tar.bz2
 )
 CONFIGFLAGS="--disable-static"
+DEPS=(mkfontscale mkfontdir bdftopcf)

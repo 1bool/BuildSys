@@ -5,3 +5,4 @@ PKG_LOCATION="http://www.freedesktop.org/software/systemd/systemd-$VERSION.tar.x
 ADDITIONS="http://anduin.linuxfromscratch.org/sources/other/udev-lfs-$VERSION.tar.bz2"
 DEPS=(glibc kmod util-linux)
 TOOL_DEPS=(binutils gcc sed coreutils diffutils bash make grep gawk)
+MAKEFLAGS=-j1

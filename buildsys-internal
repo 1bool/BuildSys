@@ -33,17 +33,18 @@ unpack()
 	fi
 	case "$1" in
 		*.tar.gz | *.tar.bz2 | *.tar.xz | *.tgz | *.tbz | *.txz)
-			case "$SUFFIX" in
+			case "$1" in
 				*gz)
 					PROG=gzip
 					;;
-				*bz*)
+				*.bz2 | .tbz)
 					PROG=bzip2
 					;;
 				*xz)
 					PROG=xz
 					;;
 			esac
+			echo tar --use-compress-program /tools/bin/$PROG -xf "$1" -C "$DEST"
 			tar --use-compress-program /tools/bin/$PROG -xf "$1" -C "$DEST"
 			;;
 		*.zip)
@@ -136,29 +137,33 @@ get_file()
 
 precede_conf_opts()
 {
-	local ARG CONFIGURE
-	case "$PKG_NAME" in
-		vim)
-			CONFIGURE=src/auto/configure
-			;;
-		cmake)
-			CONFIGURE=bootstrap
-			;;
-		freetype)
-			CONFIGURE=builds/unix/configure
-			;;
-		openssl)
-			CONFIGURE=Configure
-			;;
-		*)
-			CONFIGURE=configure
-			;;
-	esac
+	local ARG
+	if [ -z "$CONFIGURE" ]; then
+		case "$PKG_NAME" in
+			vim)
+				CONFIGURE=src/auto/configure
+				;;
+			cmake)
+				CONFIGURE=bootstrap
+				;;
+			freetype)
+				CONFIGURE=builds/unix/configure
+				;;
+			openssl)
+				CONFIGURE=Configure
+				;;
+			*)
+				CONFIGURE=configure
+				;;
+		esac
+	fi
 	for ARG in $@; do
-		if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
-			bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
-		else
-			CONFIGFLAGS=($ARG ${CONFIGFLAGS[@]})
+		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
+			if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
+				bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
+			else
+				CONFIGFLAGS=($ARG ${CONFIGFLAGS[@]})
+			fi
 		fi
 	done
 }
@@ -347,11 +352,11 @@ walk_pkg_dir()
 		pushd "$PKG_DIR"
 		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
 			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
-			if [ "$SUFFIX" = 'src.rpm' ]; then
+#			if [ "$SUFFIX" = 'src.rpm' ]; then
 				# prevent build failure by rpm bug
 				# https://bugzilla.redhat.com/show_bug.cgi?id=433795
-				IGNERR=1
-			fi
+#				IGNERR=1
+#			fi
 			for ACT in $ACTS; do
 				if [ "$IGNERR" = 0 ]; then
 					$ACT
@@ -390,7 +395,7 @@ pkg_unpack_patch()
 		for ADDITION in ${ADDITIONS[@]}; do
 			get_file "$ADDITION" "$PKG_POOL"
 			bs_notice "Unpacking file ${ADDITION}"
-			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR"
+			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR/$DIR_ADDTION"
 		done
 		touch .unpacked-$PKG_NAME
 	fi
@@ -445,7 +450,7 @@ pkg_make_install()
 				cd $MAKEDIR
 			fi
 			if [ -r Makefile ] && [ ! -x configure ]; then
-				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $JOBS $MAKEFLAGS"
+				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $MAKEJOBS $MAKEFLAGS"
 				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
 					bs_notice "Executing make $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}"
 					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
@@ -466,7 +471,7 @@ pkg_make_install()
 					touch ${PKG_DIR}/".configured-$PKG_NAME"
 				fi
 				cd $MAKEDIR
-				MAKEFLAGS="$JOBS $MAKEFLAGS"
+				MAKEFLAGS="$MAKEJOBS $MAKEFLAGS"
 				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
 					bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[$i]}"
 					make $MAKEFLAGS ${MAKE_TARGETS[$i]}
@@ -600,21 +605,16 @@ pkg_remove()
 
 pkg_rpm_install()
 {
-	if [ ! -d $PKG_DIR/BUILDROOT ]; then
-		bs_notice "Executing rpmbuild -vv -bi"
-		rpmbuild -vv -bi --nodeps \
-			--define "_sourcedir $SRC_DIR" \
-			--define "_builddir $MAKEDIR" \
-			--define "_topdir $PKG_DIR" \
-			--define "_rpmdir $GEN_DIR" \
-			--define "_specdir $SRC_DIR" \
-			--define "_prefix $PREFIX" \
-			--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
-			--define "_sysconfdir /etc" \
-			--define "buildroot %{_buildrootdir}" \
-			--define "debug_package %{nil}" \
-			"$RPM_SPEC"
-	fi
+	bs_notice "Executing rpmbuild -vv -bi"
+	rpmbuild -vv -bi --nodeps \
+		--define "_sourcedir $SRC_DIR" \
+		--define "_builddir $MAKEDIR" \
+		--define "_topdir $PKG_DIR" \
+		--define "_rpmdir $GEN_DIR" \
+		--define "_specdir $SRC_DIR" \
+		--define "_prefix $PREFIX" \
+		--define "debug_package %{nil}" \
+		"$RPM_SPEC"
 	cd $PKG_DIR/BUILDROOT
 	cp -a . /
 }
@@ -630,9 +630,6 @@ pkg_rpm_dest_install()
 		--define "_srcrpmdir $GEN_DIR" \
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
-		--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
-		--define "buildroot %{_buildrootdir}" \
-		--define "_sysconfdir /etc" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
 	cd $PKG_DIR/BUILDROOT
@@ -652,9 +649,6 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
-				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
-				--define "buildroot %{_buildrootdir}" \
-				--define "_sysconfdir /etc" \
 				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
@@ -668,9 +662,6 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
-				--define '_smp_mflags %([ -z "$RPM_BUILD_NCPUS" ] && RPM_BUILD_NCPUS="`getconf _NPROCESSORS_ONLN`"; [ "$RPM_BUILD_NCPUS" -gt 1 ] && echo "-j$RPM_BUILD_NCPUS")' \
-				--define "buildroot %{_buildrootdir}" \
-				--define "_sysconfdir /etc" \
 				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
@@ -1317,7 +1308,7 @@ get_pkg_info()
 	fi
 	for SPECDIR in ${SPECDIRS[@]} SPECS; do
 		PKG_SPECDIR="$DEV_ROOT/$SPECDIR/$PKG"
-		for SPECFILE in "${PKG_SPECDIR}/spec" "${PKG_SPECDIR}/${SPEC_NAME}"; do
+		for SPECFILE in "${PKG_SPECDIR}/spec" "${PKG_SPECDIR}/${SPECNAME}"; do
 			if [ -f "$SPECFILE" ]; then
 				bs_notice "Reading $SPECFILE"
 				source $SPECFILE
@@ -1352,7 +1343,7 @@ tool_deps_of()
 	guess_pkg_info_from_location "${PKG_LOCATION}"
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
-			RPM_TOOLS=(rpm buildsys-rpm-config cpio) 
+			RPM_TOOLS=(cpio rpm buildsys-rpm-config) 
 			for TOOL in ${RPM_TOOLS[@]}; do
 				if ! in_list "$TOOL" ${TOOL_DEPS[@]}; then
 					if ! in_list "tools.conf/$TOOL" ${TOOL_DEPS[@]}; then
@@ -1495,9 +1486,9 @@ main()
 
 	if [ -r /proc/cpuinfo ]; then
 		CPUS=$(grep -F processor /proc/cpuinfo | wc -l)
-		: ${JOBS:="-j $CPUS"}
+		: ${MAKEJOBS:="-j $CPUS"}
 	fi
-	export JOBS
+	export MAKEJOBS
 
 	if [ ! -f /.bse_init ]; then
 		cd /
@@ -1531,7 +1522,7 @@ while true; do
 			shift 2
 			;;
 		-j|--jobs)
-			JOBS="$1 $2"
+			MAKEJOBS="$1 $2"
 			shift 2
 			;;
 		-h|--help)

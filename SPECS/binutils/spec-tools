@@ -1,0 +1,1 @@
+CONFIGFLAGS+=" --with-lib-path=/tools/lib"

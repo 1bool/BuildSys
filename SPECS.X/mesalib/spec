@@ -3,5 +3,15 @@ PKG_LOCATION="ftp://ftp.freedesktop.org/pub/mesa/$VERSION/MesaLib-$VERSION.tar.b
 PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
 #PATCHES[1]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-add_xdemos-2.patch"
 SRC_DIR="Mesa-$VERSION"
-CONFIGFLAGS="--enable-texture-float --enable-gles1 --enable-gles2 --enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --disable-static"
-DEPS=(libdrm expat libxml2 makedepend llvm)
+CONFIGFLAGS="--enable-texture-float ---enable-gles1 --enable-gles2 -enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --with-expat --disable-static"
+DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
+TOOL_DEPS=(libxml2 python makedepend llvm)
+
+#--enable-texture-float: This switch enables floating-point textures and renderbuffers. Please consult docs/patents.txt to see if there are any legal issues if you use this feature.
+#--enable-gles1: This switch enables support for OpenGL ES 1.x API.
+#--enable-gles2: This switch enables support for OpenGL ES 2.x API.
+#--enable-xa: This switch enables building of the XA X Acceleration API (Required for VMware 3D Driver).
+#--enable-shared-glapi: This switch enables building of the shared glapi library.
+#--enable-shared-dricore: This switch enables linking of the DRI modules with shared core DRI routines.
+#--enable-glx-tls: This switch enables TLS support in GLX.
+#--with-gallium-drivers="...": This parameter controls which Gallium drivers should be built. Available drivers are: i915, nouveau, r300, r600, swrast and svga. Note that you will need to remove r300 and r600 from the list if you haven't installed llvm-3.1. 

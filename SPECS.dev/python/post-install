@@ -1,0 +1,2 @@
+#!/bin/sh
+[ -x /usr/bin/python ] || ln -sv $PREFIX/bin/python /usr/bin/python

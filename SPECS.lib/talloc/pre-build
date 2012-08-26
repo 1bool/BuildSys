@@ -1,0 +1,2 @@
+#!/bin/sh
+ln -svf $SRC_DIR $MAKEDIR
