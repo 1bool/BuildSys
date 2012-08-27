@@ -1,3 +1,3 @@
 #!/bin/sh
 sed -i "s/ndbm_libs = \[\]/ndbm_libs = ['gdbm', 'gdbm_compat']/" setup.py
-[ $PREFIX = /tools ] || sed -i -e 's|./$(BUILDPYTHON)|$(BUILDPYTHON)|g' Makefile.pre.in
+[ $PREFIX = /tools ] || sed -i -e 's|./$(BUILDPYTHON)|/tools/bin/$(BUILDPYTHON)|g' Makefile.pre.in

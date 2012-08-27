@@ -3,13 +3,19 @@ SPECNAME=spec-ct
 SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPECS.X)
 PREFIX=/usr
 CFLAGS='-pipe -O3 -march=atom -mtune=atom -mfpmath=sse'
-CXXFLAGS="$CLFAGS"
+CXXFLAGS="-pipe -O3 -march=atom -mtune=atom -mfpmath=sse"
 ARCH=i686
 ABI=32
 LOCALES=zh_CN
 ROOTPASSWD=''
 BSE_FS_SIZE=3G
 PKG_LIST=(
+	kernel-timesys
+	kernel-headers
+	libwsbm-cdv
+	pvr-bin-cdv
+	psb-video-cdv
+	libva
 	file
 	sed
 	bzip2
@@ -38,7 +44,7 @@ PKG_LIST=(
 	udev
 	vim
 	bootscripts
-	kernel-timesys
+	xterm
 #	util-macros
 
    # # build xorg protocol headers

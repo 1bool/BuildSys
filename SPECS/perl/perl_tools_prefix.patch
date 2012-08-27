@@ -1,0 +1,11 @@
+--- perl-5.16.1.orig/ext/Errno/Errno_pm.PL	2012-04-25 08:18:33.000000000 +0800
++++ perl-5.16.1/ext/Errno/Errno_pm.PL	2012-08-27 16:52:06.526377137 +0800
+@@ -145,7 +145,7 @@
+ 	# Some Linuxes have weird errno.hs which generate
+ 	# no #file or #line directives
+ 	my $linux_errno_h = -e '/usr/include/errno.h' ?
+-	    '/usr/include/errno.h' : '/usr/local/include/errno.h';
++	    '/usr/include/errno.h' : '/tools/include/errno.h';
+ 	$file{$linux_errno_h} = 1;
+     } elsif ($^O eq 'beos' || $^O eq 'haiku') {
+ 	# hidden in a special place

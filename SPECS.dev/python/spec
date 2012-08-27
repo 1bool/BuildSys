@@ -1,5 +1,5 @@
 PKG_LOCATION="http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.xz"
 #PATCHES="http://bugs.python.org/file20534/python-2.7-20110126-CROSS.patch"
-CONFIGFLAGS="--enable-shared"
+CONFIGFLAGS="--enable-shared --with-system-ffi --with-system-expat"
 TOOL_DEPS=(pkg-config)
-DEPS=(gdbm libffi libxml2)
+DEPS=(ncurses readline gdbm libffi expat)

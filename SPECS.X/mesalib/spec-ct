@@ -1,4 +1,4 @@
-CONFIGFLAGS="--enable-texture-float --enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --enable-glu --disable-egl --without-gallium-drivers --without-dri-drivers"
+CONFIGFLAGS="--enable-texture-float --enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --enable-glu --disable-egl --without-gallium-drivers --without-dri-drivers PYTHON2=/tools/bin/python2"
 TOOL_DEPS=(${TOOL_DEPS[@]/llvm/} python)
 NOUVEAU_CFLAGS=disable
 NOUVEAU_LIBS=disable

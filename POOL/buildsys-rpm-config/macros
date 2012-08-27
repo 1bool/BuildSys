@@ -259,7 +259,6 @@ unset DISPLAY\
 %{nil}
 
 %clean %%clean\
-rm -rf %{?buildroot:%{buildroot}} \
 %{nil}
 
 %find_lang      /usr/lib/rpm/find-lang.sh %{buildroot}

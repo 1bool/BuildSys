@@ -115,15 +115,18 @@ guess_pkg_info_from_location()
 get_file()
 {
 	local SOURCE="$1" DEST="$2" FILE=
-	if [ -f "$DEST"/"$PKG_FILE_NAME" ]; then
-		bs_notice "File \"$PKG_FILE_NAME\" already exists in \"$DEST\", skip getting"
+	local SOURCE_FILE="${SOURCE##*/}"
+
+	SOURCE_FILE="${SOURCE_FILE%\?*}"
+	if [ -f "$DEST"/"$SOURCE_FILE" ]; then
+		bs_notice "File \"$SOURCE_FILE\" already exists in \"$DEST\", skip getting"
 		return
 	fi
 	case "$SOURCE" in
 		http://* | ftp://*)
 			bs_notice "Downloading ${SOURCE}"
-			wget -c -O "$DEST/${PKG_FILE_NAME}.partial" "$SOURCE"
-			mv -v "$DEST"/${PKG_FILE_NAME}.partial "$DEST"/${PKG_FILE_NAME}
+			wget -c -O "$DEST/${SOURCE_FILE}.partial" "$SOURCE"
+			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
 			;;
 		*)
 			for FILE in "$SOURCE" "$PKG_SPECDIR/$SOURCE" ""; do
@@ -277,6 +280,9 @@ makefile_of_pkg()
 		nspr)
 			echo -n 'config/Makefile'
 			;;
+		freetype)
+			echo -n "$SRC_DIR/builds/unix/install.mk"
+			;;
 		*)
 			echo -n 'Makefile'
 			;;
@@ -296,6 +302,9 @@ make_fakeroot()
 	case $PKG_NAME in
 		linux)
 			DESTVAR=INSTALL_MOD_PATH
+			;;
+		MesaLib|talloc)
+			DESTVAR=DESTDIR
 			;;
 	esac
 	for MAKE_TARGET in ${MAKE_TARGETS[@]}; do
@@ -425,8 +434,9 @@ pkg_unpack_patch()
 					;;
 			esac
 		done
-		if [ -r "$RPM_SPEC" ]; then
+		if [[ "$SUFFIX" = 'src.rpm' && -r "$RPM_SPEC" ]]; then
 			sed -i -e '/^%clean/,/^$/d' "$RPM_SPEC"
+			pkg_rpm_prep
 		fi
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
@@ -609,10 +619,34 @@ pkg_remove()
 	fi
 }
 
+pkg_rpm_prep()
+{
+	bs_notice "Executing rpmbuild -vv -bp"
+	rpmbuild -vv -bp --nodeps \
+		--define "_sourcedir $SRC_DIR" \
+		--define "_builddir $MAKEDIR" \
+		--define "_topdir $PKG_DIR" \
+		--define "_rpmdir $GEN_DIR" \
+		--define "_specdir $SRC_DIR" \
+		--define "_prefix $PREFIX" \
+		--define "debug_package %{nil}" \
+		"$RPM_SPEC"
+}
+
 pkg_rpm_install()
 {
-	bs_notice "Executing rpmbuild -vv -bi"
-	rpmbuild -vv -bi --nodeps \
+	bs_notice "Executing rpmbuild -vv -bc --short-circuit"
+	rpmbuild -vv -bc --short-circuit --nodeps \
+		--define "_sourcedir $SRC_DIR" \
+		--define "_builddir $MAKEDIR" \
+		--define "_topdir $PKG_DIR" \
+		--define "_rpmdir $GEN_DIR" \
+		--define "_specdir $SRC_DIR" \
+		--define "_prefix $PREFIX" \
+		--define "debug_package %{nil}" \
+		"$RPM_SPEC"
+	bs_notice "Executing rpmbuild -vv -bi --short-circuit"
+	rpmbuild -vv -bi --short-circuit --nodeps \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -627,8 +661,8 @@ pkg_rpm_install()
 
 pkg_rpm_dest_install()
 {
-	bs_notice "Executing rpmbuild -vv -bb --short-circuit"
-	rpmbuild -vv -bb --short-circuit --nodeps \
+	bs_notice "Executing rpmbuild -vv -bi --short-circuit"
+	rpmbuild -vv -bi --short-circuit --nodeps \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -808,7 +842,7 @@ strip_rootfs()
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
 	[ -h ./$PREFIX/lib/rpm ] && rm -v ./$PREFIX/lib/rpm
-	find . -name "*.a" -or -name "*.la" | xargs rm -rvf
+	[ $PREFIX = /tools ] || find . -name "*.a" -or -name "*.la" | xargs rm -rvf
 	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
 	if [ -n "$EXE_LIST" ]; then
 		echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
@@ -1359,11 +1393,11 @@ tool_deps_of()
 			done
 			;;
 	esac
-#	case "${PKG_LOCATION[$N_LOC]}" in
-#		https://* | ftps://*)
-#			TOOL_DEPS+=(wget)
-#			;;
-#	esac
+	case "${PKG_LOCATION[$N_LOC]}" in
+		https://* | ftps://*)
+			TOOL_DEPS+=(ssl-cert wget)
+			;;
+	esac
 	for DEP in ${TOOL_DEPS[@]}; do
 		if [ "$CONF_NAME" = . ]; then
 			echo -n "tools.conf/${DEP#*/} "

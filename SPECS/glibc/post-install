@@ -2,8 +2,10 @@
 
 # Fix bug #3 "glibc build loop in NPTL"
 mkdir -p ./$PREFIX/include
-cp -a $PREFIX/libc-include/* ./$PREFIX/include
-rm -rf $PREFIX/libc-include
+if [ -d $PREFIX/libc-include ]; then
+	cp -a $PREFIX/libc-include/* ./$PREFIX/include
+	rm -rf $PREFIX/libc-include
+fi
 
 # Install NIS and RPC related headers that are not installed by default; these are required by several BLFS packages.
 cp -v $SRC_DIR/sunrpc/rpc/*.h ./$PREFIX/include/rpc

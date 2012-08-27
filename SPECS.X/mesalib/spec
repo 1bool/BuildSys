@@ -5,7 +5,7 @@ PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-
 SRC_DIR="Mesa-$VERSION"
 CONFIGFLAGS="--enable-texture-float ---enable-gles1 --enable-gles2 -enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --with-expat --disable-static"
 DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
-TOOL_DEPS=(libxml2 python makedepend llvm)
+TOOL_DEPS=(python libxml2 makedepend llvm)
 
 #--enable-texture-float: This switch enables floating-point textures and renderbuffers. Please consult docs/patents.txt to see if there are any legal issues if you use this feature.
 #--enable-gles1: This switch enables support for OpenGL ES 1.x API.

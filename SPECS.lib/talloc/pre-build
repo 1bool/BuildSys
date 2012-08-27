@@ -1,2 +1,3 @@
 #!/bin/sh
 ln -svf $SRC_DIR $MAKEDIR
+sed -ie 's|#!/usr/bin/env python|#!/tools/bin/python|' $SRC_DIR/buildtools/bin/waf
