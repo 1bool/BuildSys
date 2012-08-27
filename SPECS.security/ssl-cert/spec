@@ -1,0 +1,4 @@
+PKG_LOCATION="http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt?raw=1"
+SRC_DIR=ssl-cert
+PKG_FILE_NAME=certdata.txt
+TOOL_DEPS=(bash perl openssl)

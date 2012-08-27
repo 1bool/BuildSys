@@ -57,6 +57,11 @@ unpack()
 			rpm2cpio "$1" | cpio -diumv
 			popd
 			;;
+		*.txt)
+			DEST="$DEST/$(basename $SRC_DIR)"
+			mkdir -pv $DEST
+			ln -svf "$1" "$DEST/"
+			;;
 		*)
 			bs_error "Unknown package format for \"$1\""
 			;;
@@ -110,16 +115,15 @@ guess_pkg_info_from_location()
 get_file()
 {
 	local SOURCE="$1" DEST="$2" FILE=
-	local SOURCE_FILE="${SOURCE##*/}"
-	if [ -f "$DEST"/"$SOURCE_FILE" ]; then
-		bs_notice "File \"$SOURCE_FILE\" already exists in \"$DEST\", skip getting"
+	if [ -f "$DEST"/"$PKG_FILE_NAME" ]; then
+		bs_notice "File \"$PKG_FILE_NAME\" already exists in \"$DEST\", skip getting"
 		return
 	fi
 	case "$SOURCE" in
 		http://* | ftp://*)
 			bs_notice "Downloading ${SOURCE}"
-			wget -c -O "$DEST/${SOURCE_FILE}.partial" "$SOURCE"
-			mv -v "$DEST"/${SOURCE_FILE}.partial "$DEST"/$SOURCE_FILE
+			wget -c -O "$DEST/${PKG_FILE_NAME}.partial" "$SOURCE"
+			mv -v "$DEST"/${PKG_FILE_NAME}.partial "$DEST"/${PKG_FILE_NAME}
 			;;
 		*)
 			for FILE in "$SOURCE" "$PKG_SPECDIR/$SOURCE" ""; do
@@ -579,6 +583,8 @@ pkg_dest_install()
 	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
 	if [ $SUFFIX = 'src.rpm' ]; then
 		pkg_rpm_dest_install
+	elif [ -x ${PKG_SPECDIR}/build ]; then
+		${PKG_SPECDIR}/build $FS_ROOT
 	else
 		cd $MAKEDIR
 		make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
