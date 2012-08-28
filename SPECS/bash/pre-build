@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -ie 's|	ls -l|	/tools/bin/ls -l|' Makefile.in

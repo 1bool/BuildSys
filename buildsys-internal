@@ -5,6 +5,7 @@ set -eET
 START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
 : ${DEV_ROOT:=/root}
+SDKPATH=$PATH
 export DEV_ROOT SDKARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
 	PKG_POOL=$DEV_ROOT/POOL FS_ROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
 
@@ -37,7 +38,7 @@ unpack()
 				*gz)
 					PROG=gzip
 					;;
-				*.bz2 | .tbz)
+				*.bz2|*.tbz)
 					PROG=bzip2
 					;;
 				*xz)
@@ -187,15 +188,14 @@ export_cross_tools()
 
 parse_conf_var()
 {
-	set -h
 	if [ "$SDKARCH" = i686 ]; then
+		set +h
+		PATH=$SDKPATH
 		unset ARCH
 	else
 		export ARCH=$SDKARCH
-		source /tools/installed_tools
 	fi
 	: ${PREFIX:=/usr}
-	export PREFIX
 	if [ "$PREFIX" = /tools ]; then
 		export BUILDSYS_LINK=tools PKG_CONFIG_PATH=/tools/lib/pkg-config
 		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP
@@ -216,7 +216,7 @@ parse_conf_var()
 				;;
 		esac
 	fi
-	export LAST_TOOLCHAIN_LINK=
+	export PATH PREFIX LAST_TOOLCHAIN_LINK=
 }
 
 toolchain_link()
@@ -332,8 +332,8 @@ make_fakeroot()
 		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
 			continue
 		fi
-		bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}"
-		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEFLAGS ${MAKE_TARGETS[$i]}
+		bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEJOBS $MAKEFLAGS ${MAKE_TARGETS[$i]}"
+		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEJOBS $MAKEFLAGS ${MAKE_TARGETS[$i]}
 	done
 }
 
@@ -365,11 +365,11 @@ walk_pkg_dir()
 		pushd "$PKG_DIR"
 		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
 			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
-#			if [ "$SUFFIX" = 'src.rpm' ]; then
-				# prevent build failure by rpm bug
-				# https://bugzilla.redhat.com/show_bug.cgi?id=433795
-#				IGNERR=1
-#			fi
+			#if [ "$SUFFIX" = 'src.rpm' ]; then
+				## prevent build failure by rpm bug
+				## https://bugzilla.redhat.com/show_bug.cgi?id=433795
+				#IGNERR=1
+			#fi
 			for ACT in $ACTS; do
 				if [ "$IGNERR" = 0 ]; then
 					$ACT
@@ -393,6 +393,7 @@ pkg_unpack_patch()
 		return
 	fi
 
+	cd $PKG_DIR
 	if [ ! -f .unpacked-$PKG_NAME ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
@@ -472,9 +473,8 @@ pkg_make_install()
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME" ]; then
 					precede_conf_opts "--prefix=$PREFIX"
-					if [ -n "$BUILDSYS_BUILD" ] && [ -n "$BUILDSYS_HOST" ]; then
-						precede_conf_opts "--build=$BUILDSYS_BUILD" "--host=$BUILDSYS_HOST"
-					fi
+					[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
+					[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
 					if [ ! -d $MAKEDIR ]; then
 						mkdir -p $MAKEDIR
 					fi
@@ -673,7 +673,7 @@ pkg_rpm_dest_install()
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
 	cd $PKG_DIR/BUILDROOT
-	cp -a . $FS_ROOT
+	cp -av . $FS_ROOT
 }
 
 pkg_rpmbuild()
@@ -843,13 +843,15 @@ strip_rootfs()
 	bs_notice "Stripping file system in ${PWD}..."
 	[ -h ./$PREFIX/lib/rpm ] && rm -v ./$PREFIX/lib/rpm
 	[ $PREFIX = /tools ] || find . -name "*.a" -or -name "*.la" | xargs rm -rvf
-	EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
-	if [ -n "$EXE_LIST" ]; then
-		echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
-			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-all 2> /dev/null || true
-		echo "$EXE_LIST" | grep -F -e 'application/x-sharedlib; charset=binary' \
-			| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
-	fi
+	find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null \
+		| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-unneeded 2> /dev/null || true
+	#EXE_LIST=$(find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null || true)
+	#if [ -n "$EXE_LIST" ]; then
+		#echo "$EXE_LIST" | grep -F -e 'application/x-executable; charset=binary' \
+			#| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-all 2> /dev/null || true
+		#echo "$EXE_LIST" | grep -F -e 'application/x-sharedlib; charset=binary' \
+			#| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
+	#fi
 	rm -rvf ./include ./${PREFIX}/share/{aclocal,awk,doc,getopt,info,man,pkgconfig,readline,vim} \
 		./${PREFIX}/{doc,info,man,include,kernel-headers} ./$PREFIX/lib/pkgconfig .bse_init
 	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
@@ -885,7 +887,7 @@ ext4_pkgs()
 	IMG_EXT4=$GEN_DIR/$IMG_NAME.ext4
 
 	echo -n "Calculating dependencies..."
-	BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+	BUILD_LIST="$(resolve_deps tools.conf/e2fsprogs ${PKG_LIST[@]})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
@@ -1454,7 +1456,11 @@ resolve_deps()
 	local PKG
 
 	for PKG in $@; do
-		add_dep_pkg $PKG
+		if [ $(dirname $PKG) = 'tools.conf' ]; then
+			add_dep_tool_pkg $PKG
+		else
+			add_dep_pkg $PKG
+		fi
 	done
 #	case $SDKARCH in
 #		i?86|x86*)
@@ -1520,9 +1526,9 @@ main()
 {
 	echo "Executing \"$(basename $0) $OPTS_ORIG\" with ${BUILD_CONF} at ${START_TIME}"
 
-	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%Y%m%d%H%M)"
-
 	parse_conf_var
+
+	export IMG_NAME="$(basename ${BUILD_CONF})-$(echo $TARGET_PKGS | tr -s [:blank:] | tr [:blank:] -)-$(date +%Y%m%d%H%M)"
 
 	if [ -r /proc/cpuinfo ]; then
 		CPUS=$(grep -F processor /proc/cpuinfo | wc -l)

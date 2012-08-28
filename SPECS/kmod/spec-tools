@@ -1,0 +1,1 @@
+CONFIGFLAGS='--with-xz --with-zlib'

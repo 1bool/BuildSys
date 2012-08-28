@@ -12,10 +12,6 @@ BSE_FS_SIZE=3G
 PKG_LIST=(
 	kernel-timesys
 	kernel-headers
-	libwsbm-cdv
-	pvr-bin-cdv
-	psb-video-cdv
-	libva
 	file
 	sed
 	bzip2
@@ -44,7 +40,12 @@ PKG_LIST=(
 	udev
 	vim
 	bootscripts
-	xterm
+	ssl-cert
+	libwsbm-cdv
+	pvr-bin-cdv
+	psb-video-cdv
+	libva
+	xinit
 #	util-macros
 
    # # build xorg protocol headers

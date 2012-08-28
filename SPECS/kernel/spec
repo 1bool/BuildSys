@@ -1,4 +1,4 @@
 PKG_LOCATION='http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.4.3.tar.xz'
-TOOL_DEPS=(bash binutils coreutils diffutils findutils gcc glibc grep gzip kmod make ncurses perl sed)
+TOOL_DEPS=(bash binutils coreutils diffutils findutils gcc glibc grep gzip kmod make ncurses perl sed kmod)
 MAKE_TARGETS=(all modules_install)
 KERN_SUFFIX="-buildsys${PKG#kernel}"

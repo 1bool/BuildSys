@@ -1,3 +1,3 @@
 PKG_LOCATION="ftp://ftp.kernel.org/pub/software/utils/pciutils/pciutils-3.1.10.tar.xz"
-MAKEFLAGS="SHAREDIR=/usr/share/misc MANDIR=/usr/share/man SHARED=yes ZLIB=no all"
-MAKE_TARGETS=(install install-lib)
+MAKEFLAGS="PREFIX=/usr SHAREDIR=/usr/share/misc MANDIR=/usr/share/man SHARED=yes ZLIB=no"
+MAKE_TARGETS=(all install install-lib)

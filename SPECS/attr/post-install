@@ -1,10 +1,12 @@
 #!/bin/sh
 
-pushd $MAKEDIR
-make install-dev install-lib
-popd
+if [ $PWD != / ]; then
+	mkdir -pv ./$PREFIX
+	mv include share ./$PREFIX
+fi
 
 chmod -v 0755 lib/libattr.so.1.1.0
-rm -v lib/libattr.{a,la,so}
-sed -i 's@/lib@/usr/lib@' usr/lib/libattr.la
-ln -sfv ../../lib/libattr.so.1 usr/lib/libattr.so
+rm -vf lib/libattr.{a,la,so}
+#sed -i 's@/lib@/usr/lib@' ./$PREFIX/lib/libattr.la
+mkdir -pv ./$PREFIX/lib
+ln -sfv ../../lib/libattr.so.1 ./$PREFIX/lib/libattr.so
