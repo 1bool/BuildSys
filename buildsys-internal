@@ -320,14 +320,17 @@ make_fakeroot()
 			fi
 		done
 	fi
-	if [ -z "$DESTVAR" ]; then
-		bs_error "Don't know how to install $PKG"
-	fi
-	if [ "$DESTVAR" = PREFIX ]; then
-		FAKEROOT=${FS_ROOT}${PREFIX}
-	else
-		FAKEROOT=${FS_ROOT}
-	fi
+	case "$DESTVAR" in
+		'')
+			bs_error "Don't know how to install $PKG"
+			;;
+		PREFIX|prefix)
+			FAKEROOT=${FS_ROOT}${PREFIX}
+			;;
+		*)
+			FAKEROOT=${FS_ROOT}
+			;;
+	esac
 	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
 		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
 			continue
@@ -852,7 +855,7 @@ strip_rootfs()
 		#echo "$EXE_LIST" | grep -F -e 'application/x-sharedlib; charset=binary' \
 			#| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	#fi
-	rm -rvf ./include ./${PREFIX}/share/{aclocal,awk,doc,getopt,info,man,pkgconfig,readline,vim} \
+	rm -rvf ./{include,share} ./${PREFIX}/share/{aclocal,awk,doc,getopt,info,man,pkgconfig,readline,vim} \
 		./${PREFIX}/{doc,info,man,include,kernel-headers} ./$PREFIX/lib/pkgconfig .bse_init
 	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
 		pushd ./${PREFIX}/share/locale
