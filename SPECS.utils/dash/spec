@@ -1,0 +1,2 @@
+PKG_LOCATION="http://gondor.apana.org.au/~herbert/dash/files/dash-0.5.5.1.tar.gz"
+CONFIGFLAGS="--bindir=/bin --mandir=/usr/share/man"
