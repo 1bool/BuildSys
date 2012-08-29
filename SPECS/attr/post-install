@@ -1,6 +1,7 @@
 #!/bin/sh
 
 if [ $PREFIX != /tools ]; then
+	mkdir -pv lib
 	mv -vf ./$PREFIX/lib/libattr* ./lib
 fi
 

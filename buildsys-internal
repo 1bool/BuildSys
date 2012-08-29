@@ -335,8 +335,8 @@ make_fakeroot()
 		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
 			continue
 		fi
-		bs_notice "Executing make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEJOBS $MAKEFLAGS ${MAKE_TARGETS[$i]}"
-		make $DESTVAR=${FAKEROOT:-$FS_ROOT} $MAKEJOBS $MAKEFLAGS ${MAKE_TARGETS[$i]}
+		bs_notice "Executing make $MAKEJOBS $MAKEFLAGS $DESTVAR=${FAKEROOT:-$FS_ROOT} ${MAKE_TARGETS[$i]}"
+		make $MAKEJOBS $MAKEFLAGS $DESTVAR=${FAKEROOT:-$FS_ROOT} ${MAKE_TARGETS[$i]}
 	done
 }
 
@@ -878,8 +878,8 @@ strip_rootfs()
 tar_pkgs()
 {
 	install_pkgs
-	strip_rootfs
 	cd $FS_ROOT
+	strip_rootfs
 	tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
 	bs_notice "File $IMG_NAME.tar.xz generated successfully"
 }

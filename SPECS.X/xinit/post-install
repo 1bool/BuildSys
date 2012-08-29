@@ -1,0 +1,2 @@
+#!/bin/sh
+sed -i "s|/tools/bin/mcookie|$PREFIX/bin/mcookie|" $PREFIX/bin/startx
