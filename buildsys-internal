@@ -856,7 +856,8 @@ strip_rootfs()
 			#| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	#fi
 	rm -rvf ./{include,share} ./${PREFIX}/share/{aclocal,awk,doc,getopt,info,man,pkgconfig,readline,vim} \
-		./${PREFIX}/{doc,info,man,include,kernel-headers} ./$PREFIX/lib/pkgconfig .bse_init
+		./${PREFIX}/{doc,info,man,kernel-headers} ./$PREFIX/lib/pkgconfig .bse_init
+	find ./$PREFIX/include -mindepth 1 ! -name pyconfig.h | xargs rm -rvf
 	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
 		pushd ./${PREFIX}/share/locale
 		for LOCDIR in *; do
