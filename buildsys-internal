@@ -309,8 +309,8 @@ make_fakeroot()
 	esac
 	for MAKE_TARGET in ${MAKE_TARGETS[@]}; do
 		if ! grep -q "^$MAKE_TARGET" $MAKEFILE; then
-			bs_error "\"${PKG_NAME}\" does not support make $MAKE_TARGET"
-			return 1
+			bs_notice "\"${PKG_NAME}\" does not support make $MAKE_TARGET"
+#			return 1
 		fi
 	done
 	if [ -z "$DESTVAR" ]; then
