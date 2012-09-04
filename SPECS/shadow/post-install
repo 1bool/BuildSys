@@ -3,20 +3,20 @@
 # Move a misplaced program to its proper location:
 mkdir -pv bin
 mv -v usr/bin/passwd bin
-if [ -z "$BUILDSYS_HOST" ]; then
-    # To enable shadowed passwords, run the following command:
-    chroot . pwconv
-    # To enable shadowed group passwords, run:
-    chroot . grpconv
-	if [ -z "$ROOTPASSWD" ]; then
-		# Remove root password
-		chroot . passwd -d root
-	else
-		while true; do
-			echo "$ROOTPASSWD"
-		done | chroot . passwd root
-	fi
-fi
+#if [ -z "$BUILDSYS_HOST" ]; then
+    ## To enable shadowed passwords, run the following command:
+    #chroot . pwconv
+    ## To enable shadowed group passwords, run:
+    #chroot . grpconv
+	#if [ -z "$ROOTPASSWD" ]; then
+		## Remove root password
+		#/tools/bin/chroot . passwd -d root
+	#else
+		#while true; do
+			#echo "$ROOTPASSWD"
+		#done | chroot . passwd root
+	#fi
+#fi
 
 # /etc/default/useradd Parameter Explanations
 # GROUP=1000

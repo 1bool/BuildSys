@@ -1,8 +1,8 @@
 #!/bin/bash -eE
 
 # Move the static libraries to a more appropriate location.
-mv -v lib/lib{readline,history}.a usr/lib
+mv -v lib/lib{readline,history}.a ./$PREFIX/lib
 
 rm -v lib/lib{readline,history}.so
-ln -sfv ../../lib/libreadline.so.6 usr/lib/libreadline.so
-ln -sfv ../../lib/libhistory.so.6 usr/lib/libhistory.so
+ln -sfv ../../lib/libreadline.so.6 ./$PREFIX/lib/libreadline.so
+ln -sfv ../../lib/libhistory.so.6 ./$PREFIX/lib/libhistory.so
