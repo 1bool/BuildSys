@@ -6,10 +6,6 @@ for L in  ./$PREFIX/share/man/{,*/}man1/vim.1; do
 	ln -sfv vim.1 $(dirname $L)/vi.1
 done
 
-# By default, Vim's documentation is installed in /./$PREFIX/share/vim. The following symlink allows the documentation to be accessed via /./$PREFIX/share/doc/vim-7.3, making it consistent with the location of documentation for other packages:
-mkdir -p ./$PREFIX/share/doc
-mv -fv ./$PREFIX/share/vim/vim73/doc ./$PREFIX/share/doc/vim-7.3
-
 # By default, vim runs in vi-incompatible mode. This may be new to users who have used other editors in the past. The “nocompatible” setting is included below to highlight the fact that a new behavior is being used. It also reminds those who would change to “compatible” mode that it should be the first setting in the configuration file. This is necessary because it changes other settings, and overrides must come after this setting. Create a default vim configuration file by running the following:
 mkdir -p etc
 cat > etc/vimrc << "EOF"

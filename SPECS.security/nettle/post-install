@@ -1,2 +1,2 @@
 #!/bin/sh
-chmod -v 755 ./usr/lib/libhogweed.so.2.2 ./usr/lib/libnettle.so.4.4
+chmod -v 755 ./$PREFIX/lib/libhogweed.so.2.2 ./$PREFIX/lib/libnettle.so.4.4

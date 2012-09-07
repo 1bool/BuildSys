@@ -2,24 +2,30 @@
 
 # Move the shared libraries to the /lib directory, where they are expected to reside.
 mkdir -p lib
-mv -v usr/lib/libncursesw.so.5* lib
+mv -v ./$PREFIX/lib/libncursesw.so.5* lib
 # Because the libraries have been moved, one symlink points to a non-existent file. Recreate it.
-ln -sfv ../../lib/libncursesw.so.5 usr/lib/libncursesw.so
+ln -sfv ../../lib/libncursesw.so.5 ./$PREFIX/lib/libncursesw.so
+if ls ./$PREFIX/lib/libtinfow.* > /dev/null; then
+	mv -v ./$PREFIX/lib/libtinfow.so.5* lib
+	ln -sfv ../../lib/libtinfow.so.5 ./$PREFIX/lib/libtinfow.so
+fi
 
 # Many applications still expect the linker to be able to find non-wide-character Ncurses libraries. Trick such applications into linking with wide-character libraries by means of symlinks and linker scripts
-for lib in ncurses form panel menu ; do \
-	    rm -vf usr/lib/lib${lib}.so ; \
-		    echo "INPUT(-l${lib}w)" > usr/lib/lib${lib}.so ; \
-			    ln -sfv lib${lib}w.a usr/lib/lib${lib}.a ; \
-			done
-ln -sfv libncurses++w.a usr/lib/libncurses++.a
+for lib in ncurses form panel menu tinfo tic; do
+	if [ -e ./$PREFIX/lib/lib${lib}.so ]; then
+		rm -vf ./$PREFIX/lib/lib${lib}.so
+		echo "INPUT(-l${lib}w)" > ./$PREFIX/lib/lib${lib}.so
+		ln -sfv lib${lib}w.a ./$PREFIX/lib/lib${lib}.a
+	fi
+done
+ln -sfv libncurses++w.a ./$PREFIX/lib/libncurses++.a
 
 # make sure that old applications that look for -lcurses at build time are still buildable
-rm -vf usr/lib/libcursesw.so
-echo "INPUT(-lncursesw)" > usr/lib/libcursesw.so
-ln -sfv libncurses.so usr/lib/libcurses.so
-ln -sfv libncursesw.a usr/lib/libcursesw.a
-ln -sfv libncurses.a usr/lib/libcurses.a
+rm -vf ./$PREFIX/lib/libcursesw.so
+echo "INPUT(-lncursesw)" > ./$PREFIX/lib/libcursesw.so
+ln -sfv libncurses.so ./$PREFIX/lib/libcurses.so
+ln -sfv libncursesw.a ./$PREFIX/lib/libcursesw.a
+ln -sfv libncurses.a ./$PREFIX/lib/libcurses.a
 
 # Make will return error when make DESTDIR=<...> install later, prevent it with following:
-find $MAKEDIR -name Makefile | xargs sed -i '/test -z "$(DESTDIR)" && \/sbin\/ldconfig/d'
+#find $MAKEDIR -name Makefile | xargs sed -i '/test -z "$(DESTDIR)" && \/sbin\/ldconfig/d'

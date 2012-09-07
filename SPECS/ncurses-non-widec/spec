@@ -1,0 +1,7 @@
+VERSION=5.9
+PKG_LOCATION="ftp://ftp.gnu.org/gnu/ncurses/ncurses-$VERSION.tar.gz"
+CONFIGFLAGS="--with-shared --without-debug --with-termlib --with-ticlib --with-ospeed=unsigned --with-terminfo-dirs=/etc/terminfo:$PREFIX/share/terminfo --disable-home-terminfo --enable-overwrite --enable-colorfgbg"
+PATCHES='http://patches.cross-lfs.org/dev/ncurses-5.9-branch_update-4.patch'
+DEPS=glibc
+TOOL_DEPS=(binutils gcc sed)
+#MAKE_TARGETS=(libs install.libs)

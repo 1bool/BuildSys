@@ -1,0 +1,12 @@
+#!/bin/sh -eE
+
+# Move the shared libraries to the /lib directory, where they are expected to reside.
+mkdir -p lib
+mv -v ./$PREFIX/lib/libncurses.so.5* lib
+# Because the libraries have been moved, one symlink points to a non-existent file. Recreate it.
+ln -sfv ../../lib/libncurses.so.5 ./$PREFIX/lib/libncurses.so
+if ls ./$PREFIX/lib/libtinfo.* > /dev/null; then
+	mv -v ./$PREFIX/lib/libtinfo.so.5* lib
+	ln -sfv ../../lib/libtinfo.so.5 ./$PREFIX/lib/libtinfo.so
+fi
+echo "INPUT(-lncurses)" > ./$PREFIX/lib/libcurses.so

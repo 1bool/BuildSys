@@ -928,9 +928,10 @@ ext4_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
 	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
+		echo start
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
-		set_passwd root ""
+		set_passwd root "$ROOTPASSWD"
 	fi
 
 	FS_SIZE=$(du -sb . | cut -f1)
@@ -955,7 +956,7 @@ iso_pkgs()
 	mkdir -pv $ISO_ROOT
 
 	echo -n "Calculating dependencies..."
-	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux)"
+	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux grub)"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
@@ -990,11 +991,11 @@ iso_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
+#	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
-		set_passwd root ""
-	fi
+		set_passwd root "$ROOTPASSWD"
+#	fi
 
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh
@@ -1140,7 +1141,7 @@ iso_pkgs()
 	cat > linuxrc <<- EOF
 	#!/bin/sh
 	#ID is the volume id / label of the boot CD that will be looked for.
-	ID="$IMG_NAME"
+	ID="${IMG_NAME::32}"
 	EOF
 
 	cat >> linuxrc <<- "EOF"
@@ -1198,7 +1199,7 @@ iso_pkgs()
 
 			echo -n "media found"
 			if [ "$CHECK_TYPE" = "try_mount" ]; then
-				[ "$(dd if=$cdrom_device bs=1 count=32 skip=32808 2> /dev/null)" = "$ID" ]
+				[ $(dd if=$cdrom_device bs=1 count=32 skip=32808 2> /dev/null) = "$ID" ]
 				buildsys_media=$?
 			fi
 

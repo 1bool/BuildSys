@@ -4,12 +4,12 @@
 
 install -d ./isolinux
 install $SRC_DIR/core/isolinux.bin ./isolinux
-mv -v boot/* ./isolinux
+mv -vf boot/* ./isolinux
 rmdir -v boot
 ln -vsf isolinux boot
 pushd isolinux
 for KERN_FILE in vmlinuz System.map config; do
-    rename "s/${KERN_FILE}.*/$KERN_FILE/" $KERN_FILE
+    mv -v $KERN_FILE*cd $KERN_FILE
 done
 rm -f *-buildsys
 popd
