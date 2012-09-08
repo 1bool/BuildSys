@@ -1065,7 +1065,7 @@ iso_pkgs()
 	proc           /proc        proc   nosuid,noexec,nodev        0     0
 	sysfs          /sys         sysfs  nosuid,noexec,nodev        0     0
 	devtmpfs          /dev         devtmpfs  mode=0755,nosuid        0     0
-	devpts         /dev/pts     devpts gid=4,mode=620  0     0
+	devpts         /dev/pts     devpts gid=5,mode=620  0     0
 	tmp            /tmp         tmpfs  defaults        0     0
 	tmpfs            /run         tmpfs  rw,noexec,nosuid,size=10%,mode=0755        0     0
 	/dev/ram2		/fake/needwrite		ext2 defaults 	0 	0
