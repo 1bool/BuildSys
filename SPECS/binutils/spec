@@ -3,5 +3,5 @@ PKG_LOCATION="http://ftp.gnu.org/gnu/binutils/binutils-$VERSION.tar.bz2"
 CONFIGFLAGS='--enable-shared --with-gmp --with-mpfr --with-mpc --with-ppl --enable-cloog-backend=isl --with-cloog'
 MAKEFLAGS="tooldir=$PREFIX"
 # Apply a patch to prevent a build failure when using compiler optimizations
-PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/binutils-2.22-build_fix-1.patch'
+PATCHES='http://www.linuxfromscratch.org/patches/lfs/7.2/binutils-2.22-build_fix-1.patch'
 DEPS=(glibc gmp mpc ppl cloog mpfr zlib)

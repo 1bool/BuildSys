@@ -1,8 +1,8 @@
-VERSION=2.5.35
+VERSION=2.5.37
 PKG_LOCATION="http://prdownloads.sourceforge.net/flex/flex-$VERSION.tar.bz2"
 
 # Apply a patch that fixes a bug in the C++ scanner generator, that causes scanner compilation to fail when using GCC-4.7.0:
-PATCHES="http://www.linuxfromscratch.org/patches/lfs/development/flex-$VERSION-gcc44-1.patch"
+PATCHES="http://www.linuxfromscratch.org/patches/lfs/7.2/flex-2.5.37-bison-2.6.1-1.patch"
 
 DEPS=(glibc m4)
 TOOL_DEPS=(binutils coreutils gcc grep sed bash)

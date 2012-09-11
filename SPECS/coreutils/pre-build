@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# Updates the timestamps on the uname and hostname man pages so that the Makefile does not attempt to regenerate them
-mkdir -p $MAKEDIR/man
-cd $MAKEDIR/man
-touch cut.1 expand.1 unexpand.1 fold.1 pr.1 sort.1 join.1 uniq.1
+# Fix a bug in a test case: 
+sed -i -e 's/! isatty/isatty/' \
+       -e '45i\              || errno == ENOENT' gnulib-tests/test-getlogin.c

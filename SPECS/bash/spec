@@ -1,7 +1,7 @@
 VERSION=4.2
 PKG_LOCATION="http://ftp.gnu.org/gnu/bash/bash-$VERSION.tar.gz"
 # Patch to fix various bugs that have been addressed upstream
-PATCHES="http://www.linuxfromscratch.org/patches/lfs/development/bash-$VERSION-fixes-8.patch"
+PATCHES="http://www.linuxfromscratch.org/patches/lfs/7.2/bash-$VERSION-fixes-8.patch"
 CONFIGFLAGS="--prefix=$PREFIX --bindir=/bin --htmldir=$PREFIX/share/doc/bash-$VERSION --without-bash-malloc --without-curses --without-installed-readline"
 #--htmldir
 #    This option designates the directory into which HTML formatted documentation will be installed.

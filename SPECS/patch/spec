@@ -1,6 +1,6 @@
 VERSION=2.6.1
 PKG_LOCATION="http://ftp.gnu.org/gnu/patch/patch-$VERSION.tar.bz2"
 # Prevent the test suite from running a test that requires ed:
-PATCHES="http://www.linuxfromscratch.org/patches/lfs/development/patch-$VERSION-test_fix-1.patch"
+PATCHES="http://www.linuxfromscratch.org/patches/lfs/7.2/patch-$VERSION-test_fix-1.patch"
 DEPS=glibc
 TOOL_DEPS=(binutils gcc sed coreutils bash grep make)

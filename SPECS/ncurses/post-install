@@ -5,10 +5,10 @@ mkdir -p lib
 mv -v ./$PREFIX/lib/libncursesw.so.5* lib
 # Because the libraries have been moved, one symlink points to a non-existent file. Recreate it.
 ln -sfv ../../lib/libncursesw.so.5 ./$PREFIX/lib/libncursesw.so
-if ls ./$PREFIX/lib/libtinfow.* > /dev/null; then
-	mv -v ./$PREFIX/lib/libtinfow.so.5* lib
-	ln -sfv ../../lib/libtinfow.so.5 ./$PREFIX/lib/libtinfow.so
-fi
+#if ls ./$PREFIX/lib/libtinfow.* > /dev/null; then
+#	mv -v ./$PREFIX/lib/libtinfow.so.5* lib
+#	ln -sfv ../../lib/libtinfow.so.5 ./$PREFIX/lib/libtinfow.so
+#fi
 
 # Many applications still expect the linker to be able to find non-wide-character Ncurses libraries. Trick such applications into linking with wide-character libraries by means of symlinks and linker scripts
 for lib in ncurses form panel menu tinfo tic; do

@@ -927,8 +927,7 @@ ext4_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
-		echo start
+	if [ -z "$BUILDSYS_HOST" ]; then
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
 		set_passwd root "$ROOTPASSWD"
@@ -991,11 +990,11 @@ iso_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-#	if [ -z "$BUILDSYS_HOST" ] && pkgname_in_list shadow ${INSTALL_LIST[@]}; then
+	if [ -z "$BUILDSYS_HOST" ]; then
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
 		set_passwd root "$ROOTPASSWD"
-#	fi
+	fi
 
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh

@@ -3,7 +3,7 @@ PKG_LOCATION="http://ftp.gnu.org/gnu/readline/readline-$VERSION.tar.gz"
 CONFIGFLAGS='--libdir=/lib'
 
 # Patch to fix a known bug that has been fixed upstream
-PATCHES="http://www.linuxfromscratch.org/patches/lfs/development/readline-$VERSION-fixes-1.patch"
+PATCHES="http://www.linuxfromscratch.org/patches/lfs/7.2/readline-$VERSION-fixes-1.patch"
 
 # This option forces Readline to link against the libncurses (really, libncursesw) library.
 SHLIB_LIBS=-lncurses
