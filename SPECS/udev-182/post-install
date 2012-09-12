@@ -7,7 +7,7 @@ if [ ! -c lib/udev/devices/null ]; then
 fi
 
 # Remove an empty documentation directory:
-rmdir -v usr/share/doc/udev
+rmdir -v ./$PREFIX/share/doc/udev
 
 UDEVCONF_DIR=$(basename ${ADDITIONS[0]})
 UDEVCONF_DIR=${UDEVCONF_DIR%%.*}
