@@ -1,1 +1,1 @@
-CONFIGFLAGS="--enable-udev --enable-intel --disable-radeon --disable-static"
+CONFIGFLAGS="--enable-udev --enable-intel --disable-radeon $XORG_CONFIG"

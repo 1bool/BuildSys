@@ -1,2 +1,2 @@
 PKG_LOCATION="http://anduin.linuxfromscratch.org/sources/BLFS/svn/Xorg/xf86-video-nouveau-0.0.16+git20120322.tar.xz"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"

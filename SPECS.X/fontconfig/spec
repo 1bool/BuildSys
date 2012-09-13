@@ -1,3 +1,4 @@
-PKG_LOCATION="http://fontconfig.org/release/fontconfig-2.10.1.tar.bz2"
-CONFIGFLAGS="--sysconfdir=/etc --localstatedir=/var --docdir=$PREFIX/share/doc/fontconfig-2.10.1 --disable-docs --disable-static"
+VERSION=2.10.1
+PKG_LOCATION="http://fontconfig.org/release/fontconfig-$VERSION.tar.bz2"
+CONFIGFLAGS="$XORG_CONFIG --docdir=$PREFIX/share/doc/fontconfig-$VERSION --disable-docs"
 DEPS=(expat libxml2 freetype)

@@ -1,2 +1,2 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xkill-1.0.3.tar.bz2"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"

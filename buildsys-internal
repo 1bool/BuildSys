@@ -856,7 +856,7 @@ strip_rootfs()
 			#| cut -d':' -f1 | xargs ${STRIP:-strip} -v --strip-debug 2> /dev/null || true
 	#fi
 	find ./$PREFIX/include -mindepth 1 ! -name pyconfig.h | xargs rm -rvf
-	rmdir --ignore-fail-on-non-empty ./$PREFIX/include
+	rmdir --ignore-fail-on-non-empty ./$PREFIX/include || true
 	rm -rvf ./{include,share} ./${PREFIX}/share/{aclocal,awk,doc,getopt,info,man,pkgconfig,readline,vim} \
 		./${PREFIX}/{doc,info,man,kernel-headers} ./$PREFIX/lib/pkgconfig .bse_init
 	if [ "$LOCALES" != all ] && [ -d ./${PREFIX}/share/locale ]; then
@@ -930,7 +930,7 @@ ext4_pkgs()
 	if [ -z "$BUILDSYS_HOST" ]; then
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
-		set_passwd root "$ROOTPASSWD"
+		set_passwd root "$ROOTPASSWD" || true
 	fi
 
 	FS_SIZE=$(du -sb . | cut -f1)
@@ -993,7 +993,7 @@ iso_pkgs()
 	if [ -z "$BUILDSYS_HOST" ]; then
 		chroot $FS_ROOT pwconv
 		chroot $FS_ROOT grpconv
-		set_passwd root "$ROOTPASSWD"
+		set_passwd root "$ROOTPASSWD" || true
 	fi
 
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"

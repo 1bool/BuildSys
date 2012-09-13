@@ -1,2 +1,2 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/app/xprop-1.2.1.tar.bz2"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"

@@ -1,2 +1,2 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/lib/libXinerama-1.1.2.tar.bz2"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"

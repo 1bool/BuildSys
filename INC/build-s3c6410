@@ -4,6 +4,7 @@ CFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
 CXXFLAGS='-Os -pipe -mcpu=arm1176jzf-s'
 ARCH=arm
 SPECNAME=spec-arm
+XORG_CONFIG="--sysconfdir=/etc --mandir=$PREFIX/share/man --localstatedir=/var"
 PKG_LIST=(
 	eglibc
 	zlib

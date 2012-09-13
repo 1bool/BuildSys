@@ -1,3 +1,3 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/lib/libXcomposite-0.4.3.tar.bz2"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"
 DEPS=(libXfixes)

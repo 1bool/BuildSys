@@ -3,7 +3,7 @@ PKG_LOCATION="ftp://ftp.freedesktop.org/pub/mesa/$VERSION/MesaLib-$VERSION.tar.b
 PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
 #PATCHES[1]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-add_xdemos-2.patch"
 SRC_DIR="Mesa-$VERSION"
-CONFIGFLAGS="--enable-texture-float ---enable-gles1 --enable-gles2 -enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --with-expat --disable-static"
+CONFIGFLAGS="--enable-texture-float ---enable-gles1 --enable-gles2 -enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --with-expat"
 DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
 TOOL_DEPS=(python libxml2 makedepend llvm)
 

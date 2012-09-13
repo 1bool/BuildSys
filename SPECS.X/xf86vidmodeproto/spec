@@ -1,3 +1,3 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/proto/xf86vidmodeproto-2.3.1.tar.gz"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"
 DEPS=(util-macros)

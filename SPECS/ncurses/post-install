@@ -11,12 +11,10 @@ ln -sfv ../../lib/libncursesw.so.5 ./$PREFIX/lib/libncursesw.so
 #fi
 
 # Many applications still expect the linker to be able to find non-wide-character Ncurses libraries. Trick such applications into linking with wide-character libraries by means of symlinks and linker scripts
-for lib in ncurses form panel menu tinfo tic; do
-	if [ -e ./$PREFIX/lib/lib${lib}.so ]; then
-		rm -vf ./$PREFIX/lib/lib${lib}.so
-		echo "INPUT(-l${lib}w)" > ./$PREFIX/lib/lib${lib}.so
-		ln -sfv lib${lib}w.a ./$PREFIX/lib/lib${lib}.a
-	fi
+for lib in ncurses form panel menu; do
+	rm -vf ./$PREFIX/lib/lib${lib}.so
+	echo "INPUT(-l${lib}w)" > ./$PREFIX/lib/lib${lib}.so
+	ln -sfv lib${lib}w.a ./$PREFIX/lib/lib${lib}.a
 done
 ln -sfv libncurses++w.a ./$PREFIX/lib/libncurses++.a
 

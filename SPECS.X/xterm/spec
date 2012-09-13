@@ -1,4 +1,4 @@
 PKG_LOCATION="ftp://invisible-island.net/xterm/xterm-279.tgz"
-CONFIGFLAGS="--enable-luit --enable-wide-chars --with-app-defaults=/etc/X11/app-defaults --disable-static"
+CONFIGFLAGS="--enable-luit --enable-wide-chars --with-app-defaults=/etc/X11/app-defaults $XORG_CONFIG"
 DEPS=(libXaw)
 MAKE_TARGETS=(all install install-ti)

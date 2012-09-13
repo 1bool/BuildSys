@@ -9,6 +9,7 @@ ABI=32
 LOCALES=zh_CN
 ROOTPASSWD=''
 BSE_FS_SIZE=3G
+XORG_CONFIG="--sysconfdir=/etc --mandir=$PREFIX/share/man --localstatedir=/var"
 PKG_LIST=(
 	kernel-timesys
 	kernel-headers
@@ -27,7 +28,7 @@ PKG_LIST=(
 	gawk
 	findutils
 	xz
-	grub
+#	grub
 	gzip
 	iproute2
 	kbd
@@ -46,6 +47,11 @@ PKG_LIST=(
 	psb-video-cdv
 	libva
 	xinit
+	xorg-server
+	xf86-input-evdev
+	xterm
+	xclock
+	twm
 #	util-macros
 
    # # build xorg protocol headers

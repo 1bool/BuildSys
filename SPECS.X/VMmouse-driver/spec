@@ -1,2 +1,2 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/driver/xf86-input-vmmouse-12.8.0.tar.bz2"
-CONFIGFLAGS="--with-udev-rules-dir=/lib/udev/rules.d --without-hal-callouts-dir --without-hal-fdi-dir --disable-static"
+CONFIGFLAGS="--with-udev-rules-dir=/lib/udev/rules.d --without-hal-callouts-dir --without-hal-fdi-dir $XORG_CONFIG"

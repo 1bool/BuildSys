@@ -1,2 +1,2 @@
 PKG_LOCATION="http://xorg.freedesktop.org/releases/individual/lib/libXcursor-1.1.13.tar.bz2"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"

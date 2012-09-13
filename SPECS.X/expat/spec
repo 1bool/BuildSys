@@ -1,2 +1,2 @@
 PKG_LOCATION="http://downloads.sourceforge.net/expat/expat-2.1.0.tar.gz"
-CONFIGFLAGS="--disable-static"
+CONFIGFLAGS="$XORG_CONFIG"
