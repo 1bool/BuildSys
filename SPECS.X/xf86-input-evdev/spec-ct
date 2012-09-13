@@ -1,0 +1,2 @@
+VERSION=2.6.0
+PKG_LOCATION="ftp://ftp.x.org/pub/individual/driver/xf86-input-evdev-$VERSION.tar.bz2"

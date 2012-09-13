@@ -1,0 +1,4 @@
+VERSION=2.7.0
+PKG_LOCATION="ftp://ftp.x.org/pub/individual/driver/xf86-input-evdev-$VERSION.tar.bz2"
+CONFIGFLAGS="$XORG_CONFIG"
+DEPS=(glibc mtdev xorg-server)

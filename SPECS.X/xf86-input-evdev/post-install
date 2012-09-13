@@ -1,0 +1,8 @@
+#!/bin/sh
+cat > ./etc/X11/xorg.conf.d/xkb-defaults.conf << "EOF"
+Section "InputClass"
+    Identifier "XKB Defaults"
+    MatchIsKeyboard "yes"
+    Option "XkbOptions" "terminate:ctrl_alt_bksp"
+EndSection
+EOF
