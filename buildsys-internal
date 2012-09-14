@@ -291,7 +291,7 @@ makefile_of_pkg()
 
 make_fakeroot()
 {
-	local FAKEROOT DESTVAR PKG_NAME=${1} \
+	local DESTVAR PKG_NAME=${1} \
 		MAKEFILE="$(makefile_of_pkg $1)" MAKE_TARGET MAKE_TARGETS
 	local -i i
 	shift
@@ -325,10 +325,7 @@ make_fakeroot()
 			bs_error "Don't know how to install $PKG"
 			;;
 		PREFIX|prefix)
-			FAKEROOT=${FS_ROOT}${PREFIX}
-			;;
-		*)
-			FAKEROOT=${FS_ROOT}
+			FAKEROOT+=${PREFIX}
 			;;
 	esac
 	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
@@ -566,8 +563,8 @@ pkg_make_uninstall()
 		bs_notice "$PKG not installed, skipping..."
 		return
 	fi
-	if [ -d $PKG_DIR/BUILDROOT ]; then
-		cd $PKG_DIR/BUILDROOT
+	if [ -d $FAKEROOT ]; then
+		cd $FAKEROOT
 		find | tac | while read LINE; do \
 			rm -v $FS_ROOT/$LINE 2> /dev/null || \
 			rmdir -p --ignore-fail-on-non-empty $FS_ROOT/$LINE 2> /dev/null; \
@@ -582,6 +579,7 @@ pkg_make_uninstall()
 
 pkg_dest_install()
 {
+	local -i i
 	if [ -f $PKG_DIR/".installed-$PKG_NAME" ]; then
 		bs_notice "$PKG has already been installed, skipping..."
 		return
@@ -604,10 +602,13 @@ pkg_dest_install()
 	fi
 	# post-install can be used to fix target installation problems
 	if [ -x ${PKG_SPECDIR}/post-install ]; then
-		pushd "$FS_ROOT"
+		pushd "$FAKEROOT"
 		${PKG_SPECDIR}/post-install
 		popd
 	fi
+	for (( i = 0; i < ${#INSTALL_FILES[@]}; i++ )); do
+		cp -av $FAKEROOT/${INSTALL_FILES[$i]} $FS_ROOT
+	done
 	touch $PKG_DIR/".installed-$PKG_NAME"
 }
 
@@ -646,6 +647,7 @@ pkg_rpm_install()
 		--define "_rpmdir $GEN_DIR" \
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
+		--define "_buildrootdir %{_topdir}/files" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
 	bs_notice "Executing rpmbuild -vv -bi --short-circuit"
@@ -656,9 +658,10 @@ pkg_rpm_install()
 		--define "_rpmdir $GEN_DIR" \
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
+		--define "_buildrootdir %{_topdir}/files" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
-	cd $PKG_DIR/BUILDROOT
+	cd $FAKEROOT
 	cp -a . /
 }
 
@@ -673,9 +676,10 @@ pkg_rpm_dest_install()
 		--define "_srcrpmdir $GEN_DIR" \
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
+		--define "_buildrootdir %{_topdir}/files" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
-	cd $PKG_DIR/BUILDROOT
+	cd $FAKEROOT
 	cp -av . $FS_ROOT
 }
 
@@ -692,6 +696,7 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
+				--define "_buildrootdir %{_topdir}/files" \
 				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
@@ -705,6 +710,7 @@ pkg_rpmbuild()
 				--define "_srcrpmdir $GEN_DIR" \
 				--define "_specdir $SRC_DIR" \
 				--define "_prefix $PREFIX" \
+				--define "_buildrootdir %{_topdir}/files" \
 				--define "debug_package %{nil}" \
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
@@ -1366,6 +1372,11 @@ get_pkg_info()
 	done
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
+	fi
+	if [ "${#INSTALL_FILES[@]}" = 0 ]; then
+		FAKEROOT=$FS_ROOT
+	else
+		FAKEROOT="$PKG_DIR/files"
 	fi
 }
 

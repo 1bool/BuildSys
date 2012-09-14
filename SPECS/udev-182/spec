@@ -1,20 +1,22 @@
 PKG_LOCATION='http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev-182.tar.xz'
 ADDITIONS='http://www.linuxfromscratch.org/lfs/downloads/7.1/udev-config-20100128.tar.bz2'
-CONFIGFLAGS="--prefix=/usr           \
-			 --with-rootprefix=''    \
-			 --bindir=/sbin          \
-			 --sysconfdir=/etc       \
-			 --libexecdir=/lib       \
-			 --disable-gtk-doc       \
-			 --disable-gtk-doc-html  \
-			 --disable-gtk-doc-pdf   \
-			 --enable-rule_generator \
-			 --disable-introspection \
-			 --disable-keymap        \
-			 --disable-gudev         \
-			 --without-usb-ids-path  \
-			 --without-pci-ids-path  \
-			 --without-systemdsystemunitdir"
+CONFIGFLAGS=(
+		--prefix=/usr
+		--with-rootprefix=''
+		--bindir=/sbin
+		--sysconfdir=/etc
+		--libexecdir=/lib
+		--disable-gtk-doc
+		--disable-gtk-doc-html
+		--disable-gtk-doc-pdf
+		--enable-rule_generator
+		--disable-introspection
+		--disable-keymap
+		--disable-gudev
+		--without-usb-ids-path
+		--without-pci-ids-path
+		--without-systemdsystemunitdir
+		)
 #--libexecdir=/lib
 #    This controls where Udev-internal rules and helper programs are installed.
 #--enable-rule_generator
