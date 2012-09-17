@@ -4,6 +4,7 @@
 ln -sfv ../usr/bin/cpp lib
 
 # Many packages use the name cc to call the C compiler.
+mkdir -p usr/bin
 ln -sfv gcc usr/bin/cc
 
 # Move a misplced file

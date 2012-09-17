@@ -7,7 +7,7 @@ OPTS_ORIG="$@"
 : ${DEV_ROOT:=/root}
 SDKPATH=$PATH
 export DEV_ROOT SDKARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
-	PKG_POOL=$DEV_ROOT/POOL FS_ROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
+	PKG_POOL=$DEV_ROOT/POOL FSROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
 
 bs_error()
 {
@@ -114,6 +114,14 @@ guess_pkg_info_from_location()
 	case "$SUFFIX" in
 		src.rpm|SRC.RPM)
 			FAKEROOT="$PKG_DIR/files"
+			: ${INSTALL_FILES:='*'}
+			;;
+		*)
+			if [[ "${#INSTALL_FILES[@]}" = 0 ]]; then
+				FAKEROOT=$FSROOT
+			else
+				FAKEROOT="$PKG_DIR/files"
+			fi
 			;;
 	esac
 }
@@ -260,13 +268,13 @@ set_passwd()
 {
 	local USER="$1" PASS="$2"
 	if [ -z "$PASS" ]; then
-		chroot $FS_ROOT passwd -d $USER
+		chroot $FSROOT passwd -d $USER
 	else
 		{
 			while true; do
 				echo "$PASS"
 			done
-		} | chroot $FS_ROOT passwd $USER
+		} | chroot $FSROOT passwd $USER
 	fi
 }
 
@@ -337,8 +345,8 @@ make_fakeroot()
 		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
 			continue
 		fi
-		bs_notice "Executing make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FS_ROOT} ${MAKE_TARGETS[$i]}"
-		make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FS_ROOT} ${MAKE_TARGETS[$i]}
+		bs_notice "Executing make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FSROOT} ${MAKE_TARGETS[$i]}"
+		make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FSROOT} ${MAKE_TARGETS[$i]}
 	done
 }
 
@@ -571,8 +579,8 @@ pkg_make_uninstall()
 	if [ -d $FAKEROOT ]; then
 		cd $FAKEROOT
 		find | tac | while read LINE; do \
-			rm -v $FS_ROOT/$LINE 2> /dev/null || \
-			rmdir -p --ignore-fail-on-non-empty $FS_ROOT/$LINE 2> /dev/null; \
+			rm -v $FSROOT/$LINE 2> /dev/null || \
+			rmdir -p --ignore-fail-on-non-empty $FSROOT/$LINE 2> /dev/null; \
 		done
 	elif [ -d $MAKEDIR ]; then
 		cd $MAKEDIR
@@ -596,11 +604,11 @@ pkg_dest_install()
 		bs_notice "Package \"$PKG\" is not required to be installed on target."
 		return
 	fi
-	bs_notice "Installing \"$PKG\" into ${FS_ROOT}..."
+	bs_notice "Installing \"$PKG\" into ${FSROOT}..."
 	if [ $SUFFIX = 'src.rpm' ]; then
 		pkg_rpm_dest_install
 	elif [ -x ${PKG_SPECDIR}/build ]; then
-		${PKG_SPECDIR}/build $FS_ROOT
+		${PKG_SPECDIR}/build $FSROOT
 	else
 		cd $MAKEDIR
 		make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
@@ -611,11 +619,10 @@ pkg_dest_install()
 		${PKG_SPECDIR}/post-install
 		popd
 	fi
-	pushd "$FAKEROOT"
+	cd "$FAKEROOT"
 	for (( i = 0; i < ${#INSTALL_FILES[@]}; i++ )); do
-		cp -av --parents ${INSTALL_FILES[$i]#/} $FS_ROOT
-	done
-	popd
+		cp -av --parents ${INSTALL_FILES[$i]#/} $FSROOT
+	cd -
 	touch $PKG_DIR/".installed-$PKG_NAME"
 }
 
@@ -686,8 +693,6 @@ pkg_rpm_dest_install()
 		--define "_buildrootdir %{_topdir}/files" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
-	cd $FAKEROOT
-	cp -av . $FS_ROOT
 }
 
 pkg_rpmbuild()
@@ -824,10 +829,10 @@ install_pkgs()
 	echo '========================================='
 	echo
 
-	pushd $FS_ROOT
+	pushd $FSROOT
 	if [ -z "$CONTINUE" ]; then
 		walk_pkg_dir -c -a pkg_make_uninstall ${BUILD_LIST[@]}
-		bs_notice "Cleaning packages and ${FS_ROOT}"
+		bs_notice "Cleaning packages and ${FSROOT}"
 		rm -rf * .[!.]*
 	else
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
@@ -887,13 +892,13 @@ strip_rootfs()
 		popd
 	fi
 	PATH=$OPATH
-	bs_notice "RootFS stripped in $FS_ROOT"
+	bs_notice "RootFS stripped in $FSROOT"
 }
 
 tar_pkgs()
 {
 	install_pkgs
-	cd $FS_ROOT
+	cd $FSROOT
 	strip_rootfs
 	tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
 	bs_notice "File $IMG_NAME.tar.xz generated successfully"
@@ -922,10 +927,10 @@ ext4_pkgs()
 	printf "%s\n" " ${INSTALL_LIST[@]}"
 	echo '========================================='
 
-	pushd $FS_ROOT
+	pushd $FSROOT
 	if [ -z "$CONTINUE" ]; then
 		walk_pkg_dir -c -a pkg_make_uninstall ${INSTALL_LIST[@]}
-		bs_notice "Cleaning packages and ${FS_ROOT}"
+		bs_notice "Cleaning packages and ${FSROOT}"
 		rm -rf * .[!.]*
 	else
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
@@ -941,8 +946,8 @@ ext4_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
 	if [ -z "$BUILDSYS_HOST" ]; then
-		chroot $FS_ROOT pwconv
-		chroot $FS_ROOT grpconv
+		chroot $FSROOT pwconv
+		chroot $FSROOT grpconv
 		set_passwd root "$ROOTPASSWD" || true
 	fi
 
@@ -964,7 +969,7 @@ ext4_pkgs()
 iso_pkgs()
 {
 	ISO_ROOT=$DEV_ROOT/ISOROOT
-	FS_ROOT=$ISO_ROOT
+	FSROOT=$ISO_ROOT
 	mkdir -pv $ISO_ROOT
 
 	echo -n "Calculating dependencies..."
@@ -985,10 +990,10 @@ iso_pkgs()
 	printf "%s\n" " ${INSTALL_LIST[@]}"
 	echo '========================================='
 
-	pushd $FS_ROOT
+	pushd $FSROOT
 	if [ -z "$CONTINUE" ]; then
 		walk_pkg_dir -c -a pkg_make_uninstall ${INSTALL_LIST[@]}
-		bs_notice "Cleaning packages and ${FS_ROOT}"
+		bs_notice "Cleaning packages and ${FSROOT}"
 		rm -rf * .[!.]*
 	else
 		bs_notice "Continue installing package(s) \"${PKG_LIST[@]}\"..."
@@ -1004,8 +1009,8 @@ iso_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
 	if [ -z "$BUILDSYS_HOST" ]; then
-		chroot $FS_ROOT pwconv
-		chroot $FS_ROOT grpconv
+		chroot $FSROOT pwconv
+		chroot $FSROOT grpconv
 		set_passwd root "$ROOTPASSWD" || true
 	fi
 
@@ -1380,11 +1385,6 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
-	if [[ "${#INSTALL_FILES[@]}" = 0 ]]; then
-		FAKEROOT=$FS_ROOT
-	else
-		FAKEROOT="$PKG_DIR/files"
-	fi
 }
 
 deps_of()
@@ -1566,7 +1566,7 @@ main()
 	fi
 
 	cd "$DEV_ROOT"
-	mkdir -pv $FS_ROOT
+	mkdir -pv $FSROOT
 	${ACTION:-build_pkgs}
 }
 
