@@ -611,9 +611,11 @@ pkg_dest_install()
 		${PKG_SPECDIR}/post-install
 		popd
 	fi
+	pushd "$FAKEROOT"
 	for (( i = 0; i < ${#INSTALL_FILES[@]}; i++ )); do
-		cp -av $FAKEROOT/${INSTALL_FILES[$i]} $FS_ROOT
+		cp -av --parents ${INSTALL_FILES[$i]#/} $FS_ROOT
 	done
+	popd
 	touch $PKG_DIR/".installed-$PKG_NAME"
 }
 
