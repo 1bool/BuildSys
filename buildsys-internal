@@ -296,7 +296,7 @@ makefile_of_pkg()
 
 make_fakeroot()
 {
-	local DESTVAR PKG_NAME=${1} \
+	local DEST="$FAKEROOT" DESTVAR PKG_NAME=${1} \
 		MAKEFILE="$(makefile_of_pkg $1)" MAKE_TARGET MAKE_TARGETS
 	local -i i
 	shift
@@ -330,15 +330,15 @@ make_fakeroot()
 			bs_error "Don't know how to install $PKG"
 			;;
 		PREFIX|prefix)
-			FAKEROOT+=${PREFIX}
+			DEST+=${PREFIX}
 			;;
 	esac
 	for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
 		if [[ -z "${MAKE_TARGETS[$i]}" || ${MAKE_TARGETS[$i]} = all ]]; then
 			continue
 		fi
-		bs_notice "Executing make $MAKEJOBS $MAKEFLAGS $DESTVAR=${FAKEROOT:-$FS_ROOT} ${MAKE_TARGETS[$i]}"
-		make $MAKEJOBS $MAKEFLAGS $DESTVAR=${FAKEROOT:-$FS_ROOT} ${MAKE_TARGETS[$i]}
+		bs_notice "Executing make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FS_ROOT} ${MAKE_TARGETS[$i]}"
+		make $MAKEJOBS $MAKEFLAGS $DESTVAR=${DEST:-$FS_ROOT} ${MAKE_TARGETS[$i]}
 	done
 }
 
