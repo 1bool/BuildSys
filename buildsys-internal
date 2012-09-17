@@ -111,6 +111,11 @@ guess_pkg_info_from_location()
 		MAKEDIR="$PKG_DIR/$MAKEDIR"
 	fi
 	: ${RPM_SPEC:="$SRC_DIR/$PKG_NAME.spec"}
+	case "$SUFFIX" in
+		src.rpm|SRC.RPM)
+			FAKEROOT="$PKG_DIR/files"
+			;;
+	esac
 }
 
 get_file()
@@ -1373,7 +1378,7 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
-	if [ "${#INSTALL_FILES[@]}" = 0 ]; then
+	if [[ "${#INSTALL_FILES[@]}" = 0 ]]; then
 		FAKEROOT=$FS_ROOT
 	else
 		FAKEROOT="$PKG_DIR/files"
