@@ -455,7 +455,11 @@ pkg_unpack_patch()
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
 		# Only bash and perl supported for scripting as of now
-		[ -f ${PKG_SPECDIR}/pre-build ] && ${PKG_SPECDIR}/pre-build
+		if declare -F pre-build; then
+			pre-build
+		elif [ -f ${PKG_SPECDIR}/pre-build ]; then
+			${PKG_SPECDIR}/pre-build
+		fi
 		popd
 		touch .patched
 	fi
@@ -524,10 +528,17 @@ pkg_make_install()
 	fi
 	if [ ! -f ".done-$PKG_NAME" ]; then
 		# post-install can be used to fix installation problems
-		if [ -f ${PKG_SPECDIR}/post-install ]; then
+		if declare -F post-install; then
+			pushd /
+			post-install
+			popd
+		elif [ -f ${PKG_SPECDIR}/post-install ]; then
 			pushd /
 			${PKG_SPECDIR}/post-install
 			popd
+		fi
+		if [ -n "$SERVICE_FILE" ]; then
+			install -v -m 754 -D ${PKG_SPECDIR}/$SERVICE_FILE /lib/services/$PKG_NAME
 		fi
 		touch ".done-$PKG_NAME"
 	else
@@ -614,7 +625,11 @@ pkg_dest_install()
 		make_fakeroot "$PKG_NAME" ${MAKE_TARGETS[@]}
 	fi
 	# post-install can be used to fix target installation problems
-	if [ -x ${PKG_SPECDIR}/post-install ]; then
+	if declare -F post-install; then
+		pushd "$FAKEROOT"
+		post-install
+		popd
+	elif [ -x ${PKG_SPECDIR}/post-install ]; then
 		pushd "$FAKEROOT"
 		${PKG_SPECDIR}/post-install
 		popd
@@ -622,6 +637,10 @@ pkg_dest_install()
 	cd "$FAKEROOT"
 	for (( i = 0; i < ${#INSTALL_FILES[@]}; i++ )); do
 		cp -av --parents ${INSTALL_FILES[$i]#/} $FSROOT
+	done
+	if [ -n "$SERVICE_FILE" ]; then
+		install -v -m 754 -D ${PKG_SPECDIR}/$SERVICE_FILE lib/services/$PKG_NAME
+	fi
 	cd -
 	touch $PKG_DIR/".installed-$PKG_NAME"
 }

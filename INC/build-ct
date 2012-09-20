@@ -1,6 +1,6 @@
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:$HOME/bin:/tools/bin
 SPECNAME=spec-ct
-SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPECS.X)
+SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPECS.net SPECS.X)
 PREFIX=/usr
 CFLAGS='-pipe -O3 -march=atom -mtune=atom -mfpmath=sse'
 CXXFLAGS="-pipe -O3 -march=atom -mtune=atom -mfpmath=sse"
@@ -42,6 +42,7 @@ PKG_LIST=(
 	vim
 	bootscripts
 	ssl-cert
+	dhcpcd
 	libwsbm-cdv
 	pvr-bin-cdv
 	psb-video-cdv
