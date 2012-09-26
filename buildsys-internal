@@ -456,7 +456,7 @@ pkg_unpack_patch()
 		# pre-build can be used to do patching job
 		# Only bash and perl supported for scripting as of now
 		if declare -F pre-build; then
-			pre-build
+			(pre-build)
 		elif [ -f ${PKG_SPECDIR}/pre-build ]; then
 			${PKG_SPECDIR}/pre-build
 		fi
@@ -489,7 +489,13 @@ pkg_make_install()
 				done
 			elif [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME" ]; then
-					precede_conf_opts "--prefix=$PREFIX"
+					case $PKG_NAME in
+						qt-everywhere-opensource-src)
+							;;
+						*)
+							precede_conf_opts "--prefix=$PREFIX"
+							;;
+					esac
 					[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
 					[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
 					if [ ! -d $MAKEDIR ]; then
@@ -530,7 +536,7 @@ pkg_make_install()
 		# post-install can be used to fix installation problems
 		if declare -F post-install; then
 			pushd /
-			post-install
+			(post-install)
 			popd
 		elif [ -f ${PKG_SPECDIR}/post-install ]; then
 			pushd /
@@ -627,7 +633,7 @@ pkg_dest_install()
 	# post-install can be used to fix target installation problems
 	if declare -F post-install; then
 		pushd "$FAKEROOT"
-		post-install
+		(post-install)
 		popd
 	elif [ -x ${PKG_SPECDIR}/post-install ]; then
 		pushd "$FAKEROOT"

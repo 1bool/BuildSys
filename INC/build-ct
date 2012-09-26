@@ -190,6 +190,13 @@ PKG_LIST=(
 	#xinit
 	)
 
+mkinitdirs()
+{
+	for runlevel in $(seq 0 6); do
+		mkdir -pv etc/rc.d/rc${runlevel}.d
+	done
+}
+
 configure_fs()
 {
 	# Run the following script on target machine to generate /etc/udev/rules.d/70-persistent-net.rules
