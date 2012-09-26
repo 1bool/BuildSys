@@ -1,0 +1,21 @@
+TOOL_DEPS=()
+DEPS=()
+CONFIGFLAGS=(
+			"-prefix $PREFIX"
+            -release
+            "-nomake examples"
+            "-nomake demos"
+            "-nomake doc"
+            "-nomake lib"
+            "-nomake mkspecs"
+            "-nomake src"
+            "-nomake templates"
+            "-nomake tools"
+            "-nomake translations"
+            "-nomake util"
+            "-nomake tests"
+            -no-nis
+            -opensource
+            -confirm-license
+			-developer-build
+			)

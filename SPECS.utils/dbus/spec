@@ -1,0 +1,40 @@
+PKG_LOCATION='http://dbus.freedesktop.org/releases/dbus/dbus-1.6.4.tar.gz'
+DEPS=(glibc expat)
+CONFIGFLAGS=(
+			--sysconfdir=/etc
+            --localstatedir=/var
+            --libexecdir=/usr/lib/dbus-1.0
+            --with-console-auth-dir=/run/console/
+            --without-systemdsystemunitdir
+            --disable-systemd
+            --disable-static
+			)
+
+post-install()
+{
+	chroot . groupadd -g 18 messagebus || true
+	chroot . useradd -c "D-Bus Message Daemon User" -d /var/run/dbus -u 18 -g messagebus -s /bin/false messagebus || true
+	chroot . dbus-uuidgen --ensure || true
+
+	cat > /etc/dbus-1/session-local.conf << "EOF"
+<!DOCTYPE busconfig PUBLIC
+ "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
+<busconfig>
+
+  <!-- Search for .service files in /usr/local -->
+  <servicedir>/usr/local/share/dbus-1/services</servicedir>
+
+</busconfig>
+EOF
+
+	mkinitdirs
+	install -v -m 754 -D $PKG_SPECDIR/dbus.init etc/rc.d/init.d/dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc0.d/K30dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc1.d/K30dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc2.d/S29dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc3.d/S29dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc4.d/S29dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc5.d/S29dbus
+	ln -sf  ../init.d/dbus etc/rc.d/rc6.d/K30dbus
+}
