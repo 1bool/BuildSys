@@ -1,16 +1,21 @@
 VERSION=4.8.3
 PKG_LOCATION="http://releases.qt-project.org/qt4/source/qt-everywhere-opensource-src-$VERSION.tar.gz"
-TOOL_DEPS=pkg-config
-DEPS=(sqlite dbus)
+TOOL_DEPS=(pkg-config )
+DEPS=(zlib sqlite dbus)
 CONFIGFLAGS=(
 			"-prefix $PREFIX"
             -release
             "-nomake examples"
             "-nomake demos"
             -system-sqlite
+			-system-zlib
             -no-nis
             -opensource
             -confirm-license
-			"-embedded x86"
+			-no-optimized-qmake
 			)
+PATCHES='qmake-lfs.patch'
 MAKEFLAGS=$MAKEJOBS
+QMAKE_CXXFLAGS="$CXXFLAGS"
+CFLAGS=
+CXXFLAGS=

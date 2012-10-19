@@ -1,0 +1,13 @@
+--- qt-everywhere-opensource-src-4.8.3/qmake/Makefile.unix	2012-09-11 09:36:36.000000000 +0800
++++ qt-everywhere-opensource-src-4.8.3/qmake/Makefile.unix.mine	2012-10-19 16:46:33.494726184 +0800
+@@ -89,8 +89,8 @@
+ first all: $(BUILD_PATH)/bin/qmake
+ qmake: $(BUILD_PATH)/bin/qmake
+ 
+-$(BUILD_PATH)/bin/qmake: $(OBJS) $(QOBJS)
+-	$(CXX) -o "$@" $(OBJS) $(QOBJS) $(LFLAGS)
++$(BUILD_PATH)/bin/qmake: /tools/bin/qmake
++	ln -s /tools/bin/qmake "$@"
+ 
+ clean::
+ 	rm -f $(OBJS) $(QOBJS)

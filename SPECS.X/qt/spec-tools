@@ -17,5 +17,4 @@ CONFIGFLAGS=(
             -no-nis
             -opensource
             -confirm-license
-			-developer-build
 			)
