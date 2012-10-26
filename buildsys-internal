@@ -22,7 +22,9 @@ bs_notice()
 
 quit()
 {
-	bs_error "buildsys process interrupted..."
+	bs_error "buildsys process interrupting..."
+	toolchain_link root
+	rm -f /tmp/bs_toolchain_link
 	exit 1
 }
 

@@ -1,4 +1,35 @@
-VERSION=4.7.1
+VERSION=4.7.2
 PKG_LOCATION="ftp://ftp.gnu.org/gnu/gcc/gcc-$VERSION/gcc-$VERSION.tar.bz2"
 CONFIGFLAGS="--libexecdir=$PREFIX/lib --enable-shared --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu --enable-languages=c,c++ --disable-multilib --disable-bootstrap --with-system-zlib --with-mpfr --with-gmp --with-ppl --enable-cloog-backend=isl --with-cloog"
 DEPS=(kernel-headers glibc gmp mpfr ppl cloog mpc zlib)
+
+pre-build()
+{
+# Apply a sed substitution that will suppress the installation of libiberty.a. The version of libiberty.a provided by Binutils will be used instead.
+	sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+
+# For x86 machines, a bootstrap build of GCC uses the -fomit-frame-pointer compiler flag. Non-bootstrap builds omit this flag by default, and the goal should be to produce a compiler that is exactly the same as if it were bootstrapped. Apply the following sed command to force the build to use the flag.
+		sed -i 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in
+
+# The fixincludes script is known to occasionally erroneously attempt to "fix" the system headers installed so far. As the headers up to this point are known to not require fixing, issue the following command to prevent the fixincludes script from running.
+#sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
+
+# Also fix an error in one of the check Makefiles:
+		sed -i -e /autogen/d -e /check.sh/d fixincludes/Makefile.in
+}
+
+post-install()
+{
+# Some packages expect the C preprocessor to be installed in the /lib directory.
+	if [ $PREFIX != '/tools' ]; then
+		ln -sfv ../$PREFIX/bin/cpp lib
+	fi
+
+# Many packages use the name cc to call the C compiler.
+	mkdir -p $PREFIX/bin
+	ln -sfv gcc $PREFIX/bin/cc
+
+# Move a misplced file
+	mkdir -pv $PREFIX/share/gdb/auto-load/usr/lib
+	mv -v $PREFIX/lib/*gdb.py $PREFIX/share/gdb/auto-load/usr/lib
+}
