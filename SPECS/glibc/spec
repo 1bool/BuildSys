@@ -4,10 +4,6 @@ ADDITIONS="http://www.iana.org//time-zones/repository/releases/tzdata2012c.tar.g
 CONFIGFLAGS="--disable-profile --enable-add-ons --enable-kernel=2.6.25 --libexecdir=$PREFIX/lib/glibc"
 # Fix bug #3 "glibc build loop in NPTL"
 CONFIGFLAGS+=" --with-headers=$PREFIX/include"
-# Fix a bug that causes several packages to segfault:
-#PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/glibc-2.15-fixes-1.patch'
-# Fix a bug that prevents Glibc from building with GCC-4.7.0:
-#PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/glibc-2.15-gcc_fix-1.patch'
 PATCHES='http://www.linuxfromscratch.org/patches/lfs/7.2/glibc-2.16.0-res_query_fix-1.patch'
 
 PATH=/tools/bin:/tools/sbin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin

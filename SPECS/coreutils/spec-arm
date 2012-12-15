@@ -3,7 +3,5 @@ CONFIGFLAGS="--libexecdir=/usr/lib --enable-no-install-program=kill,uptime --ena
 	     fu_cv_sys_stat_statfs2_bsize=yes \
 	     gl_cv_func_working_mkstemp=yes \
 	     ac_cv_func_canonicalize_file_name=no"
-# POSIX requires that programs from Coreutils recognize character boundaries correctly even in multibyte locales. The following patch fixes this non-compliance and other internationalization-related bugs
-PATCHES='http://www.linuxfromscratch.org/patches/lfs/development/coreutils-8.17-i18n-1.patch'
 #FORCE_UNSAFE_CONFIGURE=1
 DEPS=eglibc

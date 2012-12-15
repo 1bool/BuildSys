@@ -1,6 +1,8 @@
 VERSION=3.6.8
 PKG_LOCATION="ftp://ftp.samba.org/pub/samba/stable/samba-$VERSION.tar.gz"
 DEPS=(
+	libcap
+	libtirpc
 	talloc
 	tdb
 	popt
@@ -17,18 +19,19 @@ CONFIGFLAGS=(
     --enable-nss-wrapper
     --enable-socket-wrapper
 	--enable-external-libtalloc
-	--without-sys-quotas
+#	--without-sys-quotas
 	)
 MAKEDIR="samba-$VERSION/source3"
 
-#pre-make()
-#{
-#	sed -i "s/-ldl/& -ltirpc -lpthread/" Makefile
-#}
+pre-make()
+{
+	sed -i "s/-ldl/& -ltirpc -lpthread/" Makefile
+}
 
 post-install()
 {
 #	cp pkgconfig/wbclient.pc usr/lib/pkgconfig
+	mkdir -p lib
 	install -v -m755 ${MAKEDIR}/../nsswitch/libnss_win{s,bind}.so lib
 	ln -v -sf libnss_winbind.so lib/libnss_winbind.so.2
 	ln -v -sf libnss_wins.so    lib/libnss_wins.so.2
@@ -36,12 +39,33 @@ post-install()
 	install -v -m644 ${MAKEDIR}/../examples/smb.conf.default etc/samba
 
 	if [ -d etc/openldap/schema ]; then
-		install -v -m644 ../examples/LDAP/README /etc/openldap/schema/README.LDAP
-		install -v -m644 ../examples/LDAP/samba* /etc/openldap/schema
-		install -v -m755 ../examples/LDAP/{convert*,get*,ol*} /etc/openldap/schema
+		install -v -m644 ../examples/LDAP/README etc/openldap/schema/README.LDAP
+		install -v -m644 ../examples/LDAP/samba* etc/openldap/schema
+		install -v -m755 ../examples/LDAP/{convert*,get*,ol*} etc/openldap/schema
 	fi
 
 #	install -v -m755 -d usr/share/doc/samba-$VERSION
 #	install -v -m644 ../docs/*.pdf usr/share/doc/samba-$VERSION
 #	ln -v -s ../../samba/swat  usr/share/doc/samba-$VERSION
+
+#	chroot . groupadd -g 99 nogroup
+#	chroot . useradd -c "Unprivileged Nobody" -d /dev/null -g nogroup -s /bin/false -u 99 nobody
+
+	mkinitdirs
+	install -v -m 754 -D $PKG_SPECDIR/samba.init etc/rc.d/init.d/samba
+	ln -sf  ../init.d/samba etc/rc.d/rc0.d/K48samba
+	ln -sf  ../init.d/samba etc/rc.d/rc1.d/K48samba
+	ln -sf  ../init.d/samba etc/rc.d/rc2.d/K48samba
+	ln -sf  ../init.d/samba etc/rc.d/rc3.d/S45samba
+	ln -sf  ../init.d/samba etc/rc.d/rc4.d/S45samba
+	ln -sf  ../init.d/samba etc/rc.d/rc5.d/S45samba
+	ln -sf  ../init.d/samba etc/rc.d/rc6.d/K48samba
+	install -v -m 754 -D $PKG_SPECDIR/winbindd.init etc/rc.d/init.d/winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc0.d/K49winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc1.d/K49winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc2.d/K49winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc3.d/S50winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc4.d/S50winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc5.d/S50winbindd
+	ln -sf  ../init.d/winbindd etc/rc.d/rc6.d/K49winbindd
 }

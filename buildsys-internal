@@ -175,6 +175,9 @@ precede_conf_opts()
 			openssl)
 				CONFIGURE=Configure
 				;;
+			tdb)
+				CONFIGURE=buildtools/wafadmin/Options.py
+				;;
 			*)
 				CONFIGURE=configure
 				;;
@@ -454,14 +457,6 @@ pkg_unpack_patch()
 			sed -i -e '/^%clean/,/^$/d' "$RPM_SPEC"
 			pkg_rpm_prep
 		fi
-		# Execute any script or binary with env variables exported for it
-		# pre-build can be used to do patching job
-		# Only bash and perl supported for scripting as of now
-		if declare -F pre-build; then
-			(pre-build)
-		elif [ -f ${PKG_SPECDIR}/pre-build ]; then
-			${PKG_SPECDIR}/pre-build
-		fi
 		popd
 		touch .patched
 	fi
@@ -473,6 +468,14 @@ pkg_make_install()
 
 	if [ ! -f ".built-$PKG_NAME" ]; then
 		pushd "$SRC_DIR"
+		# Execute any script or binary with env variables exported for it
+		# pre-build can be used to do patching job
+		# Only bash and perl supported for scripting as of now
+		if declare -F pre-build; then
+			(pre-build)
+		elif [ -f ${PKG_SPECDIR}/pre-build ]; then
+			${PKG_SPECDIR}/pre-build
+		fi
 		bs_notice "Building package ${PKG} in $SRC_DIR"
 		if [ -x ${PKG_SPECDIR}/build ]; then
 			${PKG_SPECDIR}/build
@@ -483,13 +486,7 @@ pkg_make_install()
 			if [ "$MAKEDIR" != "$PKG_DIR/build-$PKG_NAME" ]; then
 				cd $MAKEDIR
 			fi
-			if [ -r Makefile ] && [ ! -x configure ]; then
-				MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $MAKEJOBS $MAKEFLAGS"
-				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
-					bs_notice "Executing make $MAKEFLAGS" "$CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}"
-					make $MAKEFLAGS $CROSS_MAKEOPTS ${MAKE_TARGETS[$i]}
-				done
-			elif [ -x configure ]; then
+			if [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME" ]; then
 					case $PKG_NAME in
 						qt-everywhere-opensource-src)
@@ -500,21 +497,34 @@ pkg_make_install()
 					esac
 					[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
 					[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
-					if [ ! -d $MAKEDIR ]; then
-						mkdir -p $MAKEDIR
-					fi
-					pushd $MAKEDIR
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
-					$SRC_DIR/configure ${CONFIGFLAGS[@]}
-					popd
+					if [ "$MAKEDIR" = "$PKG_DIR/build-$PKG_NAME" ]; then
+						if [ ! -d $MAKEDIR ]; then
+							mkdir -p $MAKEDIR
+						fi
+						pushd $MAKEDIR
+						$SRC_DIR/configure ${CONFIGFLAGS[@]}
+						popd
+					else
+						./configure ${CONFIGFLAGS[@]}
+					fi
 					touch ${PKG_DIR}/".configured-$PKG_NAME"
 				fi
+			fi
+			if [ -r $MAKEDIR/Makefile ]; then
 				cd $MAKEDIR
-				MAKEFLAGS="$MAKEJOBS $MAKEFLAGS"
-				for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
-					bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[$i]}"
-					make $MAKEFLAGS ${MAKE_TARGETS[$i]}
-				done
+				if declare -F pre-make; then
+					pre-make
+				fi
+				if [ ! -x configure ]; then
+					MAKEFLAGS="PREFIX=$PREFIX prefix=$PREFIX $MAKEJOBS $CROSS_MAKEOPTS $MAKEFLAGS"
+				else
+					MAKEFLAGS="$MAKEJOBS $MAKEFLAGS"
+				fi
+					for (( i = 0; i < ${#MAKE_TARGETS[@]}; i++ )); do
+						bs_notice "Executing make $MAKEFLAGS ${MAKE_TARGETS[$i]}"
+						make $MAKEFLAGS ${MAKE_TARGETS[$i]}
+					done
 			elif [ -r ${PKG_NAME}.pro ]; then
 				qmake
 				make

@@ -1,8 +1,4 @@
 PKG_LOCATION='http://procps.sourceforge.net/procps-3.2.8.tar.gz'
-# Patch to prevent an error message from being displayed when determining the kernel clock tick rate
-PATCHES[0]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8-fix_HZ_errors-1.patch'
-# Patch to fix a unicode related issue in the watch program
-PATCHES[1]='http://www.linuxfromscratch.org/patches/lfs/development/procps-3.2.8-watch_unicode-1.patch'
 # Disable ldconfig as it's cross-compiled, not able to run on x86
 MAKEFLAGS='ldconfig='
 DEPS=(eglibc ncurses)

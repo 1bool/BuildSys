@@ -3,7 +3,7 @@ PKG_LOCATION="http://downloads.sourceforge.net/project/libtirpc/libtirpc/$VERSIO
 PATCHES=(
 "http://www.linuxfromscratch.org/patches/blfs/svn/libtirpc-0.2.2-remove-nis-2.patch"
 libtirpc-etc_netconfig.patch)
-TOOL_DEPS=(pkg-config)
+TOOL_DEPS=(pkg-config automake)
 deps=glibc
 CONFIGFLAGS=("CFLAGS=-fPIC")
 

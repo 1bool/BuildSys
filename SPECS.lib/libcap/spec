@@ -3,3 +3,4 @@ VERSION=2.22
 PKG_LOCATION='ftp://ftp.de.debian.org/debian/pool/main/libc/libcap2/libcap2_2.22.orig.tar.gz'
 MAKEFLAGS='RAISE_SETFCAP=no lib=lib'
 DEPS=(glibc attr)
+MAKEDIR="${PKG_NAME}-$VERSION"
