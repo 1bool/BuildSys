@@ -1,0 +1,19 @@
+VERSION=0.2.2
+PKG_LOCATION="http://downloads.sourceforge.net/project/libtirpc/libtirpc/$VERSION/libtirpc-$VERSION.tar.bz2"
+PATCHES=(
+"http://www.linuxfromscratch.org/patches/blfs/svn/libtirpc-0.2.2-remove-nis-2.patch"
+libtirpc-etc_netconfig.patch)
+TOOL_DEPS=(pkg-config)
+deps=glibc
+CONFIGFLAGS=("CFLAGS=-fPIC")
+
+pre-build()
+{
+	autoreconf
+}
+
+post-install()
+{
+	mv -v usr/lib/libtirpc.so.* lib
+	ln -sfv ../../lib/libtirpc.so.1.0.10 usr/lib/libtirpc.so
+}

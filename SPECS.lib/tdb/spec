@@ -1,0 +1,10 @@
+VERSION=1.2.11
+PKG_LOCATION="http://www.samba.org/ftp/tdb/tdb-$VERSION.tar.gz"
+TOOL_DEPS=python
+DEPS=glibc
+MAKEDIR="tdb-$VERSION"
+
+#pre-build()
+#{
+#	sed -ie "s|PREVPATH=.*|PREVPATH=$SRC_DIR|" configure
+#}

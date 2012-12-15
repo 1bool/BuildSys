@@ -1,0 +1,47 @@
+VERSION=3.6.8
+PKG_LOCATION="ftp://ftp.samba.org/pub/samba/stable/samba-$VERSION.tar.gz"
+DEPS=(
+	talloc
+	tdb
+	popt
+	readline
+	zlib
+	)
+CONFIGFLAGS=(
+    --prefix=/usr
+    --sysconfdir=/etc
+    --localstatedir=/var
+    --with-piddir=/run
+    --with-pammodulesdir=/lib/security
+    --with-fhs
+    --enable-nss-wrapper
+    --enable-socket-wrapper
+	--enable-external-libtalloc
+	--without-sys-quotas
+	)
+MAKEDIR="samba-$VERSION/source3"
+
+#pre-make()
+#{
+#	sed -i "s/-ldl/& -ltirpc -lpthread/" Makefile
+#}
+
+post-install()
+{
+#	cp pkgconfig/wbclient.pc usr/lib/pkgconfig
+	install -v -m755 ${MAKEDIR}/../nsswitch/libnss_win{s,bind}.so lib
+	ln -v -sf libnss_winbind.so lib/libnss_winbind.so.2
+	ln -v -sf libnss_wins.so    lib/libnss_wins.so.2
+
+	install -v -m644 ${MAKEDIR}/../examples/smb.conf.default etc/samba
+
+	if [ -d etc/openldap/schema ]; then
+		install -v -m644 ../examples/LDAP/README /etc/openldap/schema/README.LDAP
+		install -v -m644 ../examples/LDAP/samba* /etc/openldap/schema
+		install -v -m755 ../examples/LDAP/{convert*,get*,ol*} /etc/openldap/schema
+	fi
+
+#	install -v -m755 -d usr/share/doc/samba-$VERSION
+#	install -v -m644 ../docs/*.pdf usr/share/doc/samba-$VERSION
+#	ln -v -s ../../samba/swat  usr/share/doc/samba-$VERSION
+}
