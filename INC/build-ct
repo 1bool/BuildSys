@@ -192,8 +192,8 @@ PKG_LIST=(
 
 mkinitdirs()
 {
-	for runlevel in $(seq 0 6); do
-		mkdir -pv etc/rc.d/rc${runlevel}.d
+	for runlevel in $(seq 0 6) init; do
+		install -d -m 755 -v etc/rc.d/rc${runlevel}.d
 	done
 }
 
@@ -370,7 +370,23 @@ configure_fs()
 	# End /etc/fstab
 	EOF
 
-	cat > /etc/buildsys-release <<- "EOF"
+	mkinitdirs
+	cat > etc/init.d/buildsys-config <<- "EOF"
+	#!/bin/sh
+	CONFIGS=$(find / -maxdepth 1 -type f -executable -name 'configure-*' | ls -tr)
+	for CONFIG in $CONFIGS; do
+		$CONFIG
+	done
+	EOF
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc0.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc1.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc2.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc3.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc4.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc5.d/S99buildsys-config
+	ln -sf  ../init.d/buildsys-config etc/rc.d/rc6.d/S99buildsys-config
+
+	cat > etc/buildsys-release <<- "EOF"
 	DISTRIB_ID=BuildSys
 	DISTRIB_RELEASE=0.3
 	DISTRIB_CODENAME=
