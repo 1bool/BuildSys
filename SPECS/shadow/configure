@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# To enable shadowed passwords, run the following command:
+pwconv
+# To enable shadowed group passwords, run:
+grpconv

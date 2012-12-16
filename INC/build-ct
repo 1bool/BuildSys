@@ -199,10 +199,13 @@ mkinitdirs()
 
 configure_fs()
 {
+	cat > configure-buildsys <<- "EOF"
+	#!/bin/sh
 	# Run the following script on target machine to generate /etc/udev/rules.d/70-persistent-net.rules
-#	for NIC in /sys/class/net/* ; do
-#		INTERFACE=${NIC##*/} udevadm test --action=add $NIC
-#	done
+	for NIC in /sys/class/net/* ; do
+		INTERFACE=${NIC##*/} udevadm test --action=add $NIC
+	done
+	EOF
 
 	mkdir -pv {bin,boot,dev,etc/{opt,sysconfig},home,lib,mnt,opt,run,proc,sys}
 	mkdir -pv {media/{floppy,cdrom},sbin,srv,var}

@@ -48,9 +48,6 @@ post-install()
 #	install -v -m644 ../docs/*.pdf usr/share/doc/samba-$VERSION
 #	ln -v -s ../../samba/swat  usr/share/doc/samba-$VERSION
 
-#	chroot . groupadd -g 99 nogroup
-#	chroot . useradd -c "Unprivileged Nobody" -d /dev/null -g nogroup -s /bin/false -u 99 nobody
-
 	mkinitdirs
 	install -v -m 754 -D $PKG_SPECDIR/samba.init etc/rc.d/init.d/samba
 	ln -sf  ../init.d/samba etc/rc.d/rc0.d/K48samba

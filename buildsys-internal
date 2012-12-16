@@ -269,20 +269,6 @@ toolchain_link()
 	echo "TOOLCHAIN_LINK=$1" > /tmp/bs_toolchain_link
 }
 
-set_passwd()
-{
-	local USER="$1" PASS="$2"
-	if [ -z "$PASS" ]; then
-		chroot $FSROOT passwd -d $USER
-	else
-		{
-			while true; do
-				echo "$PASS"
-			done
-		} | chroot $FSROOT passwd $USER
-	fi
-}
-
 makefile_of_pkg()
 {
 	case $1 in
@@ -558,6 +544,11 @@ pkg_make_install()
 		if [ -n "$SERVICE_FILE" ]; then
 			install -v -m 754 -D ${PKG_SPECDIR}/$SERVICE_FILE /lib/services/$PKG_NAME
 		fi
+		if [ -f ${PKG_SPECDIR}/configure ]; then
+			pushd /
+			${PKG_SPECDIR}/configure
+			popd
+		fi
 		touch ".done-$PKG_NAME"
 	else
 		bs_notice "${PKG} has already been built. Skip."
@@ -658,6 +649,9 @@ pkg_dest_install()
 	done
 	if [ -n "$SERVICE_FILE" ]; then
 		install -v -m 754 -D ${PKG_SPECDIR}/$SERVICE_FILE lib/services/$PKG_NAME
+	fi
+	if [ -f ${PKG_SPECDIR}/configure ]; then
+		install -v -m 755 ${PKG_SPECDIR}/configure configure-$PKG_NAME
 	fi
 	cd -
 	touch $PKG_DIR/".installed-$PKG_NAME"
@@ -982,11 +976,6 @@ ext4_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-	if [ -z "$BUILDSYS_HOST" ]; then
-		chroot $FSROOT pwconv
-		chroot $FSROOT grpconv
-		set_passwd root "$ROOTPASSWD" || true
-	fi
 
 	FS_SIZE=$(du -sb . | cut -f1)
 	dd if=/dev/zero of=$IMG_EXT4 bs=1 count=1 seek=$((FS_SIZE + FS_SIZE/5))
@@ -1045,11 +1034,7 @@ iso_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-	if [ -z "$BUILDSYS_HOST" ]; then
-		chroot $FSROOT pwconv
-		chroot $FSROOT grpconv
-		set_passwd root "$ROOTPASSWD" || true
-	fi
+	set_passwd root "$ROOTPASSWD" || true
 
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh
