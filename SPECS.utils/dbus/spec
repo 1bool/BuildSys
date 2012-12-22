@@ -12,7 +12,6 @@ CONFIGFLAGS=(
 
 post-install()
 {
-
 	cat > /etc/dbus-1/session-local.conf << "EOF"
 <!DOCTYPE busconfig PUBLIC
  "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
@@ -24,14 +23,5 @@ post-install()
 
 </busconfig>
 EOF
-
-	mkinitdirs
-	install -v -m 754 -D $PKG_SPECDIR/dbus.init etc/rc.d/init.d/dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc0.d/K30dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc1.d/K30dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc2.d/S29dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc3.d/S29dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc4.d/S29dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc5.d/S29dbus
-	ln -sf  ../init.d/dbus etc/rc.d/rc6.d/K30dbus
+install -v -m 754 -D $PKG_SPECDIR/dbus.init etc/rc.d/init.d/dbus
 }

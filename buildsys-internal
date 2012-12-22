@@ -362,6 +362,7 @@ walk_pkg_dir()
 		export PKG IGNERR LAST_TOOLCHAIN_LINK
 		(
 		set -aeET
+		source $INCDIR/functions
 		get_pkg_info $PKG
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
@@ -544,11 +545,11 @@ pkg_make_install()
 		if [ -n "$SERVICE_FILE" ]; then
 			install -v -m 754 -D ${PKG_SPECDIR}/$SERVICE_FILE /lib/services/$PKG_NAME
 		fi
-		if [ -f ${PKG_SPECDIR}/configure ]; then
-			pushd /
-			${PKG_SPECDIR}/configure
-			popd
-		fi
+#		if [ -f ${PKG_SPECDIR}/configure ]; then
+#			pushd /
+#			${PKG_SPECDIR}/configure
+#			popd
+#		fi
 		touch ".done-$PKG_NAME"
 	else
 		bs_notice "${PKG} has already been built. Skip."

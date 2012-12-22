@@ -1,3 +1,5 @@
+#!/bin/sh
+
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:$HOME/bin:/tools/bin
 SPECNAME=spec-ct
 SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPECS.net SPECS.X)
@@ -190,12 +192,7 @@ PKG_LIST=(
 	#xinit
 	)
 
-mkinitdirs()
-{
-	for runlevel in $(seq 0 6) init; do
-		install -d -m 755 -v etc/rc.d/rc${runlevel}.d
-	done
-}
+source $INCDIR/functions
 
 configure_fs()
 {
@@ -225,6 +222,7 @@ configure_fs()
 	ln -fsv /run var/run
 	ln -fsv /run/lock var/lock
 	mkdir -pv var/{opt,cache,lib/{misc,locate},local}
+	mkinitdirs
 
 	cat > etc/passwd <<- "EOF"
 	root:x:0:0:root:/root:/bin/bash
@@ -370,12 +368,12 @@ configure_fs()
 	# End /etc/fstab
 	EOF
 
-	mkinitdirs
 	cat > etc/init.d/buildsys-config <<- "EOF"
 	#!/bin/sh
 	CONFIGS=$(find / -maxdepth 1 -type f -executable -name 'configure-*' | ls -tr)
 	for CONFIG in $CONFIGS; do
 		$CONFIG
+		rm -fv $CONFIG
 	done
 	EOF
 	ln -sf  ../init.d/buildsys-config etc/rc.d/rc0.d/S99buildsys-config

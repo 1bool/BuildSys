@@ -3,3 +3,11 @@
 groupadd -g 18 messagebus || true
 useradd -c "D-Bus Message Daemon User" -d /var/run/dbus -u 18 -g messagebus -s /bin/false messagebus || true
 dbus-uuidgen --ensure || true
+
+ln -sfv  ../init.d/dbus /etc/rc.d/rc0.d/K30dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc1.d/K30dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc2.d/S29dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc3.d/S29dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc4.d/S29dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc5.d/S29dbus
+ln -sfv  ../init.d/dbus /etc/rc.d/rc6.d/K30dbus

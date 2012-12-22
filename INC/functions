@@ -1,0 +1,9 @@
+#!/bin/sh
+
+mkinitdirs()
+{
+	for runlevel in $(seq 0 6) init; do
+		install -d -m 755 -v etc/rc.d/rc${runlevel}.d
+	done
+	install -d -m 755 -v etc/rc.d/init.d
+}

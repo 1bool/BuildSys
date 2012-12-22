@@ -2,3 +2,19 @@
 
 groupadd -g 99 nogroup
 useradd -c "Unprivileged Nobody" -d /dev/null -g nogroup -s /bin/false -u 99 nobody
+
+ln -sfv  ../init.d/samba /etc/rc.d/rc0.d/K48samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc1.d/K48samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc2.d/K48samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc3.d/S45samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc4.d/S45samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc5.d/S45samba
+ln -sfv  ../init.d/samba /etc/rc.d/rc6.d/K48samba
+
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc0.d/K49winbindd
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc1.d/K49winbindd
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc2.d/K49winbindd
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc3.d/S50winbindd
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc4.d/S50winbindd
+ln -sfv  ../init.d/winbindd /etc/rc.d/rc5.d/S50winbindd
+ln -sfv ../init.d/winbindd /etc/rc.d/rc6.d/K49winbindd

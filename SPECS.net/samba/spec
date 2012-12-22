@@ -48,21 +48,6 @@ post-install()
 #	install -v -m644 ../docs/*.pdf usr/share/doc/samba-$VERSION
 #	ln -v -s ../../samba/swat  usr/share/doc/samba-$VERSION
 
-	mkinitdirs
-	install -v -m 754 -D $PKG_SPECDIR/samba.init etc/rc.d/init.d/samba
-	ln -sf  ../init.d/samba etc/rc.d/rc0.d/K48samba
-	ln -sf  ../init.d/samba etc/rc.d/rc1.d/K48samba
-	ln -sf  ../init.d/samba etc/rc.d/rc2.d/K48samba
-	ln -sf  ../init.d/samba etc/rc.d/rc3.d/S45samba
-	ln -sf  ../init.d/samba etc/rc.d/rc4.d/S45samba
-	ln -sf  ../init.d/samba etc/rc.d/rc5.d/S45samba
-	ln -sf  ../init.d/samba etc/rc.d/rc6.d/K48samba
-	install -v -m 754 -D $PKG_SPECDIR/winbindd.init etc/rc.d/init.d/winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc0.d/K49winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc1.d/K49winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc2.d/K49winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc3.d/S50winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc4.d/S50winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc5.d/S50winbindd
-	ln -sf  ../init.d/winbindd etc/rc.d/rc6.d/K49winbindd
+install -v -m 754 -D $PKG_SPECDIR/samba.init etc/rc.d/init.d/samba
+install -v -m 754 -D $PKG_SPECDIR/winbindd.init etc/rc.d/init.d/winbindd
 }

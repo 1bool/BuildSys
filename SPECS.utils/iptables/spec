@@ -1,0 +1,17 @@
+VERSION=1.4.16.2
+PKG_LOCATION="ftp://ftp.netfilter.org/pub/iptables/iptables-$VERSION.tar.bz2"
+DEPS=(glibc)
+CONFIGFLAGS=(
+	--exec-prefix=
+	--bindir=/sbin
+	--with-xtlibdir=/lib/xtables
+	--with-pkgconfigdir=/usr/lib/pkgconfig
+	--enable-libipq
+	--enable-devel
+	)
+
+post-install()
+{
+	ln -sfv xtables-multi sbin/iptables-xml
+	install -v -m 754 -D $PKG_SPECDIR/iptables.init etc/rc.d/init.d/iptables
+}
