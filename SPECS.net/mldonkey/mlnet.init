@@ -1,0 +1,46 @@
+#!/bin/sh
+# Begin $rc_base/init.d/mlnet
+
+# Based on sysklogd script from LFS-3.1 and earlier.
+# Rewritten by Wenbo Wang  - 1ball.w@gmail.com
+
+#$LastChangedBy: Wenbo $
+#$Date: 2006-04-15 17:34:16 -0500 (Sat, 15 Apr 2006) $
+
+. /etc/sysconfig/rc
+. $rc_functions
+
+case "$1" in
+	start)
+		boot_mesg "Starting mlnet..."
+		loadproc nice -n 20 mlnet
+		;;
+
+	stop)
+		boot_mesg "Stopping mlnet..."
+		killproc mlnet 2
+		;;
+
+	reload)
+		boot_mesg "Reloading mlnet..."
+		stop
+		start
+		;;
+
+	restart)
+		$0 stop
+		sleep 1
+		$0 start
+		;;
+
+	status)
+		statusproc /usr/bin/mlnet
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|reload|restart|status}"
+		exit 1
+		;;
+esac
+
+# End $rc_base/init.d/mlnet

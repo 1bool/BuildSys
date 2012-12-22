@@ -1,7 +1,7 @@
 VERSION=3.1.3
 PKG_LOCATION="http://sourceforge.net/projects/mldonkey/files/mldonkey/$VERSION/mldonkey-$VERSION.tar.bz2"
 TOOL_DEPS=(m4 ocaml)
-DEPS=(glibc zlib)
+DEPS=(glibc zlib libgcc libstdcpp)
 CONFIGFLAGS=(
 	--enable-option-checking=fatal
 	--disable-profile
@@ -13,3 +13,8 @@ CONFIGFLAGS=(
 	--disable-gnutella2
 	)
 MAKEDIR="mldonkey-$VERSION"
+
+post-install()
+{
+	install -v -m 754 -D $PKG_SPECDIR/mlnet.init etc/rc.d/init.d/mlnet
+}
