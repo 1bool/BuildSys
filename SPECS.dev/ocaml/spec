@@ -1,5 +1,11 @@
 VERSION=4.00.1
 PKG_LOCATION="http://caml.inria.fr/pub/distrib/ocaml-4.00/ocaml-$VERSION.tar.bz2"
+DEPS=(glibc)
 MAKEDIR="ocaml-$VERSION"
 MAKEFLAGS='-j1'
-MAKE_TARGETS=(world.opt)
+MAKE_TARGETS=(world.opt install)
+
+pre-build()
+{
+	sed -ie 's/partialld="ld -r"/partialld="ld -m elf_i386 -r"/' configure
+}
