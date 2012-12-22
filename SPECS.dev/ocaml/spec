@@ -1,0 +1,5 @@
+VERSION=4.00.1
+PKG_LOCATION="http://caml.inria.fr/pub/distrib/ocaml-4.00/ocaml-$VERSION.tar.bz2"
+MAKEDIR="ocaml-$VERSION"
+MAKEFLAGS='-j1'
+MAKE_TARGETS=(world.opt)

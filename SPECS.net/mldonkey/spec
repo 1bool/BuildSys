@@ -1,0 +1,15 @@
+VERSION=3.1.3
+PKG_LOCATION="http://sourceforge.net/projects/mldonkey/files/mldonkey/$VERSION/mldonkey-$VERSION.tar.bz2"
+TOOL_DEPS=(m4)
+DEPS=(glibc zlib)
+CONFIGFLAGS=(
+	--enable-option-checking=fatal
+	--disable-profile
+	--disable-debug
+	--disable-gui
+	--disable-fasttrack
+	--disable-directconnect
+	--disable-gnutella
+	--disable-gnutella2
+	)
+MAKEDIR="mldonkey-$VERSION"

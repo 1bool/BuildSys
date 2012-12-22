@@ -178,17 +178,22 @@ precede_conf_opts()
 			tdb)
 				CONFIGURE=buildtools/wafadmin/Options.py
 				;;
+			mldonkey)
+				CONFIGURE=config/configure
+				;;
 			*)
 				CONFIGURE=configure
 				;;
 		esac
 	fi
-	for ARG in $@; do
-		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
+	for ARG in "$@"; do
+		if ! in_list "$ARG" "${CONFIGFLAGS[@]}"; then
 			if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
-				bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
-			else
-				CONFIGFLAGS=($ARG ${CONFIGFLAGS[@]})
+				if ! grep -F -q -e "${ARG% *}" $CONFIGURE; then
+					bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
+				else
+					CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
+				fi
 			fi
 		fi
 	done
@@ -478,12 +483,15 @@ pkg_make_install()
 					case $PKG_NAME in
 						qt-everywhere-opensource-src)
 							;;
+						ocaml)
+							precede_conf_opts "-prefix $PREFIX"
+							;;
 						*)
 							precede_conf_opts "--prefix=$PREFIX"
+							[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
+							[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
 							;;
 					esac
-					[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
-					[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
 					if [ "$MAKEDIR" = "$PKG_DIR/build-$PKG_NAME" ]; then
 						if [ ! -d $MAKEDIR ]; then
@@ -1342,7 +1350,7 @@ in_list()
 {
 	local i j="${1}"
 	shift
-	for i in ${@}; do
+	for i in "${@}"; do
 		if [ "$i" = "$j" ]; then
 			return 0
 		fi
