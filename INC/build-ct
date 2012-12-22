@@ -33,6 +33,7 @@ PKG_LIST=(
 #	grub
 	gzip
 	iproute2
+	iptables
 	kbd
 	kmod
 	less
