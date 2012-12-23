@@ -187,13 +187,15 @@ precede_conf_opts()
 		esac
 	fi
 	for ARG in "$@"; do
-		if ! in_list "$ARG" "${CONFIGFLAGS[@]}"; then
+		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
 			if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
 				if ! grep -F -q -e "${ARG% *}" $CONFIGURE; then
 					bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
 				else
 					CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
 				fi
+			else
+				CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
 			fi
 		fi
 	done
@@ -317,6 +319,9 @@ make_fakeroot()
 			;;
 		ppp)
 			DESTVAR=INSTROOT
+			;;
+		openssl)
+			DESTVAR=INSTALL_PREFIX
 			;;
 	esac
 	for MAKE_TARGET in ${MAKE_TARGETS[@]}; do

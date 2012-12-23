@@ -1,0 +1,24 @@
+VERSION=6.1p1
+PKG_LOCATION="ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-$VERSION.tar.gz"
+DEPS=(openssl)
+CONFIGFLAGS=(
+	--sysconfdir=/etc/ssh
+    --datadir=/usr/share/sshd
+    --with-md5-passwords
+    --with-privsep-path=/var/lib/sshd
+	--libexecdir=$PREFIX/lib/openssh
+	)
+
+pre-build()
+{
+	install -v -m700 -d /var/lib/sshd
+	chown -v root:sys /var/lib/sshd
+#	groupadd -g 50 sshd
+#	useradd -c 'sshd PrivSep' -d /var/lib/sshd -g sshd -s /bin/false -u 50 sshd
+}
+
+#post-install()
+#{
+#	install -v -m755 -d usr/share/doc/openssh-6.1p1
+#	install -v -m644 INSTALL LICENCE OVERVIEW README* usr/share/doc/openssh-6.1p1
+#}
