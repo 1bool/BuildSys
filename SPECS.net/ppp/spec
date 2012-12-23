@@ -1,0 +1,4 @@
+VERSION=2.4.5
+PKG_LOCATION="ftp://ftp.samba.org/pub/ppp/ppp-$VERSION.tar.gz"
+MAKEDIR="ppp-$VERSION"
+MAKE_TARGETS=(all install install-etcppp)

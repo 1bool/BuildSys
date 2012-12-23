@@ -315,6 +315,9 @@ make_fakeroot()
 		MesaLib|talloc)
 			DESTVAR=DESTDIR
 			;;
+		ppp)
+			DESTVAR=INSTROOT
+			;;
 	esac
 	for MAKE_TARGET in ${MAKE_TARGETS[@]}; do
 		if ! grep -q "^$MAKE_TARGET" $MAKEFILE; then
@@ -483,8 +486,8 @@ pkg_make_install()
 					case $PKG_NAME in
 						qt-everywhere-opensource-src)
 							;;
-						ocaml)
-							precede_conf_opts "-prefix $PREFIX"
+						ocaml|ppp)
+							precede_conf_opts "--prefix $PREFIX"
 							;;
 						*)
 							precede_conf_opts "--prefix=$PREFIX"
