@@ -1,0 +1,9 @@
+#!/bin/sh
+
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc0.d/K50dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc1.d/K50dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc2.d/K50dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc3.d/S30dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc4.d/S30dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc5.d/S30dnsmasq
+ln -sfv  ../init.d/dnsmasq /etc/rc.d/rc6.d/K50dnsmasq

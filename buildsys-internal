@@ -505,6 +505,8 @@ pkg_make_install()
 					fi
 					touch ${PKG_DIR}/".configured-$PKG_NAME"
 				fi
+			elif [ -r Makefile ]; then
+				ln -vs "$SRC_DIR" "$MAKEDIR"
 			fi
 			if [ -r $MAKEDIR/Makefile ]; then
 				cd $MAKEDIR

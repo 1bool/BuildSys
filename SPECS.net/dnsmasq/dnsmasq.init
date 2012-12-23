@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# Startup script for the DNS caching server
+#
+# chkconfig: - 99 01
+# description: This script starts your DNS caching server
+# processname: dnsmasq
+# pidfile: /var/run/dnsmasq.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+dnsmasq=/usr/sbin/dnsmasq
+[ -f $dnsmasq ] || exit 0
+
+DOMAIN_SUFFIX=`dnsdomainname`
+if [ ! -z "${DOMAIN_SUFFIX}" ]; then
+  OPTIONS="-s $DOMAIN_SUFFIX"
+fi
+#OPTIONS="-q $OPTIONS"
+
+RETVAL=0
+
+# See how we were called.
+case "$1" in
+  start)
+        boot_mesg "Starting dnsmasq: "
+        loadproc $dnsmasq $OPTIONS
+	RETVAL=$?
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/dnsmasq
+        ;;
+  stop)
+        if test "x`pidof dnsmasq`" != x; then
+            boot_mesg "Shutting down dnsmasq: "
+            killproc dnsmasq
+        fi
+	RETVAL=$?
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/dnsmasq /var/run/dnsmasq.pid
+        ;;
+  status)
+	statusproc dnsmasq
+	RETVAL=$?
+	;;
+  reload)
+	boot_mesg "Reloading dnsmasq: "
+	killproc dnsmasq -HUP
+	RETVAL=$?
+	;;
+  restart)
+	$0 stop
+	$0 start
+	RETVAL=$?
+	;;
+  condrestart)
+	    if test "x`/sbin/pidof dnsmasq`" != x; then
+		$0 stop
+		$0 start
+		RETVAL=$?
+	    fi
+	    ;;
+  *)
+        echo "Usage: $0 {start|stop|restart|reload|condrestart|status}"
+        exit 1
+esac
+
+exit $RETVAL
+

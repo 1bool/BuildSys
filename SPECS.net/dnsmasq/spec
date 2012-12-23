@@ -1,0 +1,7 @@
+VERSION=2.65
+PKG_LOCATION="http://www.thekelleys.org.uk/dnsmasq/dnsmasq-$VERSION.tar.xz"
+
+post-install()
+{
+	install -v -m 754 -D $PKG_SPECDIR/dnsmasq.init etc/rc.d/init.d/dnsmasq
+}
