@@ -1,4 +1,0 @@
-INSTALL_FILES=(
-'/usr/lib/libgcc_s.so*'
-'/usr/lib/libstdc++.so*'
-)

@@ -102,6 +102,7 @@ guess_pkg_info_from_location()
 		PKG_NAME="${PKG_FILE_NAME%-${VERSION}*}"
 		[ -z "$PKG_NAME" ] && PKG_NAME="$PKG"
 	fi
+	PKG_DIR="${BUILD_DIR}/$CONF_NAME/${PKG_NAME}"
 	if [ -z "$SRC_DIR" ]; then
 		SRC_DIR="$PKG_DIR/${PKG_NAME}-${VERSION}"
 	else
@@ -379,10 +380,10 @@ walk_pkg_dir()
 		get_pkg_info $PKG
 		[ "$PREFIX" = /tools ] && BUILDSYS_LINK=tools
 		toolchain_link $BUILDSYS_LINK
-		mkdir -p "$PKG_DIR"
-		pushd "$PKG_DIR"
 		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
 			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
+			mkdir -p "$PKG_DIR"
+			pushd "$PKG_DIR"
 			#if [ "$SUFFIX" = 'src.rpm' ]; then
 				## prevent build failure by rpm bug
 				## https://bugzilla.redhat.com/show_bug.cgi?id=433795
@@ -398,8 +399,8 @@ walk_pkg_dir()
 				fi
 			done
 			get_pkg_info $PKG
+			popd
 		done
-		popd
 		)
 	done
 }
@@ -611,6 +612,7 @@ pkg_make_distclean()
 pkg_make_uninstall()
 {
 	local LINE=
+	bs_notice "Uninstalling package $PKG..."
 	if [ ! -f ".installed-$PKG_NAME" ]; then
 		bs_notice "$PKG not installed, skipping..."
 		return
@@ -1404,8 +1406,7 @@ get_pkg_info()
 {
 	local PKG="$1" SPECFOUND=0
 	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC MAKEDIR
-	CONF_NAME=$(dirname ${PKG}) PKG_DIR_NAME=$(basename ${PKG})
-	PKG_DIR="${BUILD_DIR}/${PKG}"
+	CONF_NAME=$(dirname ${PKG})
 	MAKE_TARGETS=('' install)
 	if [ $(dirname $PKG) != . ]; then
 		source $INCDIR/$(dirname $PKG)
@@ -1426,6 +1427,7 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
+	INSTALL_FILES=($(eval echo \$${PKG}_INSTALL_FILES))
 }
 
 deps_of()
