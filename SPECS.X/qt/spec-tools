@@ -1,5 +1,5 @@
 TOOL_DEPS=()
-DEPS=()
+DEPS=(libX11)
 CONFIGFLAGS=(
 			"-prefix $PREFIX"
             -release

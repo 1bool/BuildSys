@@ -1,7 +1,7 @@
 VERSION=4.8.3
 PKG_LOCATION="http://releases.qt-project.org/qt4/source/qt-everywhere-opensource-src-$VERSION.tar.gz"
 TOOL_DEPS=(pkg-config )
-DEPS=(zlib sqlite dbus)
+DEPS=(zlib sqlite dbus libX11)
 CONFIGFLAGS=(
 			"-prefix $PREFIX"
             -release

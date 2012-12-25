@@ -25,6 +25,7 @@ quit()
 	bs_error "buildsys process interrupting..."
 	toolchain_link root
 	rm -f /tmp/bs_toolchain_link
+	mv "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log" "$DEV_ROOT/LOG/$(basename $BUILD_CONF)-$START_TIME.log"
 	exit 1
 }
 
@@ -1713,4 +1714,4 @@ if [ -z "$CONTINUE" ]; then
 	rm -f "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
 fi
 main $@ 2>&1 | tee -a "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
-mv "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log" "$DEV_ROOT/LOG/$(basename $BUILD_CONF)-$START_TIME.log"
+rm "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
