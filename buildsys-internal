@@ -668,6 +668,7 @@ pkg_dest_install()
 		popd
 	fi
 	cd "$FAKEROOT"
+	echo install files: ${INSTALL_FILES[@]}
 	for (( i = 0; i < ${#INSTALL_FILES[@]}; i++ )); do
 		cp -av --parents ${INSTALL_FILES[$i]#/} $FSROOT
 	done
@@ -1407,7 +1408,7 @@ remove_from_list()
 
 get_pkg_info()
 {
-	local PKG="$1" SPECFOUND=0
+	local PKG="$1" SPECFOUND=0 PKG_VAR_NAME=
 	unset PKG_NAME VERSION SRC_DIR PKG_FILE_NAME SUFFIX RPM_SPEC MAKEDIR
 	CONF_NAME=$(dirname ${PKG})
 	MAKE_TARGETS=('' install)
@@ -1430,7 +1431,8 @@ get_pkg_info()
 	if [ $SPECFOUND = 0 ]; then
 		bs_error "${PKG}'s spec not found"
 	fi
-	INSTALL_FILES=($(eval echo \$${PKG}_INSTALL_FILES))
+	PKG_VAR_NAME="$(echo $PKG | tr - _)"
+	INSTALL_FILES=($(eval echo \$${PKG_VAR_NAME}_INSTALL_FILES))
 }
 
 deps_of()
