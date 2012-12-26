@@ -318,7 +318,7 @@ make_fakeroot()
 		linux)
 			DESTVAR=INSTALL_MOD_PATH
 			;;
-		MesaLib|talloc)
+		MesaLib|talloc|libcap)
 			DESTVAR=DESTDIR
 			;;
 		ppp)
@@ -385,7 +385,7 @@ walk_pkg_dir()
 		toolchain_link $BUILDSYS_LINK
 		for (( N_LOC = 0; N_LOC < ${#PKG_LOCATION[@]}; N_LOC++ )); do
 			guess_pkg_info_from_location "${PKG_LOCATION[$N_LOC]}"
-			mkdir -p "$PKG_DIR"
+			mkdir -pv "$PKG_DIR"
 			pushd "$PKG_DIR"
 			#if [ "$SUFFIX" = 'src.rpm' ]; then
 				## prevent build failure by rpm bug
@@ -462,7 +462,7 @@ pkg_unpack_patch()
 			pkg_rpm_prep
 		fi
 		popd
-		touch .patched
+		touch .patched-$PKG_NAME
 	fi
 }
 
@@ -507,7 +507,7 @@ pkg_make_install()
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
 					if [ "$MAKEDIR" = "$PKG_DIR/build-$PKG_NAME" ]; then
 						if [ ! -d $MAKEDIR ]; then
-							mkdir -p $MAKEDIR
+							mkdir -pv $MAKEDIR
 						fi
 						pushd $MAKEDIR
 						$SRC_DIR/configure ${CONFIGFLAGS[@]}
@@ -517,7 +517,7 @@ pkg_make_install()
 					fi
 					touch ${PKG_DIR}/".configured-$PKG_NAME"
 				fi
-			elif [ -r Makefile ]; then
+			elif [[ -r Makefile && ! -d "$MAKEDIR" ]]; then
 				ln -vs "$SRC_DIR" "$MAKEDIR"
 			fi
 			if [ -r $MAKEDIR/Makefile ]; then
@@ -1618,7 +1618,7 @@ main()
 	${ACTION:-build_pkgs}
 }
 
-GETOPTS=$(getopt -o cf:j:h --long continue,config:,jobs:,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o cf:j:lh --long continue,config:,jobs:,log,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 
 eval set -- "$GETOPTS"
@@ -1641,6 +1641,9 @@ while true; do
 		-j|--jobs)
 			MAKEJOBS="$1 $2"
 			shift 2
+			;;
+		-l|--log)
+			SAVE_LOG=y; shift
 			;;
 		-h|--help)
 			print_help_and_exit
@@ -1718,7 +1721,8 @@ if [ -z "$CONTINUE" ]; then
 	rm -f "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
 fi
 main $@ 2>&1 | tee -a "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
-if [ $? = 0 ]; then
+RET_VAL=$?
+if [[ -z "$SAVE_LOG" && $RET_VAL = 0 ]]; then
 	rm "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
 else
 	mv "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log" "$DEV_ROOT/LOG/$(basename $BUILD_CONF)-$START_TIME.log"
