@@ -318,7 +318,7 @@ make_fakeroot()
 		linux)
 			DESTVAR=INSTALL_MOD_PATH
 			;;
-		MesaLib|talloc|libcap)
+		MesaLib|talloc|libcap|tdb)
 			DESTVAR=DESTDIR
 			;;
 		ppp)
@@ -435,7 +435,7 @@ pkg_unpack_patch()
 		done
 		touch .unpacked-$PKG_NAME
 	fi
-	if [ ! -f .patched ]; then
+	if [ ! -f .patched-$PKG_NAME ]; then
 		pushd "$SRC_DIR"
 		for PATCH in ${PATCHES[@]}; do
 			get_file "$PATCH" "$PKG_POOL"
