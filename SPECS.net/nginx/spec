@@ -1,0 +1,13 @@
+VERSION=1.2.6
+PKG_LOCATION="http://nginx.org/download/nginx-$VERSION.tar.gz"
+DEPS=(glibc zlib openssl pcre)
+CONFIGFLAGS=(
+	--conf-path=/etc/nginx/nginx.conf
+	--pid-path=/var/run
+	--lock-path=/var/lock
+	--error-log-path=/var/log/nginx
+	--http-log-path=/var/log/nginx
+	--with-http_ssl_module
+	--with-pcre
+)
+MAKEDIR="nginx-$VERSION"

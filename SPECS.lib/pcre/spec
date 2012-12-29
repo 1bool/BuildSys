@@ -1,0 +1,11 @@
+VERSION=8.32
+PKG_LOCATION="ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-$VERSION.tar.bz2"
+DEPS=(glibc zlib bzip2)
+CONFIGFLAGS=(
+	--docdir=/usr/share/doc/pcre-$VERSION
+	--enable-utf
+	--enable-unicode-properties
+	--enable-pcregrep-libz
+	--enable-pcregrep-libbz2
+	--disable-static
+)

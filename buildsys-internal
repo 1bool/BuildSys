@@ -165,35 +165,13 @@ get_file()
 precede_conf_opts()
 {
 	local ARG
-	if [ -z "$CONFIGURE" ]; then
-		case "$PKG_NAME" in
-			vim)
-				CONFIGURE=src/auto/configure
-				;;
-			cmake)
-				CONFIGURE=bootstrap
-				;;
-			freetype)
-				CONFIGURE=builds/unix/configure
-				;;
-			openssl)
-				CONFIGURE=Configure
-				;;
-			tdb)
-				CONFIGURE=buildtools/wafadmin/Options.py
-				;;
-			mldonkey)
-				CONFIGURE=config/configure
-				;;
-			*)
-				CONFIGURE=configure
-				;;
-		esac
+	if [ -z "$CONF_OPTS" ]; then
+		CONF_OPTS='./configure --help'
 	fi
 	for ARG in "$@"; do
 		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
-			if ! grep -F -q -e "${ARG%=*}" $CONFIGURE; then
-				if ! grep -F -q -e "${ARG% *}" $CONFIGURE; then
+			if ! $CONF_OPTS | grep -F -q -e "${ARG%=*}" > /dev/null; then
+				if ! $CONF_OPTS | grep -F -q -e "${ARG% *}" > /dev/null; then
 					bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
 				else
 					CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
@@ -297,6 +275,9 @@ makefile_of_pkg()
 			;;
 		freetype)
 			echo -n "$SRC_DIR/builds/unix/install.mk"
+			;;
+		nginx)
+			echo -n "objs/Makefile"
 			;;
 		*)
 			echo -n 'Makefile'
@@ -497,6 +478,8 @@ pkg_make_install()
 							;;
 						ocaml|ppp)
 							precede_conf_opts "--prefix $PREFIX"
+							[ -n "$BUILDSYS_BUILD" ] && precede_conf_opts "--build=$BUILDSYS_BUILD"
+							[ -n "$BUILDSYS_HOST" ] && precede_conf_opts "--host=$BUILDSYS_HOST"
 							;;
 						*)
 							precede_conf_opts "--prefix=$PREFIX"
