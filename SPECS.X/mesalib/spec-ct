@@ -1,5 +1,23 @@
-CONFIGFLAGS="--enable-texture-float --enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --enable-glu --disable-egl --without-gallium-drivers --without-dri-drivers PYTHON2=/tools/bin/python2"
-TOOL_DEPS=(${TOOL_DEPS[@]/llvm/} python)
+CONFIGFLAGS=(
+	--sysconfdir=/etc
+	--enable-texture-float
+	--disable-gles1
+	--disable-gles2
+	--disable-openvg
+	--disable-xa
+	--enable-gbm
+	--disable-gallium-egl
+	--disable-gallium-gbm
+	--enable-r600-llvm-compiler
+	--enable-glx-tls
+	--without-gallium-drivers
+	--with-egl-platforms=drm,x11
+	--without-dri-drivers
+	--with-expat
+	--disable-static
+)
+TOOL_DEPS=(python libxml2 makedepend automake-1.11 libtool llvm)
+MAKEDIR=MesaLib-$VERSION
 NOUVEAU_CFLAGS=disable
 NOUVEAU_LIBS=disable
 RADEON_CFLAGS=disable

@@ -2,6 +2,8 @@ VERSION="9.0.1"
 PKG_LOCATION="ftp://ftp.freedesktop.org/pub/mesa/$VERSION/MesaLib-$VERSION.tar.bz2"
 #PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
 #PATCHES[1]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-add_xdemos-2.patch"
+DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
+TOOL_DEPS=(python libxml2 makedepend llvm automake-1.11 libtool)
 SRC_DIR="Mesa-$VERSION"
 CONFIGFLAGS=(
 	--sysconfdir=/etc
@@ -11,7 +13,8 @@ CONFIGFLAGS=(
 	--enable-gles1
 # --enable-gles2: This switch enables support for OpenGL ES 2.x API.
 	--enable-gles2
-	--enable-egl
+# --enable-openvg: This switch enables support for OpenVG API.
+	--enable-openvg
 # --enable-xa: This switch enables building of the XA X Acceleration API (Required for VMware 3D Driver).
 	--enable-xa
 # --enable-gbm: This switch enables building of the Mesa Graphics Buffer Manager library.
@@ -31,5 +34,3 @@ CONFIGFLAGS=(
 	--with-expat
 	--disable-static
 )
-DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
-TOOL_DEPS=(python libxml2 makedepend llvm)
