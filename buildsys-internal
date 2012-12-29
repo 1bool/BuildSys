@@ -166,12 +166,19 @@ precede_conf_opts()
 {
 	local ARG
 	if [ -z "$CONF_OPTS" ]; then
-		CONF_OPTS='./configure --help'
+		case "$PKG_NAME" in
+			ocaml|dhcpcd)
+				CONF_OPTS="$(cat configure)"
+				;;
+			*)
+				CONF_OPTS="$(./configure --help)"
+				;;
+		esac
 	fi
 	for ARG in "$@"; do
 		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
-			if ! $CONF_OPTS | grep -F -q -e "${ARG%=*}" > /dev/null; then
-				if ! $CONF_OPTS | grep -F -q -e "${ARG% *}" > /dev/null; then
+			if ! echo "$CONF_OPTS" | grep -F -q -e "${ARG%=*}" > /dev/null; then
+				if ! echo "$CONF_OPTS" | grep -F -q -e "${ARG% *}" > /dev/null; then
 					bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
 				else
 					CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
