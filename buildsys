@@ -129,7 +129,7 @@ if [ $MYNAME = sde ]; then
 	done
 else
 	MYNAME='buildsys'
-	GETOPTS=$(getopt -o scC:f:j:h --long arm,i686,size,continue,dir:,config:,jobs:,help -n "$0" -- "$@")
+	GETOPTS=$(getopt -o scC:f:j:lh --long arm,i686,size,continue,dir:,config:,jobs:,log,help -n "$0" -- "$@")
 	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
 	eval set -- "$GETOPTS"
 	set -a

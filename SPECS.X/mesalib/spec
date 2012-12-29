@@ -1,17 +1,35 @@
-VERSION="8.0.4"
+VERSION="9.0.1"
 PKG_LOCATION="ftp://ftp.freedesktop.org/pub/mesa/$VERSION/MesaLib-$VERSION.tar.bz2"
-PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
+#PATCHES[0]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-llvm-3.1-fixes-1.patch"
 #PATCHES[1]="http://www.linuxfromscratch.org/patches/blfs/svn/MesaLib-8.0.4-add_xdemos-2.patch"
 SRC_DIR="Mesa-$VERSION"
-CONFIGFLAGS="--enable-texture-float ---enable-gles1 --enable-gles2 -enable-xa --enable-shared-glapi --enable-shared-dricore --enable-glx-tls --with-gallium-drivers="nouveau,r300,r600,svga,swrast" --with-expat"
+CONFIGFLAGS=(
+	--sysconfdir=/etc
+# --enable-texture-float: This switch enables floating-point textures and renderbuffers. Please consult docs/patents.txt to see if there are any legal issues if you use this feature.
+	--enable-texture-float
+# --enable-gles1: This switch enables support for OpenGL ES 1.x API.
+	--enable-gles1
+# --enable-gles2: This switch enables support for OpenGL ES 2.x API.
+	--enable-gles2
+	--enable-egl
+# --enable-xa: This switch enables building of the XA X Acceleration API (Required for VMware 3D Driver).
+	--enable-xa
+# --enable-gbm: This switch enables building of the Mesa Graphics Buffer Manager library.
+	--enable-gbm
+# --enable-gallium-egl: This switch enables optional EGL state tracker for Gallium.
+	--enable-gallium-egl
+# --enable-gallium-gbm: This switch enables optional GBM state tracker for Gallium.
+	--enable-gallium-gbm
+# --enable-r600-llvm-compiler: This switch enables experimental LLVM backend for graphics shaders. Remove it if you did not install llvm-3.1.
+	--enable-r600-llvm-compiler
+# --enable-glx-tls: This switch enables TLS support in GLX.
+	--enable-glx-tls
+# --with-gallium-drivers="...": This parameter controls which Gallium drivers should be built. Available drivers are: i915, nouveau, r300, r600, swrast and svga. Note that you will need to remove r300 and r600 from the list if you haven't installed llvm-3.1. 
+	--with-gallium-drivers="nouveau,r300,r600,svga,swrast"
+# --with-egl-platforms="...": This parameter controls for which platforms EGL should be built. Available platforms are drm, x11 and wayland.
+	--with-egl-platforms="drm,x11"
+	--with-expat
+	--disable-static
+)
 DEPS=(glproto dri2proto libX11 libXext libXdamage libXfixes expat libdrm)
 TOOL_DEPS=(python libxml2 makedepend llvm)
-
-#--enable-texture-float: This switch enables floating-point textures and renderbuffers. Please consult docs/patents.txt to see if there are any legal issues if you use this feature.
-#--enable-gles1: This switch enables support for OpenGL ES 1.x API.
-#--enable-gles2: This switch enables support for OpenGL ES 2.x API.
-#--enable-xa: This switch enables building of the XA X Acceleration API (Required for VMware 3D Driver).
-#--enable-shared-glapi: This switch enables building of the shared glapi library.
-#--enable-shared-dricore: This switch enables linking of the DRI modules with shared core DRI routines.
-#--enable-glx-tls: This switch enables TLS support in GLX.
-#--with-gallium-drivers="...": This parameter controls which Gallium drivers should be built. Available drivers are: i915, nouveau, r300, r600, swrast and svga. Note that you will need to remove r300 and r600 from the list if you haven't installed llvm-3.1. 
