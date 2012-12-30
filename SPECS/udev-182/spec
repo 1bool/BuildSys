@@ -30,5 +30,5 @@ CONFIGFLAGS=(
 #KMOD_CFLAGS="-I/usr/include"
 #KMOD_LIBS="-L/lib -lkmod"
 
-DEPS=(glibc kmod)
+DEPS=(glibc kmod util-linux)
 TOOL_DEPS=(binutils gcc sed coreutils diffutils bash gawk make pkg-config)
