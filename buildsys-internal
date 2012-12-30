@@ -167,22 +167,22 @@ precede_conf_opts()
 	local ARG
 	if [ -z "$CONF_OPTS" ]; then
 		case "$PKG_NAME" in
-			ocaml|dhcpcd)
-				CONF_OPTS="$(cat configure)"
+			ocaml|dhcpcd|db)
+				CONF_OPTS="cat configure"
+				;;
+			openssl)
+				CONF_OPTS="cat Configure"
 				;;
 			*)
-				CONF_OPTS="$(./configure --help)"
+				CONF_OPTS="./configure --help"
 				;;
 		esac
 	fi
 	for ARG in "$@"; do
 		if ! in_list "$ARG" ${CONFIGFLAGS[@]}; then
-			if ! echo "$CONF_OPTS" | grep -F -q -e "${ARG%=*}" > /dev/null; then
-				if ! echo "$CONF_OPTS" | grep -F -q -e "${ARG% *}" > /dev/null; then
+			if [ -z "$($CONF_OPTS | grep -F -e "${ARG%=*}")" ] \
+				&& [ -z "$($CONF_OPTS | grep -F -e "${ARG% *}")" ]; then
 					bs_error "${PKG}'s configure does not support ${ARG%=*} directive"
-				else
-					CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
-				fi
 			else
 				CONFIGFLAGS=($ARG "${CONFIGFLAGS[@]}")
 			fi
@@ -404,7 +404,7 @@ pkg_unpack_patch()
 	fi
 
 	cd $PKG_DIR
-	if [ ! -f .unpacked-$PKG_NAME ] && [ ! -d "${SRC_DIR}" ]; then
+	if [ ! -f .unpacked-$PKG_NAME-$VERSION ] && [ ! -d "${SRC_DIR}" ]; then
 		if [ -z "${PKG_LOCATION[$N_LOC]}" ]; then
 			bs_error "No source file defined for \"$PKG\""
 		fi
@@ -421,9 +421,9 @@ pkg_unpack_patch()
 			bs_notice "Unpacking file ${ADDITION}"
 			unpack "$PKG_POOL/${ADDITION##*/}" "$SRC_DIR/$DIR_ADDTION"
 		done
-		touch .unpacked-$PKG_NAME
+		touch .unpacked-$PKG_NAME-$VERSION
 	fi
-	if [ ! -f .patched-$PKG_NAME ]; then
+	if [ ! -f .patched-$PKG_NAME-$VERSION ]; then
 		pushd "$SRC_DIR"
 		for PATCH in ${PATCHES[@]}; do
 			get_file "$PATCH" "$PKG_POOL"
@@ -450,7 +450,7 @@ pkg_unpack_patch()
 			pkg_rpm_prep
 		fi
 		popd
-		touch .patched-$PKG_NAME
+		touch .patched-$PKG_NAME-$VERSION
 	fi
 }
 
@@ -458,7 +458,7 @@ pkg_make_install()
 {
 	local -i i
 
-	if [ ! -f ".built-$PKG_NAME" ]; then
+	if [ ! -f ".built-$PKG_NAME-$VERSION" ]; then
 		pushd "$SRC_DIR"
 		# Execute any script or binary with env variables exported for it
 		# pre-build can be used to do patching job
@@ -479,7 +479,7 @@ pkg_make_install()
 				cd $MAKEDIR
 			fi
 			if [ -x configure ]; then
-				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME" ]; then
+				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME-$VERSION" ]; then
 					case $PKG_NAME in
 						qt-everywhere-opensource-src)
 							;;
@@ -505,7 +505,7 @@ pkg_make_install()
 					else
 						./configure ${CONFIGFLAGS[@]}
 					fi
-					touch ${PKG_DIR}/".configured-$PKG_NAME"
+					touch ${PKG_DIR}/".configured-$PKG_NAME-$VERSION"
 				fi
 			elif [[ -r Makefile && ! -d "$MAKEDIR" ]]; then
 				ln -vs "$SRC_DIR" "$MAKEDIR"
@@ -541,9 +541,9 @@ pkg_make_install()
 			fi
 		fi
 		popd
-		touch ".built-$PKG_NAME"
+		touch ".built-$PKG_NAME-$VERSION"
 	fi
-	if [ ! -f ".done-$PKG_NAME" ]; then
+	if [ ! -f ".done-$PKG_NAME-$VERSION" ]; then
 		# post-install can be used to fix installation problems
 		if declare -F post-install; then
 			pushd /
@@ -562,7 +562,7 @@ pkg_make_install()
 #			${PKG_SPECDIR}/configure
 #			popd
 #		fi
-		touch ".done-$PKG_NAME"
+		touch ".done-$PKG_NAME-$VERSION"
 	else
 		bs_notice "${PKG} has already been built. Skip."
 		return
@@ -581,7 +581,7 @@ pkg_make_clean()
 	bs_notice "Cleaing \"$PKG\"..."
 	make clean
 	cd $PKG_DIR
-	rm -f ".done-$PKG_NAME" ".built-$PKG_NAME"
+	rm -f ".done-$PKG_NAME-$VERSION" ".built-$PKG_NAME-$VERSION"
 }
 
 pkg_make_distclean()
@@ -599,7 +599,7 @@ pkg_make_distclean()
 		bs_error "\"${PKG_NAME}\" does not support make clean or distclean"
 	fi
 	cd $PKG_DIR
-	rm -rf ".done-$PKG_NAME" ".built-$PKG_NAME" ".configured-$PKG_NAME" $MAKEDIR
+	rm -rf ".done-$PKG_NAME-$VERSION" ".built-$PKG_NAME-$VERSION" ".configured-$PKG_NAME-$VERSION" $MAKEDIR
 }
 
 pkg_make_uninstall()
@@ -621,7 +621,7 @@ pkg_make_uninstall()
 		bs_notice "Uninstalling \"$PKG\"..."
 		make_fakeroot "$PKG_NAME" uninstall
 	fi
-	rm -f $PKG_DIR/".installed-$PKG_NAME"
+	rm -f $PKG_DIR/".installed-$PKG_NAME-$VERSION"
 }
 
 pkg_dest_install()
@@ -669,7 +669,7 @@ pkg_dest_install()
 		install -v -m 755 ${PKG_SPECDIR}/configure configure-$PKG_NAME
 	fi
 	cd -
-	touch $PKG_DIR/".installed-$PKG_NAME"
+	touch $PKG_DIR/".installed-$PKG_NAME-$VERSION"
 }
 
 pkg_remove()
