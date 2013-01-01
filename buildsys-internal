@@ -112,7 +112,7 @@ guess_pkg_info_from_location()
 		SRC_DIR="$PKG_DIR/${SRC_DIR}"
 	fi
 	if [ -z "$MAKEDIR" ]; then
-		MAKEDIR="$PKG_DIR/build-$PKG_NAME"
+		MAKEDIR="$PKG_DIR/build-$PKG_NAME-$VERSION"
 	else
 		MAKEDIR="$PKG_DIR/$MAKEDIR"
 	fi
@@ -475,9 +475,10 @@ pkg_make_install()
 				ln -vs "$SRC_DIR" "$MAKEDIR"
 			fi
 		else
-			if [ "$MAKEDIR" != "$PKG_DIR/build-$PKG_NAME" ]; then
+			if [ "$MAKEDIR" != "$PKG_DIR/build-$PKG_NAME-$VERSION" ]; then
 				cd $MAKEDIR
 			fi
+			bs_notice "$PKG $MAKEDIR"
 			if [ -x configure ]; then
 				if [ ! -f ${PKG_DIR}/".configured-$PKG_NAME-$VERSION" ]; then
 					case $PKG_NAME in
@@ -495,7 +496,7 @@ pkg_make_install()
 							;;
 					esac
 					bs_notice "Executing configure ${CONFIGFLAGS[@]}"
-					if [ "$MAKEDIR" = "$PKG_DIR/build-$PKG_NAME" ]; then
+					if [ "$MAKEDIR" = "$PKG_DIR/build-$PKG_NAME-$VERSION" ]; then
 						if [ ! -d $MAKEDIR ]; then
 							mkdir -pv $MAKEDIR
 						fi
@@ -605,8 +606,8 @@ pkg_make_distclean()
 pkg_make_uninstall()
 {
 	local LINE=
-	bs_notice "Uninstalling package $PKG..."
-	if [ ! -f ".installed-$PKG_NAME" ]; then
+	bs_notice "Uninstalling package $PKG...$PKG_DIR"
+	if [ ! -f ".installed-$PKG-$VERSION" ]; then
 		bs_notice "$PKG not installed, skipping..."
 		return
 	fi
@@ -621,13 +622,13 @@ pkg_make_uninstall()
 		bs_notice "Uninstalling \"$PKG\"..."
 		make_fakeroot "$PKG_NAME" uninstall
 	fi
-	rm -f $PKG_DIR/".installed-$PKG_NAME-$VERSION"
+	rm -f $PKG_DIR/".installed-$PKG-$VERSION"
 }
 
 pkg_dest_install()
 {
 	local -i i
-	if [ -f $PKG_DIR/".installed-$PKG_NAME" ]; then
+	if [ -f $PKG_DIR/".installed-$PKG-$VERSION" ]; then
 		bs_notice "$PKG has already been installed, skipping..."
 		return
 	fi
@@ -669,7 +670,7 @@ pkg_dest_install()
 		install -v -m 755 ${PKG_SPECDIR}/configure configure-$PKG_NAME
 	fi
 	cd -
-	touch $PKG_DIR/".installed-$PKG_NAME-$VERSION"
+	touch $PKG_DIR/".installed-$PKG-$VERSION"
 }
 
 pkg_remove()
