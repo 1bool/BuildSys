@@ -1,4 +1,5 @@
-CONFIGFLAGS="--prefix=$PREFIX --bindir=/bin --htmldir=$PREFIX/share/doc/sed-4.2.1"
-PKG_LOCATION='http://ftp.gnu.org/gnu/sed/sed-4.2.1.tar.bz2'
+VERSION=4.2.2
+CONFIGFLAGS="--prefix=$PREFIX --bindir=/bin --htmldir=$PREFIX/share/doc/sed-$VERSION"
+PKG_LOCATION="http://ftp.gnu.org/gnu/sed/sed-$VERSION.tar.bz2"
 DEPS=glibc
 TOOL_DEPS=(binutils gcc)
