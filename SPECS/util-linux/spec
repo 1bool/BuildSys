@@ -1,4 +1,10 @@
-VERSION=2.21.2
-PKG_LOCATION="http://www.kernel.org/pub/linux/utils/util-linux/v2.21/util-linux-$VERSION.tar.xz"
+VERSION=2.22.2
+PKG_LOCATION="http://www.kernel.org/pub/linux/utils/util-linux/v2.22/util-linux-$VERSION.tar.xz"
 DEPS=(glibc ncurses zlib)
 TOOL_DEPS=(binutils gcc sed)
+CONFIGFLAGS=(
+# --disable-* These switches disable building su, sulogin, and login. They duplicate the same programs provided by Section 6.26, “Shadow-4.1.5.1” and Section 6.58, “Sysvinit-2.88dsf”. They also require Linux-PAM which is not available in LFS.
+	--disable-su
+	--disable-sulogin
+	--disable-login
+)
