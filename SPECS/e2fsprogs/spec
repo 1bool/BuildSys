@@ -1,4 +1,4 @@
-VERSION=1.42.5
+VERSION=1.42.6
 PKG_LOCATION="http://prdownloads.sourceforge.net/e2fsprogs/e2fsprogs-$VERSION.tar.gz"
 CONFIGFLAGS='--with-root-prefix="" --enable-elf-shlibs --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck'
 MAKE_TARGETS=(all install install-libs)
