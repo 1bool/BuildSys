@@ -1020,8 +1020,8 @@ iso_pkgs()
 	mkdir -pv $ISO_ROOT
 
 	echo -n "Calculating dependencies..."
-	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux grub)"
-	TOOLS_LIST=(${BUILD_LIST%,*} tools.conf/util-linux)
+	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux grub tools.conf/util-linux)"
+	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
 	echo
