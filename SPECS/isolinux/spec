@@ -1,4 +1,4 @@
-VERSION=4.05
+VERSION=4.06
 PKG_LOCATION="http://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-$VERSION.tar.xz"
 TOOL_DEPS=cdrkit
 DEPS='kernel-cd'

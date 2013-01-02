@@ -4,15 +4,15 @@
 
 install -d ./isolinux
 install $SRC_DIR/core/isolinux.bin ./isolinux
-mv -vf boot/* ./isolinux
-rmdir -v boot
-ln -vsf isolinux boot
+cp -av boot/* ./isolinux
 pushd isolinux
 for KERN_FILE in vmlinuz System.map config; do
-    mv -v $KERN_FILE*cd $KERN_FILE
+    mv -fv $KERN_FILE* $KERN_FILE
 done
-rm -f *-buildsys
+rm -vf *-buildsys
 popd
+rm -vfr boot
+ln -vsf isolinux boot
 
 cat > isolinux/isolinux.cfg <<- "EOF"
 default bootcd
