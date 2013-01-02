@@ -1,4 +1,4 @@
-VERSION=22.19
+VERSION=22.20
 PKG_LOCATION="http://prdownloads.sourceforge.net/psmisc/psmisc-$VERSION.tar.gz"
 DEPS=(glibc ncurses)
 TOOL_DEPS=(binutils gcc sed)
