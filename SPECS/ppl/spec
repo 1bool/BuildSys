@@ -1,3 +1,4 @@
-PKG_LOCATION='ftp://ftp.cs.unipr.it/pub/ppl/releases/0.12.1/ppl-0.12.1.tar.xz'
-CONFIGFLAGS+='--enable-shared'
+VERSION=0.12.1
+PKG_LOCATION="ftp://ftp.cs.unipr.it/pub/ppl/releases/$VERSION/ppl-$VERSION.tar.xz"
+CONFIGFLAGS='--enable-shared'
 DEPS=(glibc gmp)
