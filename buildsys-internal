@@ -633,6 +633,7 @@ pkg_dest_install()
 		return
 	fi
 	if [ ! -d $MAKEDIR ]; then
+		bs_notice "${PKG}'s MAKEDIR \"$MAKEDIR\" not found!"
 		return
 	fi
 	if [ "$TARGET_INSTALL" = n ]; then
@@ -1020,7 +1021,7 @@ iso_pkgs()
 
 	echo -n "Calculating dependencies..."
 	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux grub)"
-	TOOLS_LIST=(${BUILD_LIST%,*})
+	TOOLS_LIST=(${BUILD_LIST%,*} tools.conf/util-linux)
 	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
 	echo
@@ -1054,7 +1055,6 @@ iso_pkgs()
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]}
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${INSTALL_LIST[@]}
 	strip_rootfs
-	set_passwd root "$ROOTPASSWD" || true
 
 	cat > etc/rc.d/init.d/create_ramdisk <<- "EOF"
 	#!/bin/sh
@@ -1715,10 +1715,7 @@ trap quit ERR
 if [ -z "$CONTINUE" ]; then
 	rm -f "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
 fi
-main $@ 2>&1 | tee -a "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
-RET_VAL=$?
-if [ -z "$SAVE_LOG" ] && [ $RET_VAL = 0 ]; then
-	rm "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
-else
+main $@ 2>&1 | tee "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log"
+if [ -n "$SAVE_LOG" ]; then
 	mv "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log" "$DEV_ROOT/LOG/$(basename $BUILD_CONF)-$START_TIME.log"
 fi
