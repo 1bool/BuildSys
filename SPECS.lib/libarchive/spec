@@ -1,6 +1,6 @@
 VERSION=3.0.4
 PKG_LOCATION="http://github.com/downloads/libarchive/libarchive/libarchive-$VERSION.tar.gz"
 CONFIGFLAGS='--disable-static'
-DEPS=(expat openssl nettle)
+DEPS=(expat openssl nettle attr)
 # fix an error when there's no zlib installed
 # #PATCHES='http://libarchive.googlecode.com/issues/attachment?aid=2420003000&name=nozlib.                                            patch&token=kKAwypFads7HE6SRIz1w1m7Alc8%3A1341934681018'
