@@ -1,0 +1,8 @@
+PKG_LOCATION=dummy-file
+PKG_NAME=kernel-cd
+DEPS=kernel-timesys
+
+build()
+{
+	:
+}

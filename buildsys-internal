@@ -22,7 +22,7 @@ bs_notice()
 
 quit()
 {
-	bs_error "buildsys process interrupting..."
+	bs_error "buildsys process interrupting when building $PKG..."
 	toolchain_link root
 	rm -f /tmp/bs_toolchain_link
 	if [ -f "$DEV_ROOT/LOG/$(basename $BUILD_CONF).log" ]; then
@@ -469,7 +469,9 @@ pkg_make_install()
 			${PKG_SPECDIR}/pre-build
 		fi
 		bs_notice "Building package ${PKG} in $SRC_DIR"
-		if [ -x ${PKG_SPECDIR}/build ]; then
+		if declare -F build; then
+			(build)
+		elif [ -x ${PKG_SPECDIR}/build ]; then
 			${PKG_SPECDIR}/build
 			if [ ! -d $MAKEDIR ]; then
 				ln -vs "$SRC_DIR" "$MAKEDIR"
@@ -607,7 +609,7 @@ pkg_make_uninstall()
 {
 	local LINE=
 	bs_notice "Uninstalling package $PKG...$PKG_DIR"
-	if [ ! -f ".installed-$PKG-$VERSION" ]; then
+	if [ ! -f "$FSROOT/.installed-$PKG-$VERSION" ]; then
 		bs_notice "$PKG not installed, skipping..."
 		return
 	fi
@@ -622,13 +624,13 @@ pkg_make_uninstall()
 		bs_notice "Uninstalling \"$PKG\"..."
 		make_fakeroot "$PKG_NAME" uninstall
 	fi
-	rm -f $PKG_DIR/".installed-$PKG-$VERSION"
+	rm -f $FSROOT/".installed-$PKG-$VERSION"
 }
 
 pkg_dest_install()
 {
 	local -i i
-	if [ -f $PKG_DIR/".installed-$PKG-$VERSION" ]; then
+	if [ -f $FSROOT/".installed-$PKG-$VERSION" ]; then
 		bs_notice "$PKG has already been installed, skipping..."
 		return
 	fi
@@ -671,7 +673,7 @@ pkg_dest_install()
 		install -v -m 755 ${PKG_SPECDIR}/configure configure-$PKG_NAME
 	fi
 	cd -
-	touch $PKG_DIR/".installed-$PKG-$VERSION"
+	touch $FSROOT/".installed-$PKG-$VERSION"
 }
 
 pkg_remove()
@@ -913,6 +915,8 @@ strip_rootfs()
 	OPATH=$PATH
 	PATH=/tools/bin
 	bs_notice "Stripping file system in ${PWD}..."
+	rm -rfv lib/modules/*/kernel/Documentation
+	rm -fv .installed*
 	[ -h ./$PREFIX/lib/rpm ] && rm -v ./$PREFIX/lib/rpm
 	[ $PREFIX = /tools ] || find . -name "*.a" -or -name "*.la" | xargs rm -rvf
 	find . -type f -executable -print0 | xargs -0 file -Ni 2> /dev/null \
@@ -1009,18 +1013,20 @@ ext4_pkgs()
 	rmdir -v /tmp/$$
 	e2fsck -yf $IMG_EXT4
 	resize2fs -M $IMG_EXT4
+	rm -rf * .[!.]*
 	popd
 	bs_notice "File $IMG_NAME.ext4 generated successfully"
 }
 
-iso_pkgs()
+iso_root_pkgs()
 {
-	ISO_ROOT=$DEV_ROOT/ISOROOT
+	if [ -z "$ISO_ROOT" ]; then
+		bs_error "ISO_ROOT empty"
+	fi
 	FSROOT=$ISO_ROOT
-	mkdir -pv $ISO_ROOT
 
 	echo -n "Calculating dependencies..."
-	BUILD_LIST="$(resolve_deps $(remove_from_list kernel ${PKG_LIST[@]}) kernel-cd isolinux grub tools.conf/util-linux)"
+	BUILD_LIST="$(resolve_deps ${@})"
 	TOOLS_LIST=(${BUILD_LIST%,*})
 	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
@@ -1037,7 +1043,6 @@ iso_pkgs()
 	printf "%s\n" " ${INSTALL_LIST[@]}"
 	echo '========================================='
 
-	pushd $FSROOT
 	if [ -z "$CONTINUE" ]; then
 		walk_pkg_dir -c -a pkg_make_uninstall ${INSTALL_LIST[@]}
 		bs_notice "Cleaning packages and ${FSROOT}"
@@ -1308,11 +1313,36 @@ iso_pkgs()
 		sleep 1
 	done
 	gzip $ISO_ROOT/boot/initrd
+}
+
+live_iso_pkgs()
+{
+	ISO_ROOT=$DEV_ROOT/ISOROOT
+	mkdir -pv $ISO_ROOT
+	pushd $ISO_ROOT
+	iso_root_pkgs ${LIVE_PKG_LIST[@]}
 	genisoimage -R -l -L -D -b isolinux/isolinux.bin -c isolinux/boot.cat \
 		-no-emul-boot -boot-load-size 4 -boot-info-table -V "$IMG_NAME" \
-		. > $GEN_DIR/$IMG_NAME.iso
+		. > $GEN_DIR/LIVE-$IMG_NAME.iso
+	rm -rf * .[!.]*
 	popd
-	bs_notice "Image $IMG_NAME.iso generated successfully"
+	bs_notice "Image LIVE-$IMG_NAME.iso generated successfully"
+}
+
+inst_iso_pkgs()
+{
+	ext4_pkgs
+	ISO_ROOT=$DEV_ROOT/ISOROOT
+	mkdir -pv $ISO_ROOT
+	pushd $ISO_ROOT
+	iso_root_pkgs ${LIVE_PKG_LIST[@]}
+	cp $GEN_DIR/$IMG_NAME.ext4 .
+	genisoimage -R -l -L -D -b isolinux/isolinux.bin -c isolinux/boot.cat \
+		-no-emul-boot -boot-load-size 4 -boot-info-table -V "$IMG_NAME" \
+		. > $GEN_DIR/INST-$IMG_NAME.iso
+	rm -rf * .[!.]*
+	popd
+	bs_notice "Image INST-$IMG_NAME.iso generated successfully"
 }
 
 rpm_pkgs()
@@ -1691,8 +1721,11 @@ case "$1" in
 	genext4)
 		ACTION=ext4_pkgs; shift
 		;;
-	geniso)
-		ACTION=iso_pkgs; shift
+	genliveiso)
+		ACTION=live_iso_pkgs; shift
+		;;
+	geninstiso)
+		ACTION=inst_iso_pkgs; shift
 		;;
 	genrpm)
 		ACTION=rpm_pkgs; shift

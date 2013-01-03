@@ -55,7 +55,31 @@ PKG_LIST=(
 	pvr-bin-cdv
 	psb-video-cdv
 	libva
-	)
+)
+
+LIVE_PKG_LIST=(
+	tools.conf/util-linux
+	isolinux
+	bash
+	coreutils
+	inetutils
+	util-linux
+	procps
+	psmisc
+	grep
+	gawk
+	sed
+	findutils
+	file
+	e2fsprogs
+	tar
+	gzip
+	bzip2
+	xz
+	udev
+	less
+	bootscripts
+)
 
 source $INCDIR/functions
 
