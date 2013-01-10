@@ -5,26 +5,7 @@ MYNAME="$(basename "$0")"
 [ "$(uname -m)" = 'x86_64' ] && SET32=linux32
 : ${DEVROOT_IN_SDK:="/root"}
 
-sde_print_help_and_exit()
-{
-	exec >&2
-	echo -e "Usage:\n $MYNAME [Options] [BuildSysRootDir]"
-	echo "Options:"
-	echo " --i686			Enter buildsys environment for i686 architecture"
-	echo "			(this is default if not specified)"
-	echo " --arm			Enter buildsys environment for ARM architecture"
-	echo " -s, --size N		Set lowest size limit of buildsys filesystem to N MB"
-	echo "			(default: 1024)"
-	echo " -C DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
-	echo " -h, --help		Print this help"
-	echo "Command:"
-	echo " enter			Get into buildsys environment"
-	echo " reset			Reset buildsys environment to initial state"
-	echo "			(reset all arch if not specified with --i686 or --arm)"
-	exit
-}
-
-buildsys_print_help_and_exit()
+print_help_and_exit()
 {
 	exec >&2
 	echo -e "Usage:\n $MYNAME [Options] Command PackageName ..."
@@ -38,6 +19,8 @@ buildsys_print_help_and_exit()
 	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
 	echo "			(default: build-${SDKARCH:-i686}.conf)"
+	echo " --shell		Get into buildsys environment"
+	echo " --reset		Reset buildsys environment to initial state"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo "			(default N = number of CPUs)"
 	echo " -h, --help		Print this help"
@@ -48,7 +31,8 @@ buildsys_print_help_and_exit()
 	echo " install		Install packages to rootfs"
 	echo " gentar			Generate root filesystem tarball"
 	echo " genext4		Generate ext4 root filesystem"
-	echo " geniso			Generate root filesystem installation cd"
+	echo " genliveiso		Generate livecd iso"
+	echo " geninstiso		Generate root filesystem installation iso"
 	echo " genrpm			Generate rpm package"
 	echo " clean			Clean packages"
 	echo " distclean		Dist clean package build directories and rootfs"
@@ -94,76 +78,49 @@ source_var_from_conf()
 	done
 }
 
-if [ $MYNAME = sde ]; then
-	GETOPTS=$(getopt -o s:f:h --long arm,i686,size:,config:,help -n "$0" -- "$@")
-	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
-	eval set -- "$GETOPTS"
-	while true; do
-		case "$1" in
-			--arm)
-				export ARCH=arm; shift
-				;;
-			--i686)
-				export ARCH=i686; shift
-				;;
-			-s | --size)
-				export SDFS_SIZE="${2}"; shift 2
-				;;
-			-C | --dir)
-				BS_ROOT="$2"; shift 2
-				;;
-			-f | --config)
-				CONF="$2"
-				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF} "; shift 2
-				;;
-			-h | --help)
-				${MYNAME}_print_help_and_exit; shift
-				;;
-			--)
-				shift ; break
-				;;
-			*)
-				${MYNAME}_print_help_and_exit
-				;;
-		esac
-	done
-else
-	MYNAME='buildsys'
-	GETOPTS=$(getopt -o scC:f:j:lh --long arm,i686,size,continue,dir:,config:,jobs:,log,help -n "$0" -- "$@")
-	[ $? != 0 ] && ${MYNAME}_print_help_and_exit
-	eval set -- "$GETOPTS"
-	set -a
-	while true; do
-		case "$1" in
-			--arm)
-				export ARCH=arm; shift
-				;;
-			--i686)
-				export ARCH=i686; shift
-				;;
-			-s | --size)
-				export SDFS_SIZE="${2}"; shift 2
-				;;
-			-C | --dir)
-				BS_ROOT="$2"; shift 2
-				;;
-			-f | --config)
-				CONF="$2"
-				INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF} "; shift 2
-				;;
-			-h | --help)
-				${MYNAME}_print_help_and_exit; shift
-				;;
-			--)
-				shift ; break
-				;;
-			*)
-				INTERNOPTS+="$1 "; shift
-				;;
-		esac
-	done
-	set +a
-fi
+GETOPTS=$(getopt -o scC:f:rj:lh --long arm,i686,size,continue,dir:,config:,shell,reset,jobs:,log,help -n "$0" -- "$@")
+[ $? != 0 ] && print_help_and_exit
+eval set -- "$GETOPTS"
+set -a
+while true; do
+	case "$1" in
+		--arm)
+			export ARCH=arm; shift
+			;;
+		--i686)
+			export ARCH=i686; shift
+			;;
+		-s | --size)
+			export SDFS_SIZE="${2}"; shift 2
+			;;
+		-C | --dir)
+			BS_ROOT="$2"; shift 2
+			;;
+		-f | --config)
+			CONF="$2"
+			INTERNOPTS+="$1 $DEVROOT_IN_SDK/${CONF} "; shift 2
+			;;
+		--shell)
+			CMD="/tools/bin/bash --login +h"
+			VERBOSE='--verbose'
+			shift
+			;;
+		-r | --reset)
+			CMD="reset"
+			shift
+			;;
+		-h | --help)
+			print_help_and_exit; shift
+			;;
+		--)
+			shift ; break
+			;;
+		*)
+			INTERNOPTS+="$1 "; shift
+			;;
+	esac
+done
+set +a
 
 export PARAMS="$@"
 if [ "$EUID" != 0 ]; then
@@ -176,7 +133,7 @@ fi
 : ${BS_ROOT:="$PWD"}
 : ${INC_DIR:="$BS_ROOT/INC"}
 : ${POOL:="$BS_ROOT/POOL"}
-: ${CONF:=$INC_DIR/build-$ARCH.conf}
+: ${CONF:=$INC_DIR/default.conf}
 
 for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
 	[ -f "$BUILD_CONF" ] && break
@@ -186,7 +143,7 @@ if [ "$BUILD_CONF" = 'NULL' ]; then
 	exit 1
 fi
 
-BUILD_ROOT="$BS_ROOT/BUILD/$(basename $CONF)"
+BUILD_ROOT="$BS_ROOT/BUILD/$(basename $(readlink $CONF))"
 SDE="$BUILD_ROOT/SDE"
 DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
 if [ "$ARCH" = 'i686' ]; then
@@ -227,44 +184,36 @@ case ${SIZE_UNIT} in
 		;;
 esac
 
-if [ "$MYNAME" = sde ]; then
-	case "$1" in
-		enter | '')
-			CMD="/tools/bin/bash --login +h"
-			VERBOSE='--verbose'
-			;;
-		reset)
-			if [ -f "$LOCKFILE" ]; then
-				echo "Error: $SDFS is in use"
-				exit 1
-			fi
-			while true; do
-				echo -n "Proceed reset buildsys for $BUILD_ROOT? (y/n) "
-				read ANSWER
-				case "$ANSWER" in
-					[nN] | [Nn][Oo])
-						echo "Buildsys reset canceled."
-						exit
-						;;
-					[yY] | [Yy][Ee][Ss])
-						break
-						;;
-					*)
-						;;
-				esac
-			done
-			echo -n "Resetting buildsys for $BUILD_ROOT... "
-			rm -rf "$BUILD_ROOT" "$BS_ROOT/LOG/$(basename $CONF)"* "$BS_ROOT/GEN/$(basename $CONF)"*
-			echo done.
-			exit
-			;;
-		*)
-			${MYNAME}_print_help_and_exit
-			;;
-	esac
-else
-	CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
-fi
+case "$CMD" in
+	'')
+		CMD="/tools/bin/buildsys-internal $INTERNOPTS $@"
+		;;
+	reset)
+		if [ -f "$LOCKFILE" ]; then
+			echo "Error: $SDFS is in use"
+			exit 1
+		fi
+		while true; do
+			echo -n "Proceed reset buildsys for $BUILD_ROOT? (y/n) "
+			read ANSWER
+			case "$ANSWER" in
+				[nN] | [Nn][Oo])
+					echo "Buildsys reset canceled."
+					exit
+					;;
+				[yY] | [Yy][Ee][Ss])
+					break
+					;;
+				*)
+					;;
+			esac
+		done
+		echo -n "Resetting buildsys for $BUILD_ROOT... "
+		rm -rf "$BUILD_ROOT" "$BS_ROOT/LOG/$(basename $CONF)"* "$BS_ROOT/GEN/$(basename $CONF)"*
+		echo done.
+		exit
+		;;
+esac
 
 if [ ! -d "${SPECS:-$BS_ROOT/SPECS}" ]; then
 	echo "Error: Directory \"$SPECS\" for SPECS not found"
