@@ -1,0 +1,4 @@
+VERSION=8.22
+PKG_LOCATION="http://pkgs.fedoraproject.org/repo/pkgs/grubby/grubby-$VERSION.tar.bz2/bbc077c34319b8319ed1fa741bc97578/grubby-$VERSION.tar.bz2"
+DEPS=(glibc popt rpm util-linux bash)
+MAKEFLAGS="DESTDIR=$PREFIX"
