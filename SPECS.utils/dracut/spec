@@ -2,3 +2,8 @@ VERSION=025
 PKG_LOCATION="http://www.kernel.org/pub/linux/utils/boot/dracut/dracut-$VERSION.tar.xz"
 MAKEDIR=dracut-$VERSION
 CONFIGFLAGS=(--disable-documentation)
+
+pre-build()
+{
+	ln -svf bash /tools/bin/dash
+}
