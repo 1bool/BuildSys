@@ -167,7 +167,7 @@ precede_conf_opts()
 	local ARG
 	if [ -z "$CONF_OPTS" ]; then
 		case "$PKG_NAME" in
-			ocaml|dhcpcd|db)
+			ocaml|dhcpcd|db|dracut)
 				CONF_OPTS="cat configure"
 				;;
 			openssl)
