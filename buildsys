@@ -18,7 +18,7 @@ print_help_and_exit()
 	echo " -C DIR, --dir DIR	Use DIR as buildsys root (default: current direcotry)"
 	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
-	echo "			(default: build-${SDKARCH:-i686}.conf)"
+	echo "			(default: build-${ARCH:-i686}.conf)"
 	echo " --shell		Get into buildsys environment"
 	echo " --reset		Reset buildsys environment to initial state"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
@@ -71,10 +71,13 @@ quit()
 
 source_var_from_conf()
 {
-	local FILE="$1" VARNAME
+	local FILE="$1" VARNAME VAR
 	shift
 	for VARNAME in $@; do
-		eval $(grep "^$VARNAME=.*" $FILE 2> /dev/null)
+		VAR=$(eval "echo \$$VARNAME")
+		if [ -z "$VAR" ]; then
+			eval $(grep "^$VARNAME=.*" $FILE 2> /dev/null)
+		fi
 	done
 }
 
@@ -128,11 +131,8 @@ if [ "$EUID" != 0 ]; then
 	exec su root -c "${0} ${PARAMS}"
 fi
 
-# Set defaults
-: ${ARCH:="i686"}
 : ${BS_ROOT:="$PWD"}
 : ${INC_DIR:="$BS_ROOT/INC"}
-: ${POOL:="$BS_ROOT/POOL"}
 : ${CONF:=$INC_DIR/default.conf}
 
 for BUILD_CONF in "$CONF" "$INC_DIR/$CONF" 'NULL'; do
@@ -143,16 +143,23 @@ if [ "$BUILD_CONF" = 'NULL' ]; then
 	exit 1
 fi
 
+source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE ARCH
+# Set defaults
+: ${ARCH:="i686"}
+: ${POOL:="$BS_ROOT/POOL"}
 BUILD_ROOT="$BS_ROOT/BUILD/$(basename $(readlink $CONF))"
 SDE="$BUILD_ROOT/SDE"
 DEV_ROOT="$BUILD_ROOT/DEV_ROOT"
-if [ "$ARCH" = 'i686' ]; then
-    SDKPATH=/tools/bin:/tools/sbin:/bin:/usr/bin:/sbin:/usr/sbin
-else
-    SDKPATH=/tools/bin:/tools/sbin
-fi
-source_var_from_conf "$BUILD_CONF" SPECDIRS BSE_FS_SIZE ARCH
-: ${SDFS_NAME:="buildsys-$ARCH"}
+case $ARCH in
+	i?86 | atom)
+		SDKPATH=/tools/bin:/tools/sbin:/bin:/usr/bin:/sbin:/usr/sbin
+		: ${SDFS_NAME:="buildsys-i686"}
+		;;
+	*)
+		SDKPATH=/tools/bin:/tools/sbin
+		: ${SDFS_NAME:="buildsys-$ARCH"}
+		;;
+esac
 : ${SDK_URL:="ftp://w1ball.3322.org:2102/buildsys/${SDFS_NAME}.ext4.xz"}
 SDFS="$BUILD_ROOT/$SDFS_NAME.ext4"
 LOCKFILE="$BUILD_ROOT/.$SDFS_NAME.lock"
@@ -275,6 +282,6 @@ if [ -r "$SDE/tools/etc/hostname" ]; then
 fi
 $SET32 /usr/sbin/chroot "$SDE" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' HOSTNAME=$SDENAME \
-    PATH=$SDKPATH SDKARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
+    PATH=$SDKPATH TARGET_ARCH=${ARCH} DEV_ROOT=$DEVROOT_IN_SDK \
 	BUILD_CONF="$DEVROOT_IN_SDK/INC/$(basename ${CONF})" \
     $CMD

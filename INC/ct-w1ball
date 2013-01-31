@@ -6,7 +6,7 @@ SPECDIRS=(SPECS.timesys SPECS SPECS.utils SPECS.lib SPECS.security SPECS.dev SPE
 PREFIX=/usr
 CFLAGS='-pipe -O3 -march=atom -mtune=atom -mfpmath=sse'
 CXXFLAGS="-pipe -O3 -march=atom -mtune=atom -mfpmath=sse"
-ARCH=i686
+ARCH=atom
 ABI=32
 LOCALES=zh_CN
 ROOTPASSWD=''

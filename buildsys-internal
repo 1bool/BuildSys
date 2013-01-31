@@ -6,7 +6,7 @@ START_TIME=$(date +%F-%X)
 OPTS_ORIG="$@"
 : ${DEV_ROOT:=/root}
 SDKPATH=$PATH
-export DEV_ROOT SDKARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
+export DEV_ROOT TARGET_ARCH BUILD_DIR=$DEV_ROOT/BUILD SPECS=$DEV_ROOT/SPECS \
 	PKG_POOL=$DEV_ROOT/POOL FSROOT=$DEV_ROOT/ROOT INCDIR=$DEV_ROOT/INC GEN_DIR=$DEV_ROOT/GEN
 
 bs_error()
@@ -202,21 +202,24 @@ export_cross_tools()
 
 parse_conf_var()
 {
-	if [ "$SDKARCH" = i686 ]; then
-		set +h
-		PATH=$SDKPATH
-		unset ARCH
-	else
-		export ARCH=$SDKARCH
-	fi
+	case $TARGET_ARCH in
+		i?86 | x86* | atom)
+			set +h
+			PATH=$SDKPATH
+			unset ARCH
+			;;
+		*)
+			export ARCH=$TARGET_ARCH
+			;;
+	esac
 	: ${PREFIX:=/usr}
 	if [ "$PREFIX" = /tools ]; then
 		export BUILDSYS_LINK=tools PKG_CONFIG_PATH=/tools/lib/pkg-config
 		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP
 	else
 		export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-		case $SDKARCH in
-			i?86 | x86*)
+		case $TARGET_ARCH in
+			i?86 | x86* | atom)
 				export ${BUILDSYS_LINK:=root}
 				;;
 			arm)
@@ -704,7 +707,7 @@ pkg_rpm_prep()
 pkg_rpm_install()
 {
 	bs_notice "Executing rpmbuild -vv -bc --short-circuit"
-	rpmbuild -vv -bc --short-circuit --nodeps \
+	rpmbuild -vv -bc --short-circuit --nodeps --target atom \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -712,6 +715,7 @@ pkg_rpm_install()
 		--define "_specdir $SRC_DIR" \
 		--define "_prefix $PREFIX" \
 		--define "_buildrootdir %{_topdir}/files" \
+		--define "_target_cpu $TARGET_ARCH" \
 		--define "_smp_mflags $MAKEJOBS" \
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
@@ -750,8 +754,8 @@ pkg_rpmbuild()
 {
 	case $SUFFIX in
 		src.rpm|SRC.RPM)
-			bs_notice "Executing rpmbuild -vv --rebuild"
-			rpmbuild -vv --rebuild \
+			bs_notice "Executing rpmbuild -vv --rebuild --target ${TARGET_ARCH}_buildsys_linux"
+			rpmbuild -vv --rebuild --target ${TARGET_ARCH}_buildsys_linux \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \
 				--define "_topdir $PKG_DIR" \
@@ -765,8 +769,8 @@ pkg_rpmbuild()
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
 		tar.*)
-			bs_notice "Executing rpmbuild -vv -ta"
-			rpmbuild -vv -ta \
+			bs_notice "Executing rpmbuild -vv -ta --target ${TARGET_ARCH}_buildsys_linux"
+			rpmbuild -vv -ta --target ${TARGET_ARCH}_buildsys_linux \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \
 				--define "_topdir $PKG_DIR" \
@@ -1558,7 +1562,7 @@ resolve_deps()
 			add_dep_pkg $PKG
 		fi
 	done
-#	case $SDKARCH in
+#	case $TARGET_ARCH in
 #		i?86|x86*)
 #			;;
 #		*)
@@ -1595,7 +1599,7 @@ print_help_and_exit()
 	echo "Options:"
 	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
-	echo "			(default: build-${SDKARCH:-i686}.conf)"
+	echo "			(default: build-${TARGET_ARCH:-i686}.conf)"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo "			(default N = number of CPUs)"
 	echo " -h, --help		Print this help"
@@ -1694,7 +1698,7 @@ done
 export BSE_TOOLS
 
 set -a
-source ${BUILD_CONF:="$INCDIR/build-${SDKARCH}.conf"}
+source ${BUILD_CONF:="$INCDIR/build-${TARGET_ARCH}.conf"}
 set +a
 
 case "$1" in

@@ -1,0 +1,32 @@
+diff -Nuar kernel-3.0.0.orig/kernel.spec kernel-3.0.0/kernel.spec
+--- kernel-3.0.0.orig/kernel.spec	2012-09-18 19:55:24.000000000 +0800
++++ kernel-3.0.0/kernel.spec	2013-02-01 03:14:48.813661245 +0800
+@@ -113,7 +113,7 @@
+ %build
+ # Set non-specified options to default
+ yes '' | make ARCH=x86 oldconfig
+-make ARCH=x86 bzImage modules
++make %{?_smp_mflags} ARCH=x86 bzImage modules
+ 
+ %install
+ 
+@@ -204,7 +204,7 @@
+ while read i
+ do
+ 	echo -n "${i#$RPM_BUILD_ROOT/lib/modules/%{my_version}-%{my_release}/} " >> modinfo
+-	/sbin/modinfo -l $i >> modinfo
++	modinfo -l $i >> modinfo
+ done < modnames
+ 
+ # If we have another version of GPL, then perhaps we should change 'v2' below
+@@ -238,8 +238,8 @@
+ %clean
+ rm -rf $RPM_BUILD_ROOT
+ 
+-%post
+-/sbin/new-kernel-pkg --package kernel --mkinitrd --dracut --depmod --install %{my_version}-%{my_release}
++#%post
++#new-kernel-pkg --package kernel --mkinitrd --dracut --depmod --install %{my_version}-%{my_release}
+ 
+ %files headers
+ %defattr(-,root,root)

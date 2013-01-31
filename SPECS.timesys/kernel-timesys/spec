@@ -2,12 +2,7 @@
 PKG_LOCATION="http://repository.timesys.com/buildsources/fedora/14-CT/common/source/SRPMS/kernel-3.0.0-4.src.rpm"
 #PATCHES="0-suppress-compile-warning.patch"
 #PATCHES="fix-install-error.patch"
-#PATCHES="parallel_make.patch"
-TOOL_DEPS=(cpio rpm buildsys-rpm-config kmod grubby dracut)
+PATCHES="parallel_make.patch"
+TOOL_DEPS=(cpio rpm buildsys-rpm-config kmod)
 BUILDSYS_LINK=tools
 #MAKEFLAGS='DEPMOD=/tools/sbin/depmod'
-
-pre-build()
-{
-	sed -i 's|/sbin/|/tools/sbin/|' kernel.spec
-}
