@@ -1,0 +1,14 @@
+diff -Nura kernel-3.0.0.orig/kernel.spec kernel-3.0.0/kernel.spec
+--- kernel-3.0.0.orig/kernel.spec	2013-02-03 19:38:45.092039006 +0800
++++ kernel-3.0.0/kernel.spec	2013-02-03 19:38:28.864039664 +0800
+@@ -126,8 +126,8 @@
+ cp System.map $RPM_BUILD_ROOT/boot/System.map-%{my_version}-%{my_release}
+ 
+ # Modules and firmware installation
+-make INSTALL_MOD_PATH=$RPM_BUILD_ROOT modules_install
+-make INSTALL_FW_PATH=$RPM_BUILD_ROOT/lib/firmware firmware_install
++make $MAKEFLAGS INSTALL_MOD_PATH=$RPM_BUILD_ROOT modules_install
++make $MAKEFLAGS INSTALL_FW_PATH=$RPM_BUILD_ROOT/lib/firmware firmware_install
+ 
+ # DEVEL Package preparation
+ # Moving 'devel' files to a uniform location

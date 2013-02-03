@@ -1,4 +1,0 @@
-#!/bin/sh
-if [ ! -e /usr/lib/rpm ]; then
-	ln -sv /tools/lib/rpm /usr/lib
-fi
