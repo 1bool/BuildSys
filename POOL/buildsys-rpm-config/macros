@@ -485,3 +485,11 @@ install -D -m 644 %1-16.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/16x16/apps/
 %global __find_provides /bin/sh -c "%{?__filter_prov_cmd} %{__deploop P} %{?__filter_from_prov}" \
 %global __find_requires /bin/sh -c "%{?__filter_req_cmd}  %{__deploop R} %{?__filter_from_req}" \
 }
+
+#------------------------------------------------------------------------------
+# arch macro for all Intel i?86 compatibile processors
+#  (Note: This macro (and it's analogues) will probably be obsoleted when
+#   rpm can use regular expressions against target platforms in macro
+#   conditionals.
+#
+%ix86   i386 i486 i586 i686 pentium3 pentium4 athlon geode atom

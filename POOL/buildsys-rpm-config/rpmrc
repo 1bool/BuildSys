@@ -4,7 +4,7 @@ Optflags: i386 %{__global_cflags} -m32 -march=i386 -mtune=generic -fasynchronous
 Optflags: i486 %{__global_cflags} -m32 -march=i486 -fasynchronous-unwind-tables
 Optflags: i586 %{__global_cflags} -m32 -march=core2 -mssse3  -mtune=atom -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
 Optflags: i686 %{__global_cflags} -m32 -march=core2 -mssse3  -mtune=atom  -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
-Optflags: atom %{__global_cflags} -m32 -march=atom -mssse3  -mtune=atom  -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
+optflags: atom %{__global_cflags} -m32 -march=atom -mssse3  -mtune=atom  -mfpmath=sse -fasynchronous-unwind-tables -fno-omit-frame-pointer
 optflags: athlon %{__global_cflags} -m32 -march=athlon -fasynchronous-unwind-tables
 optflags: ia64 %{__global_cflags}
 optflags: x86_64 %{__global_cflags} -m64 -mtune=generic
@@ -66,6 +66,8 @@ optflags: hades %{__global_cflags}
 optflags: s390 %{__global_cflags} -m31
 optflags: s390x %{__global_cflags} -m64
 
+# Canonical arch names and numbers
+arch_canon:     atom:   atom    1
 
 # set build arch to fedora buildarches on hardware capable of running it
 # saves having to do rpmbuild --target=
@@ -75,9 +77,12 @@ buildarchtranslate: pentium4: i586
 buildarchtranslate: pentium3: i586
 buildarchtranslate: i686: i586
 buildarchtranslate: i586: i586
-
+buildarchtranslate: atom: i586
 buildarchtranslate: armv5tejl: armv5tel
 buildarchtranslate: armv6l: armv5tel
 
+# Architecture compatibility
+buildarch_compat: athlon: i686
+arch_compat: atom: i686
 
 macrofiles:     /usr/lib/rpm/macros:/usr/lib/rpm/%{_target}/macros:/usr/lib/rpm/buildsys/macros:/etc/rpm/macros.*:/etc/rpm/macros:/etc/rpm/%{_target}/macros:~/.rpmmacros

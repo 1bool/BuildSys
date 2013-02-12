@@ -215,9 +215,9 @@ parse_conf_var()
 	: ${PREFIX:=/usr}
 	if [ "$PREFIX" = /tools ]; then
 		export BUILDSYS_LINK=tools PKG_CONFIG_PATH=/tools/lib/pkg-config
-		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP
+		unset BUILDSYS_HOST BUILDSYS_BUILD CROSS_MAKEOPTS CC CXX LD AR AS RANLIB STRIP RPM_TARGET
 	else
-		export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+		export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig RPM_TARGET="--target $TARCH"
 		case $TARCH in
 			i?86 | x86* | atom)
 				export ${BUILDSYS_LINK:=root}
@@ -707,7 +707,7 @@ pkg_rpm_prep()
 pkg_rpm_install()
 {
 	bs_notice "Executing rpmbuild -vv -bc --short-circuit"
-	rpmbuild -vv -bc --short-circuit --nodeps --target ${TARCH}_buildsys_linux \
+	rpmbuild -vv -bc --short-circuit --nodeps $RPM_TARGET \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -719,7 +719,7 @@ pkg_rpm_install()
 		--define "debug_package %{nil}" \
 		"$RPM_SPEC"
 	bs_notice "Executing rpmbuild -vv -bi --short-circuit"
-	rpmbuild -vv -bi --short-circuit --nodeps \
+	rpmbuild -vv -bi --short-circuit --nodeps $RPM_TARGET \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -736,7 +736,7 @@ pkg_rpm_install()
 pkg_rpm_dest_install()
 {
 	bs_notice "Executing rpmbuild -vv -bi --short-circuit"
-	rpmbuild -vv -bi --short-circuit --nodeps \
+	rpmbuild -vv -bi --short-circuit --nodeps $RPM_TARGET \
 		--define "_sourcedir $SRC_DIR" \
 		--define "_builddir $MAKEDIR" \
 		--define "_topdir $PKG_DIR" \
@@ -753,7 +753,7 @@ pkg_rpmbuild()
 {
 	case $SUFFIX in
 		src.rpm|SRC.RPM)
-			bs_notice "Executing rpmbuild -vv --rebuild --target ${TARCH}_buildsys_linux"
+			bs_notice "Executing rpmbuild -vv --rebuild $RPM_TARGET"
 			rpmbuild -vv --rebuild --target ${TARCH}_buildsys_linux \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \
@@ -768,7 +768,7 @@ pkg_rpmbuild()
 				$PKG_POOL/$PKG_FILE_NAME
 			;;
 		tar.*)
-			bs_notice "Executing rpmbuild -vv -ta --target ${TARCH}_buildsys_linux"
+			bs_notice "Executing rpmbuild -vv -ta $RPM_TARGET"
 			rpmbuild -vv -ta --target ${TARCH}_buildsys_linux \
 				--define "_sourcedir $SRC_DIR" \
 				--define "_builddir $MAKEDIR" \

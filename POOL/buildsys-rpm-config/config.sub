@@ -402,6 +402,9 @@ case $basic_machine in
 	altos | altos3068)
 		basic_machine=m68k-altos
 		;;
+	atom)
+		basic_machine=atom-pc
+		;;
 	am29k)
 		basic_machine=a29k-none
 		os=-bsd
