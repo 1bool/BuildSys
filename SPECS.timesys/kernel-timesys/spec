@@ -19,8 +19,8 @@ post-install()
 {
 #	[ -h /usr/lib/rpm ] && rm -v /usr/lib/rpm
 	cp -a $FAKEROOT/usr/include /usr/kernel-headers
-	cp -av $MAKEDIR/linux-$VERSION/drivers/staging/cdv/imgv/*.h ./$PREFIX/include
-	cp -av $MAKEDIR/linux-$VERSION/include/drm/ttm ./$PREFIX/include
+	cp -a $MAKEDIR/linux-$VERSION/drivers/staging/cdv/imgv/*.h ./$PREFIX/include
+	cp -a $MAKEDIR/linux-$VERSION/include/drm/ttm ./$PREFIX/include
 
 	mkdir -pv boot/grub
 	cat > boot/grub/grub.cfg << EOF

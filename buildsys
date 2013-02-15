@@ -8,7 +8,7 @@ MYNAME="$(basename "$0")"
 print_help_and_exit()
 {
 	exec >&2
-	echo -e "Usage:\n $MYNAME [Options] Command PackageName ..."
+	echo -e "Usage:\n $MYNAME [Options] PackageName ..."
 	echo "Options:"
 	echo " --i686			Enter buildsys environment for i686 architecture"
 	echo "			(default i686 if not specified)"
@@ -19,24 +19,20 @@ print_help_and_exit()
 	echo " -c, --continue		Resume previous buildsys process"
 	echo " -f FILE, --config FILE	Use FILE as build config"
 	echo "			(default: build-${ARCH:-i686}.conf)"
-	echo " --shell		Get into buildsys environment"
-	echo " --reset		Reset buildsys environment to initial state"
 	echo " -j N, --jobs N		Build with N jobs running concurrently"
 	echo "			(default N = number of CPUs)"
-	echo " -h, --help		Print this help"
-	echo "Command:"
-	echo " unpack			Unpack only, don't build the package"
-	echo " build			Build only, don't make target rootfs"
+	echo " --shell		Get into buildsys environment"
+	echo " --reset		Reset buildsys environment to initial state"
+	echo " --unpack		Unpack only, don't build the package"
+	echo " --build		Build only, don't make target rootfs"
 	echo "			(This is default if no Command specified)"
-	echo " install		Install packages to rootfs"
-	echo " gentar			Generate root filesystem tarball"
-	echo " genext4		Generate ext4 root filesystem"
-	echo " genliveiso		Generate livecd iso"
-	echo " geninstiso		Generate root filesystem installation iso"
-	echo " genrpm			Generate rpm package"
-	echo " clean			Clean packages"
-	echo " distclean		Dist clean package build directories and rootfs"
-	echo " uninstall		Uninstall package from root directory in SDE"
+	echo " --install FORMAT 	Install packages to rootfs, and optionally generate FORMAT binary or image"
+	echo "			(default: install to root directory.)"
+	echo " 			(Valid FORMAT: tar, rpm, ext4, iso-install, iso-live, raw-usb-install)"
+	echo " --clean		Clean packages"
+	echo " --distclean		Dist clean package build directories and rootfs"
+	echo " --uninstall		Uninstall package from root directory in SDE"
+	echo " -h, --help		Print this help"
 	echo "PackageName:"
 	echo " \"all\"			Build all packages specified in config file"
 	echo "			(default all for empty PackageName)"
@@ -81,7 +77,7 @@ source_var_from_conf()
 	done
 }
 
-GETOPTS=$(getopt -o scC:f:rj:lh --long arm,i686,size,continue,dir:,config:,shell,reset,jobs:,log,help -n "$0" -- "$@")
+GETOPTS=$(getopt -o scC:f:rj:lh --long arm,i686,size,continue,dir:,config:,shell,reset,unpack,build,install:,jobs:,log,help -n "$0" -- "$@")
 [ $? != 0 ] && print_help_and_exit
 eval set -- "$GETOPTS"
 set -a
