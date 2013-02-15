@@ -872,16 +872,25 @@ install_pkgs()
 	case $GEN_FORMAT in
 		ext4)
 			BUILD_LIST="$(resolve_deps tools.conf/e2fsprogs ${PKG_LIST[@]})"
-			;;
+			;;&
 		iso-live)
 			BUILD_LIST="$(resolve_deps ${LIVE_PKG_LIST[@]} ${PKG_LIST[@]})"
+			;;&
+		iso)
+			BUILD_LIST="$(resolve_deps tools.conf/e2fsprogs ${PKG_LIST[@]})"
+			INSTALL_LIST=(${BUILD_LIST#*,})
+			BUILD_LIST="$(resolve_deps ${LIVE_PKG_LIST[@]})"
+			LIVE_LIST=(${BUILD_LIST#*,})
+			BUILD_LIST="$(resolve_deps tools.conf/e2fsprogs ${PKG_LIST[@]} ${LIVE_PKG_LIST[@]})"
 			;;
-		*)
+		dir|tar)
 			BUILD_LIST="$(resolve_deps ${PKG_LIST[@]})"
+			;;&
+		dir|tar|ext4|iso-live)
+			INSTALL_LIST=(${BUILD_LIST#*,})
 			;;
 	esac
 	TOOLS_LIST=(${BUILD_LIST%,*})
-	INSTALL_LIST=(${BUILD_LIST#*,})
 	echo
 	echo
 	if [ ${#TOOLS_LIST[@]} != 0 ]; then
@@ -908,8 +917,22 @@ install_pkgs()
 
 	walk_pkg_dir -a "pkg_unpack_patch pkg_make_install" ${TOOLS_LIST[@]} ${INSTALL_LIST[@]}
 	bs_notice "Package(s) \"${PKG_LIST[@]}\" build complete."
+
 	case $GEN_FORMAT in
-		ext4|iso-live)
+		dir|tar)
+			walk_pkg_dir -a pkg_dest_install ${PKG_LIST[@]}
+			;;&
+		dir)
+			mkdir -pv $GEN_DIR/$IMG_NAME
+			mv * .[^.]* $GEN_DIR/$IMG_NAME
+			bs_notice "Package(s) \"${PKG_LIST[@]}\" install complete."
+			;;
+		tar)
+			strip_rootfs
+			tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
+			bs_notice "File $IMG_NAME.tar.xz generated successfully"
+			;;
+		ext4|iso|iso-live)
 			if [ ! -f .bse_init ] && declare -F configure_fs > /dev/null; then
 				bs_notice "Creating essential directories and files in ${PWD}"
 				configure_fs
@@ -917,29 +940,28 @@ install_pkgs()
 			fi
 			walk_pkg_dir -a pkg_dest_install ${INSTALL_LIST[@]}
 			strip_rootfs
-			case $GEN_FORMAT in
-				ext4)
-					copy_dir_to_ext4 "$GEN_DIR/$IMG_NAME.ext4"
-					bs_notice "File $IMG_NAME.ext4 generated successfully"
-					;;
-				iso-live)
-					copy_dir_to_iso "$GEN_DIR/$IMG_NAME.iso"
-					bs_notice "Image $IMG_NAME.iso generated successfully"
-					;;
-			esac
+			;;&
+		ext4|iso)
+			copy_dir_to_ext4 "$GEN_DIR/$IMG_NAME.ext4"
+			bs_notice "File $IMG_NAME.ext4 generated successfully"
+			;;&
+		iso)
 			rm -rf * .[!.]*
-			;;
-		*)
-			walk_pkg_dir -a pkg_dest_install ${PKG_LIST[@]}
-			if [ "$GEN_FORMAT" = tar ]; then
-				strip_rootfs
-				tar -Jcvf $GEN_DIR/$IMG_NAME.tar.xz .
-				bs_notice "File $IMG_NAME.tar.xz generated successfully"
-			else
-				bs_notice "Package(s) \"${PKG_LIST[@]}\" install complete."
+			if declare -F configure_fs > /dev/null; then
+				configure_fs
+				touch .bse_init
 			fi
+			walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${LIVE_LIST[@]}
+			strip_rootfs
+			mv -v "$GEN_DIR/$IMG_NAME.ext4" .
+			;;&
+		iso|iso-live)
+			copy_dir_to_iso "$GEN_DIR/$IMG_NAME.iso"
+			bs_notice "Image $IMG_NAME.iso generated successfully"
 			;;
 	esac
+	bs_notice "Cleaning up directory ${FSROOT}..."
+	rm -rf * .[!.]*
 	popd
 }
 
@@ -1941,7 +1963,7 @@ print_help_and_exit()
 	echo "			(This is default if no Command specified)"
 	echo " --install FORMAT 	Install packages to rootfs, and optionally generate FORMAT binary or image"
 	echo "			(default: install to root directory.)"
-	echo " 			(Valid FORMAT: tar, rpm, ext4, iso-install, iso-live, raw-usb-install)"
+	echo " 			(Valid FORMAT: dir, tar, rpm, ext4, iso, iso-live, raw-usb-install)"
 	echo " --clean		Clean packages"
 	echo " --distclean		Dist clean package build directories and rootfs"
 	echo " --uninstall		Uninstall package from root directory in SDE"
@@ -2036,13 +2058,14 @@ while true; do
 		--install)
 			ACTION=install_pkgs
 			case $2 in
-				tar|rpm|ext4|iso-install|iso-live|raw-usb-install)
-					GEN_FORMAT=$2
+				dir|tar|rpm|ext4|iso|iso-live|raw-usb-install)
+					GEN_FORMAT="$2"
 					;;
 				"")
+					GEN_FORMAT='dir'
 					;;
 				*)
-					bs_error "Invalid format"
+					bs_error "Invalid install format"
 					;;
 			esac
 			shift 2
