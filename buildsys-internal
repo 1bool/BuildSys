@@ -881,6 +881,8 @@ install_pkgs()
 			INSTALL_LIST=(${BUILD_LIST#*,})
 			BUILD_LIST="$(resolve_deps ${LIVE_PKG_LIST[@]})"
 			LIVE_LIST=(${BUILD_LIST#*,})
+			# kernel-timesys doesn't work with ramdisk
+			LIVE_LIST=(${LIVE_LIST[@]/kernel-timesys/})
 			BUILD_LIST="$(resolve_deps tools.conf/e2fsprogs ${PKG_LIST[@]} ${LIVE_PKG_LIST[@]})"
 			;;
 		dir|tar)
@@ -943,7 +945,8 @@ install_pkgs()
 			;;&
 		ext4|iso)
 			copy_dir_to_ext4 "$GEN_DIR/$IMG_NAME.ext4"
-			xz -v "$GEN_DIR/$IMG_NAME.ext4"
+			bs_notice "Compressing $IMG_NAME.ext4..."
+			xz -v -T $CPUS "$GEN_DIR/$IMG_NAME.ext4"
 			bs_notice "File $IMG_NAME.ext4.xz generated successfully"
 			;;&
 		iso)
@@ -1033,7 +1036,7 @@ copy_dir_to_ext4()
 	umount /tmp/$$
 	rmdir -v /tmp/$$
 	e2fsck -yf $IMG_EXT4
-	resize2fs -M $IMG_EXT4
+	resize2fs -Mp $IMG_EXT4
 }
 
 copy_dir_to_iso()
@@ -1169,7 +1172,7 @@ copy_dir_to_iso()
 	ln -vfs test bin/[
 	cp -v $ISO_ROOT/lib/{libncursesw.so.5,libdl.so.2} lib/
 	cp -v $ISO_ROOT/lib/{libc.so.6,libreadline.so.6} lib/
-	cp -v $ISO_ROOT/lib/{libhistory.so.6,libblkid.so.1,libuuid.so.1} lib/
+	cp -v $ISO_ROOT/lib/{libhistory.so.6,libblkid.so.1,libuuid.so.1,libmount.so.1} lib/
 	cp -v $ISO_ROOT/lib/{libpthread.so.0,librt.so.1} lib/
 	if [ -f $ISO_ROOT/lib/ld-linux.so.2 ] 
 	then 

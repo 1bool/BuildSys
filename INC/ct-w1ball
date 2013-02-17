@@ -12,6 +12,7 @@ LOCALES=zh_CN
 ROOTPASSWD=''
 BSE_FS_SIZE=3G
 XORG_CONFIG="--sysconfdir=/etc --mandir=$PREFIX/share/man --localstatedir=/var"
+
 PKG_LIST=(
 	kernel-timesys
 	kernel-headers
@@ -60,10 +61,13 @@ PKG_LIST=(
 LIVE_PKG_LIST=(
 	tools.conf/util-linux
 	isolinux
+	grub
+	sysvinit
 	bash
 	coreutils
 	inetutils
 	util-linux
+	iproute2
 	procps
 	psmisc
 	grep
@@ -78,6 +82,7 @@ LIVE_PKG_LIST=(
 	xz
 	udev
 	less
+	kbd
 	bootscripts
 )
 
@@ -262,8 +267,7 @@ configure_fs()
 	#!/bin/sh
 	CONFIGS=$(find / -maxdepth 1 -type f -executable -name 'configure-*' | ls -tr)
 	for CONFIG in $CONFIGS; do
-		$CONFIG
-		rm -fv $CONFIG
+		$CONFIG && rm -fv $CONFIG
 	done
 	EOF
 	ln -sf  ../init.d/buildsys-config etc/rc.d/rc0.d/S99buildsys-config

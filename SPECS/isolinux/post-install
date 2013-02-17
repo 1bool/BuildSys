@@ -14,16 +14,16 @@ popd
 rm -vfr boot
 ln -vsf isolinux boot
 
-cat > isolinux/isolinux.cfg <<- "EOF"
+cat > isolinux/isolinux.cfg <<- EOF
 default bootcd
 prompt 1
 timeout 40
 
 label bootcd
 kernel vmlinuz
-append initrd=initrd.gz root=/dev/ram0 init=/linuxrc ramdisk_size=16384
+append initrd=initrd.gz root=/dev/ram0 init=/linuxrc ramdisk_size=${RAMDISK_SIZE:-16384}
 
 label initrdshell
 kernel vmlinuz
-append initrd=initrd.gz root=/dev/ram0 init=/bin/bash ramdisk_size=16384
+append initrd=initrd.gz root=/dev/ram0 init=/bin/bash ramdisk_size=${RAMDISK_SIZE:-16384}
 EOF
