@@ -943,7 +943,8 @@ install_pkgs()
 			;;&
 		ext4|iso)
 			copy_dir_to_ext4 "$GEN_DIR/$IMG_NAME.ext4"
-			bs_notice "File $IMG_NAME.ext4 generated successfully"
+			xz -v "$GEN_DIR/$IMG_NAME.ext4"
+			bs_notice "File $IMG_NAME.ext4.xz generated successfully"
 			;;&
 		iso)
 			rm -rf * .[!.]*
@@ -953,7 +954,7 @@ install_pkgs()
 			fi
 			walk_pkg_dir -a "pkg_unpack_patch pkg_make_install pkg_dest_install" ${LIVE_LIST[@]}
 			strip_rootfs
-			mv -v "$GEN_DIR/$IMG_NAME.ext4" .
+			mv -v "$GEN_DIR/$IMG_NAME.ext4.xz" .
 			;;&
 		iso|iso-live)
 			copy_dir_to_iso "$GEN_DIR/$IMG_NAME.iso"
